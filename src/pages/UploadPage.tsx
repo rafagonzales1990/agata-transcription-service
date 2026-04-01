@@ -6,14 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from '@/components/ui/dialog';
-import { Upload, Mic, ClipboardPaste, CheckCircle, Loader2, AlertTriangle } from 'lucide-react';
+import { Upload, Mic, ClipboardPaste, CheckCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Link } from 'react-router-dom';
+import { LimitReachedDialog } from '@/components/LimitReachedDialog';
 
 const tabs = [
   { id: 'upload' as const, label: 'Upload', icon: Upload },
@@ -40,15 +37,14 @@ export default function UploadPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
   const [limitReached, setLimitReached] = useState(false);
+  const [usageInfo, setUsageInfo] = useState({ planName: 'Gratuito', used: 0, max: 2 });
 
-  // Check usage limits
   useEffect(() => {
     async function checkUsage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const now = new Date();
-      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const currentMonth = new Date().toISOString().slice(0, 7);
 
       const [usageRes, profileRes] = await Promise.all([
         supabase.from('Usage').select('transcriptionsUsed').eq('userId', user.id).eq('currentMonth', currentMonth).maybeSingle(),
@@ -56,11 +52,12 @@ export default function UploadPage() {
       ]);
 
       const planId = profileRes.data?.plan_id || 'basic';
-      const { data: plan } = await supabase.from('Plan').select('maxTranscriptions').eq('id', planId).single();
+      const { data: plan } = await supabase.from('Plan').select('maxTranscriptions, name').eq('id', planId).single();
 
       const used = usageRes.data?.transcriptionsUsed || 0;
       const max = plan?.maxTranscriptions || 5;
 
+      setUsageInfo({ planName: plan?.name || 'Gratuito', used, max });
       if (used >= max) setLimitReached(true);
     }
     checkUsage();
@@ -83,7 +80,6 @@ export default function UploadPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error('Você precisa estar logado'); return; }
 
-    // Paste text flow
     if (activeTab === 'paste') {
       if (!pastedText.trim()) { toast.error('Cole algum texto'); return; }
       setUploading(true);
@@ -92,59 +88,34 @@ export default function UploadPage() {
         const defaultTitle = title || 'Transcrição colada';
         const participantsList = participants ? participants.split(',').map(p => p.trim()).filter(Boolean) : [];
         const { error } = await supabase.from('Meeting').insert({
-          userId: user.id,
-          title: defaultTitle,
-          fileName: 'texto-colado.txt',
-          fileSize: new Blob([pastedText]).size,
-          cloudStoragePath: '',
-          status: 'completed',
-          transcription: pastedText,
-          visibility: 'private',
-          description: description || null,
+          userId: user.id, title: defaultTitle, fileName: 'texto-colado.txt',
+          fileSize: new Blob([pastedText]).size, cloudStoragePath: '', status: 'completed',
+          transcription: pastedText, visibility: 'private', description: description || null,
           meetingDate: meetingDate ? new Date(meetingDate).toISOString() : null,
-          meetingTime: meetingTime || null,
-          location: location || null,
-          responsible: responsible || null,
-          participants: participantsList,
-          routineId: routineId || null,
+          meetingTime: meetingTime || null, location: location || null,
+          responsible: responsible || null, participants: participantsList, routineId: routineId || null,
         });
         if (error) throw error;
-
-        // Update usage
         await updateUsage(user.id, 0);
-
         toast.success('Transcrição salva!');
         navigate('/meetings');
       } catch (err: any) {
         toast.error(err.message || 'Erro ao salvar');
-      } finally {
-        setUploading(false);
-      }
+      } finally { setUploading(false); }
       return;
     }
 
-    // Upload flow
     if (activeTab === 'upload' && !file) return;
+    if (file && file.size > 50 * 1024 * 1024) toast.info('Arquivo grande. A transcrição pode levar alguns minutos.');
 
-    if (file && file.size > 50 * 1024 * 1024) {
-      toast.info('Arquivo grande detectado. A transcrição pode levar alguns minutos.');
-    }
-
-    setUploading(true);
-    setUploadProgress(0);
-    setStatusMessage('Enviando arquivo...');
+    setUploading(true); setUploadProgress(0); setStatusMessage('Enviando arquivo...');
 
     try {
       const storagePath = `uploads/${Date.now()}-${file!.name}`;
       setUploadProgress(10);
-
-      const { error: uploadError } = await supabase.storage
-        .from('meetings')
-        .upload(storagePath, file!, { cacheControl: '3600', upsert: false });
-
+      const { error: uploadError } = await supabase.storage.from('meetings').upload(storagePath, file!, { cacheControl: '3600', upsert: false });
       if (uploadError) throw new Error(`Erro no upload: ${uploadError.message}`);
-      setUploadProgress(50);
-      setStatusMessage('Arquivo enviado! Criando registro...');
+      setUploadProgress(50); setStatusMessage('Criando registro...');
 
       const meetingId = crypto.randomUUID();
       const now = new Date().toISOString();
@@ -152,56 +123,33 @@ export default function UploadPage() {
       const participantsList = participants ? participants.split(',').map(p => p.trim()).filter(Boolean) : [];
 
       const { error: insertError } = await supabase.from('Meeting').insert({
-        id: meetingId,
-        userId: user.id,
-        title: defaultTitle,
-        fileName: file!.name,
-        fileSize: file!.size,
-        fileDuration: 0,
-        cloudStoragePath: storagePath,
-        status: 'processing',
-        visibility: 'private',
-        description: description || null,
+        id: meetingId, userId: user.id, title: defaultTitle, fileName: file!.name,
+        fileSize: file!.size, fileDuration: 0, cloudStoragePath: storagePath,
+        status: 'processing', visibility: 'private', description: description || null,
         meetingDate: meetingDate ? new Date(meetingDate).toISOString() : null,
-        meetingTime: meetingTime || null,
-        location: location || null,
-        responsible: responsible || null,
-        participants: participantsList,
-        routineId: routineId || null,
-        createdAt: now,
-        updatedAt: now,
+        meetingTime: meetingTime || null, location: location || null,
+        responsible: responsible || null, participants: participantsList,
+        routineId: routineId || null, createdAt: now, updatedAt: now,
       });
-
       if (insertError) throw new Error(`Erro ao criar reunião: ${insertError.message}`);
-      setUploadProgress(70);
-      setStatusMessage('Processando transcrição...');
+      setUploadProgress(70); setStatusMessage('Processando transcrição...');
 
-      const { error: fnError } = await supabase.functions.invoke('transcribe', {
-        body: { meetingId, storagePath },
-      });
-
+      const { error: fnError } = await supabase.functions.invoke('transcribe', { body: { meetingId, storagePath } });
       if (fnError) {
-        await supabase.from('Meeting').update({
-          status: 'failed', errorMessage: fnError.message, updatedAt: new Date().toISOString(),
-        }).eq('id', meetingId);
+        await supabase.from('Meeting').update({ status: 'failed', errorMessage: fnError.message, updatedAt: new Date().toISOString() }).eq('id', meetingId);
         toast.error(`Transcrição falhou: ${fnError.message}`);
         navigate('/meetings');
         return;
       }
 
-      // Update usage
       await updateUsage(user.id, Math.round(file!.size / 1024 / 1024));
-
-      setUploadProgress(100);
-      setStatusMessage('Transcrição concluída!');
+      setUploadProgress(100); setStatusMessage('Transcrição concluída!');
       toast.success('Transcrição concluída com sucesso!');
       setTimeout(() => navigate('/meetings'), 1000);
     } catch (error: any) {
       console.error('Upload error:', error);
       toast.error(error.message || 'Erro inesperado');
-    } finally {
-      setUploading(false);
-    }
+    } finally { setUploading(false); }
   };
 
   return (
@@ -210,25 +158,15 @@ export default function UploadPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Nova Transcrição</h1>
           <p className="text-muted-foreground">Envie um áudio, grave ou cole o texto da reunião</p>
-          {routineId && (
-            <p className="text-sm text-primary mt-1">📌 Vinculada a uma rotina</p>
-          )}
+          {routineId && <p className="text-sm text-primary mt-1">📌 Vinculada a uma rotina</p>}
         </div>
 
-        {/* Tabs */}
         <div className="flex gap-2 p-1 bg-muted rounded-lg">
           {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => { setActiveTab(tab.id); setFile(null); }}
-              disabled={uploading}
-              className={cn(
-                'flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-colors',
-                activeTab === tab.id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <tab.icon className="h-4 w-4" />
-              {tab.label}
+            <button key={tab.id} onClick={() => { setActiveTab(tab.id); setFile(null); }} disabled={uploading}
+              className={cn('flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-colors',
+                activeTab === tab.id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
+              <tab.icon className="h-4 w-4" /> {tab.label}
             </button>
           ))}
         </div>
@@ -236,17 +174,10 @@ export default function UploadPage() {
         <Card>
           <CardContent className="p-6 space-y-6">
             {activeTab === 'upload' && (
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                className={cn(
-                  'border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer',
-                  isDragging ? 'border-primary bg-emerald-50' : 'border-border hover:border-primary/50',
-                  file && 'border-primary bg-emerald-50'
-                )}
-                onClick={() => !uploading && document.getElementById('file-input')?.click()}
-              >
+              <div onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}
+                className={cn('border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer',
+                  isDragging ? 'border-primary bg-emerald-50' : 'border-border hover:border-primary/50', file && 'border-primary bg-emerald-50')}
+                onClick={() => !uploading && document.getElementById('file-input')?.click()}>
                 <input id="file-input" type="file" accept="audio/*,video/*,.mp3,.wav,.m4a,.aac,.caf,.ogg,.webm,.mp4" className="hidden" onChange={handleFileChange} disabled={uploading} />
                 {file ? (
                   <div className="flex flex-col items-center gap-2">
@@ -295,102 +226,65 @@ export default function UploadPage() {
               </div>
             )}
 
-            {/* Meeting Details */}
             <div className="space-y-4">
               <h3 className="font-semibold text-foreground text-sm">Detalhes da Reunião (Opcional)</h3>
               <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Título</label>
-                  <Input placeholder="Ex: Sprint Planning" value={title} onChange={e => setTitle(e.target.value)} disabled={uploading} />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Data</label>
-                  <Input type="date" value={meetingDate} onChange={e => setMeetingDate(e.target.value)} disabled={uploading} />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Horário</label>
-                  <Input type="time" value={meetingTime} onChange={e => setMeetingTime(e.target.value)} disabled={uploading} />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Local</label>
-                  <Input placeholder="Ex: Sala 3" value={location} onChange={e => setLocation(e.target.value)} disabled={uploading} />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Responsável</label>
-                  <Input placeholder="Nome" value={responsible} onChange={e => setResponsible(e.target.value)} disabled={uploading} />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Participantes</label>
-                  <Input placeholder="Separar por vírgula" value={participants} onChange={e => setParticipants(e.target.value)} disabled={uploading} />
-                </div>
+                <div><label className="text-xs text-muted-foreground mb-1 block">Título</label>
+                  <Input placeholder="Ex: Sprint Planning" value={title} onChange={e => setTitle(e.target.value)} disabled={uploading} /></div>
+                <div><label className="text-xs text-muted-foreground mb-1 block">Data</label>
+                  <Input type="date" value={meetingDate} onChange={e => setMeetingDate(e.target.value)} disabled={uploading} /></div>
+                <div><label className="text-xs text-muted-foreground mb-1 block">Horário</label>
+                  <Input type="time" value={meetingTime} onChange={e => setMeetingTime(e.target.value)} disabled={uploading} /></div>
+                <div><label className="text-xs text-muted-foreground mb-1 block">Local</label>
+                  <Input placeholder="Ex: Sala 3" value={location} onChange={e => setLocation(e.target.value)} disabled={uploading} /></div>
+                <div><label className="text-xs text-muted-foreground mb-1 block">Responsável</label>
+                  <Input placeholder="Nome" value={responsible} onChange={e => setResponsible(e.target.value)} disabled={uploading} /></div>
+                <div><label className="text-xs text-muted-foreground mb-1 block">Participantes</label>
+                  <Input placeholder="Separar por vírgula" value={participants} onChange={e => setParticipants(e.target.value)} disabled={uploading} /></div>
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Descrição</label>
-                <Textarea placeholder="Pauta ou observações..." value={description} onChange={e => setDescription(e.target.value)} rows={3} disabled={uploading} />
-              </div>
+              <div><label className="text-xs text-muted-foreground mb-1 block">Descrição</label>
+                <Textarea placeholder="Pauta ou observações..." value={description} onChange={e => setDescription(e.target.value)} rows={3} disabled={uploading} /></div>
             </div>
 
-            <Button
-              className="w-full bg-primary hover:bg-emerald-600 text-primary-foreground"
-              size="lg"
-              onClick={handleSubmit}
-              disabled={uploading || limitReached || (activeTab === 'upload' && !file) || (activeTab === 'paste' && !pastedText.trim())}
-            >
-              {uploading ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{statusMessage}</>
-              ) : activeTab === 'paste' ? 'Salvar Transcrição' : 'Transcrever Reunião'}
+            <Button className="w-full bg-primary hover:bg-emerald-600 text-primary-foreground" size="lg" onClick={handleSubmit}
+              disabled={uploading || limitReached || (activeTab === 'upload' && !file) || (activeTab === 'paste' && !pastedText.trim())}>
+              {uploading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{statusMessage}</> : activeTab === 'paste' ? 'Salvar Transcrição' : 'Transcrever Reunião'}
             </Button>
           </CardContent>
         </Card>
       </div>
 
-      {/* Limit Reached Modal */}
-      <Dialog open={limitReached} onOpenChange={() => {}}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-              Limite atingido
-            </DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Você atingiu o limite de transcrições do seu plano este mês. Faça upgrade para continuar transcrevendo.
-          </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => navigate('/dashboard')}>Voltar</Button>
-            <Link to="/plans">
-              <Button className="bg-primary text-primary-foreground">Ver Planos</Button>
-            </Link>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <LimitReachedDialog
+        open={limitReached}
+        onClose={() => navigate('/dashboard')}
+        planName={usageInfo.planName}
+        used={usageInfo.used}
+        max={usageInfo.max}
+      />
     </AppLayout>
   );
 }
 
 async function updateUsage(userId: string, durationMinutes: number) {
-  const now = new Date();
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const currentMonth = new Date().toISOString().slice(0, 7);
 
   const { data: existing } = await supabase
     .from('Usage')
-    .select('id, transcriptionsUsed, totalMinutesTranscribed')
+    .select('id, transcriptionsUsed, totalMinutesTranscribed, currentMonth')
     .eq('userId', userId)
-    .eq('currentMonth', currentMonth)
+    .order('createdAt', { ascending: false })
+    .limit(1)
     .maybeSingle();
 
-  if (existing) {
+  if (existing && existing.currentMonth === currentMonth) {
     await supabase.from('Usage').update({
       transcriptionsUsed: (existing.transcriptionsUsed || 0) + 1,
       totalMinutesTranscribed: (existing.totalMinutesTranscribed || 0) + durationMinutes,
-      updatedAt: now.toISOString(),
+      updatedAt: new Date().toISOString(),
     }).eq('id', existing.id);
   } else {
     await supabase.from('Usage').insert({
-      userId,
-      currentMonth,
-      transcriptionsUsed: 1,
-      totalMinutesTranscribed: durationMinutes,
+      userId, currentMonth, transcriptionsUsed: 1, totalMinutesTranscribed: durationMinutes,
     });
   }
 }

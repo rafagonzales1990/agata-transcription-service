@@ -197,9 +197,9 @@ ${contentHtml}
       updatedAt: new Date().toISOString(),
     }).eq('id', meetingId)
 
-    return new Response(html, {
+    return new Response(JSON.stringify({ html }), {
       status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
     console.error('Generate ATA error:', error)
