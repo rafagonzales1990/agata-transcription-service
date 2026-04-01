@@ -1,11 +1,13 @@
-import { ReactNode, useState, useEffect } from 'react';
+import { ReactNode, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard, FileText, Upload, FolderOpen, Settings,
-  Repeat, Sparkles, LogOut, Menu, X, User, ChevronLeft,
+  Repeat, Sparkles, LogOut, Menu, X, User,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { TrialBanner } from '@/components/TrialBanner';
 
 const menuItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -22,11 +24,17 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { signOut, profile } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isActive = (path: string) => {
     if (path === '/dashboard') return location.pathname === path;
     return location.pathname.startsWith(path);
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/');
   };
 
   return (
@@ -80,6 +88,13 @@ export function AppLayout({ children }: AppLayoutProps) {
             <User className="h-4 w-4" />
             Perfil
           </Link>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors w-full text-left"
+          >
+            <LogOut className="h-4 w-4" />
+            Sair
+          </button>
         </div>
       </aside>
 
@@ -135,12 +150,22 @@ export function AppLayout({ children }: AppLayoutProps) {
                 </Link>
               ))}
             </nav>
+            <div className="p-3 border-t border-border space-y-1">
+              <button
+                onClick={() => { setSidebarOpen(false); handleLogout(); }}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors w-full text-left"
+              >
+                <LogOut className="h-4 w-4" />
+                Sair
+              </button>
+            </div>
           </aside>
         </div>
       )}
 
       {/* Main Content */}
       <main className="flex-1 md:ml-64 pt-14 md:pt-0">
+        <TrialBanner />
         <div className="p-4 md:p-8">
           {children}
         </div>

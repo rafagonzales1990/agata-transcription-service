@@ -1,0 +1,226 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+const PAID_PLANS = ['inteligente', 'automacao', 'enterprise']
+
+const prompts: Record<string, (title: string, transcription: string) => string> = {
+  executivo: (meetingTitle, transcription) => `Você é um assistente especializado em criar resumos de reuniões corporativas
+em português brasileiro. A transcrição é de uma reunião intitulada "${meetingTitle}".
+Use formatação Markdown rica.
+
+Crie um **Resumo Executivo** conciso (máximo 300 palavras):
+
+## Resumo Executivo
+Parágrafo resumindo contexto e objetivo.
+
+### Decisões-Chave
+3 a 5 decisões mais importantes em bullet points.
+
+### Próximos Passos Críticos
+2 a 3 próximos passos mais urgentes.
+
+Transcrição:
+${transcription}`,
+
+  detalhado: (meetingTitle, transcription) => `Você é um assistente especializado em criar resumos de reuniões corporativas
+em português brasileiro. A transcrição é de uma reunião intitulada "${meetingTitle}".
+Use formatação Markdown rica.
+
+Crie um **Resumo Detalhado** estruturado:
+
+## Resumo Executivo
+Visão geral da reunião.
+
+## Tópicos Discutidos
+### [Nome do Tópico] para cada tópico principal.
+
+## Decisões Tomadas
+Lista de todas as decisões em bullet points com contexto.
+
+## Ações e Responsáveis
+Tabela markdown: | Ação | Responsável | Prazo |
+Inclua TODAS as ações. Prazo não mencionado = "A definir".
+
+## Próximos Passos
+Lista priorizada.
+
+Transcrição:
+${transcription}`,
+
+  ata_completa: (meetingTitle, transcription) => `Você é um assistente especializado em criar resumos de reuniões corporativas
+em português brasileiro. A transcrição é de uma reunião intitulada "${meetingTitle}".
+Use formatação Markdown rica.
+
+Crie uma **ATA Completa** extremamente detalhada:
+
+## Resumo Executivo
+Parágrafo abrangente com contexto e objetivos.
+
+## Participantes Identificados
+Nomes mencionados e papéis.
+
+## Pauta / Tópicos Discutidos
+### [Nome do Tópico]
+- **Contexto**: motivação
+- **Discussão**: pontos levantados
+- **Conclusão**: resultado
+
+## Decisões Tomadas
+- **Decisão**: descrição
+- **Justificativa**: motivo
+- **Impacto**: quem é afetado
+
+## Ações e Responsáveis
+| # | Ação | Responsável | Prazo | Prioridade |
+|---|------|-------------|-------|------------|
+
+## Riscos e Pendências
+Questões em aberto.
+
+## Próximos Passos
+Lista priorizada.
+
+## Observações Adicionais
+Informações extras relevantes.
+
+Transcrição:
+${transcription}`,
+}
+
+const maxTokens: Record<string, number> = {
+  executivo: 1500,
+  detalhado: 3000,
+  ata_completa: 5000,
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  try {
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const geminiApiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY')
+
+    if (!geminiApiKey) {
+      return new Response(JSON.stringify({ error: 'Gemini API key not configured' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Validate user
+    const supabaseAuth = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+      global: { headers: { Authorization: authHeader } },
+    })
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const { meetingId, depth } = await req.json()
+    if (!meetingId || !depth || !prompts[depth]) {
+      return new Response(JSON.stringify({ error: 'meetingId and valid depth required' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+    // Check plan permissions
+    if (depth !== 'executivo') {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('plan_id')
+        .eq('user_id', user.id)
+        .single()
+
+      const planId = profile?.plan_id || 'basic'
+      if (!PAID_PLANS.includes(planId)) {
+        return new Response(JSON.stringify({ error: 'Recurso disponível apenas para planos pagos' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
+
+    // Fetch meeting
+    const { data: meeting, error: meetingError } = await supabase
+      .from('Meeting')
+      .select('title, transcription, userId')
+      .eq('id', meetingId)
+      .single()
+
+    if (meetingError || !meeting) {
+      return new Response(JSON.stringify({ error: 'Meeting not found' }), {
+        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (meeting.userId !== user.id) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (!meeting.transcription) {
+      return new Response(JSON.stringify({ error: 'No transcription available' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const prompt = prompts[depth](meeting.title, meeting.transcription)
+
+    // Call Gemini
+    const geminiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.2, maxOutputTokens: maxTokens[depth] },
+        }),
+      }
+    )
+
+    if (!geminiResponse.ok) {
+      const errText = await geminiResponse.text()
+      console.error('Gemini error:', errText)
+      throw new Error(`Gemini API error: ${geminiResponse.status}`)
+    }
+
+    const geminiResult = await geminiResponse.json()
+    const summaryText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || ''
+
+    // Save to meeting
+    const fullSummary = `<!-- depth:${depth} -->\n${summaryText}`
+    await supabase.from('Meeting').update({
+      summary: fullSummary,
+      updatedAt: new Date().toISOString(),
+    }).eq('id', meetingId)
+
+    return new Response(JSON.stringify({ status: 'completed', summary: summaryText, depth }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  } catch (error) {
+    console.error('Generate summary error:', error)
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+})
