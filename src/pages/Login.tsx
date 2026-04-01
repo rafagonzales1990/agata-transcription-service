@@ -23,24 +23,26 @@ export default function LoginPage() {
 
     if (error) {
       if (error.message === 'Invalid login credentials') {
-        // Check if this email exists as a legacy migrated user
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('old_user_id')
-          .eq('email', email)
-          .maybeSingle();
-
-        if (profile?.old_user_id) {
-          // Legacy user — trigger password reset
-          const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/auth/reset-password`,
+        // Check if this email belongs to a migrated user via edge function (bypasses RLS)
+        try {
+          const { data: checkData } = await supabase.functions.invoke('check-migrated-user', {
+            body: { email },
           });
 
-          if (!resetError) {
-            setShowResetNotice(true);
-            setLoading(false);
-            return;
+          if (checkData?.isMigrated) {
+            // Legacy user — trigger password reset
+            const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+              redirectTo: `${window.location.origin}/auth/reset-password`,
+            });
+
+            if (!resetError) {
+              setShowResetNotice(true);
+              setLoading(false);
+              return;
+            }
           }
+        } catch {
+          // If edge function fails, fall through to generic error
         }
 
         toast.error('Email ou senha incorretos');
