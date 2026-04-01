@@ -1,20 +1,42 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Sparkles, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function SignupPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.info('Cadastro requer backend conectado. Configure o Lovable Cloud para habilitar.');
+    if (password.length < 8) {
+      toast.error('A senha deve ter pelo menos 8 caracteres');
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name },
+        emailRedirectTo: window.location.origin,
+      },
+    });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success('Conta criada! Verifique seu email para confirmar.');
+      navigate('/auth/login');
+    }
   };
 
   return (
@@ -63,7 +85,9 @@ export default function SignupPage() {
                   </button>
                 </div>
               </div>
-              <Button type="submit" className="w-full bg-primary hover:bg-emerald-600 text-primary-foreground">Criar Conta</Button>
+              <Button type="submit" className="w-full bg-primary hover:bg-emerald-600 text-primary-foreground" disabled={loading}>
+                {loading ? 'Criando...' : 'Criar Conta'}
+              </Button>
             </form>
 
             <div className="mt-4 space-y-2">

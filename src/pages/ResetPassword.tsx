@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,24 +7,38 @@ import { Sparkles, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('');
+export default function ResetPassword() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  useEffect(() => {
+    // Check if we have a recovery session
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const type = hashParams.get('type');
+    if (type !== 'recovery') {
+      // Also check query params
+      const queryParams = new URLSearchParams(window.location.search);
+      if (queryParams.get('type') !== 'recovery') {
+        // Still allow the page to render in case session is already set
+      }
+    }
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password.length < 8) {
+      toast.error('A senha deve ter pelo menos 8 caracteres');
+      return;
+    }
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (error) {
-      toast.error(error.message === 'Invalid login credentials'
-        ? 'Email ou senha incorretos'
-        : error.message);
+      toast.error(error.message);
     } else {
-      toast.success('Login realizado com sucesso!');
+      toast.success('Senha atualizada com sucesso!');
       navigate('/dashboard');
     }
   };
@@ -40,27 +54,23 @@ export default function LoginPage() {
             <span className="text-2xl font-bold text-foreground">Ágata</span>
           </Link>
         </div>
-
         <Card>
           <CardHeader className="text-center">
-            <CardTitle>Entrar</CardTitle>
-            <CardDescription>Acesse sua conta</CardDescription>
+            <CardTitle>Nova Senha</CardTitle>
+            <CardDescription>Defina sua nova senha</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-foreground mb-1 block">Email</label>
-                <Input type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-foreground mb-1 block">Senha</label>
+                <label className="text-sm font-medium text-foreground mb-1 block">Nova Senha</label>
                 <div className="relative">
                   <Input
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
+                    placeholder="Mínimo 8 caracteres"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    minLength={8}
                   />
                   <button
                     type="button"
@@ -71,18 +81,10 @@ export default function LoginPage() {
                   </button>
                 </div>
               </div>
-              <div className="text-right">
-                <Link to="/auth/forgot-password" className="text-xs text-primary hover:underline">Esqueceu a senha?</Link>
-              </div>
               <Button type="submit" className="w-full bg-primary hover:bg-emerald-600 text-primary-foreground" disabled={loading}>
-                {loading ? 'Entrando...' : 'Entrar'}
+                {loading ? 'Atualizando...' : 'Atualizar Senha'}
               </Button>
             </form>
-
-            <p className="text-center text-sm text-muted-foreground mt-4">
-              Não tem conta?{' '}
-              <Link to="/auth/signup" className="text-primary hover:underline font-medium">Criar conta grátis</Link>
-            </p>
           </CardContent>
         </Card>
       </div>
