@@ -18,6 +18,9 @@ import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import SettingsPage from "./pages/SettingsPage";
+import SettingsSecurity from "./pages/SettingsSecurity";
+import SettingsBranding from "./pages/SettingsBranding";
+import SettingsPlaceholder from "./pages/SettingsPlaceholder";
 import Profile from "./pages/Profile";
 import Plans from "./pages/Plans";
 
@@ -43,6 +46,10 @@ const App = () => (
             <Route path="/routines" element={<ProtectedRoute><Routines /></ProtectedRoute>} />
             <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+            <Route path="/settings/security" element={<ProtectedRoute><SettingsSecurity /></ProtectedRoute>} />
+            <Route path="/settings/branding" element={<ProtectedRoute><SettingsBranding /></ProtectedRoute>} />
+            <Route path="/settings/notifications" element={<ProtectedRoute><SettingsPlaceholder /></ProtectedRoute>} />
+            <Route path="/settings/groups" element={<ProtectedRoute><SettingsPlaceholder /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
