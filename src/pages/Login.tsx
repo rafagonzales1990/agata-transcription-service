@@ -1,19 +1,32 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Sparkles, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.info('Autenticação requer backend conectado. Configure o Lovable Cloud para habilitar.');
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
+    if (error) {
+      toast.error(error.message === 'Invalid login credentials'
+        ? 'Email ou senha incorretos'
+        : error.message);
+    } else {
+      toast.success('Login realizado com sucesso!');
+      navigate('/dashboard');
+    }
   };
 
   return (
@@ -61,7 +74,9 @@ export default function LoginPage() {
               <div className="text-right">
                 <Link to="/auth/forgot-password" className="text-xs text-primary hover:underline">Esqueceu a senha?</Link>
               </div>
-              <Button type="submit" className="w-full bg-primary hover:bg-emerald-600 text-primary-foreground">Entrar</Button>
+              <Button type="submit" className="w-full bg-primary hover:bg-emerald-600 text-primary-foreground" disabled={loading}>
+                {loading ? 'Entrando...' : 'Entrar'}
+              </Button>
             </form>
 
             <p className="text-center text-sm text-muted-foreground mt-4">
