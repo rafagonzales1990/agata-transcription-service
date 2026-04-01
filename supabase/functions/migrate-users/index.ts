@@ -86,6 +86,7 @@ Deno.serve(async (req) => {
                   billing_cycle: legacyUser.billingCycle,
                   image: legacyUser.image,
                   has_completed_onboarding: legacyUser.hasCompletedOnboarding,
+                  updated_at: new Date().toISOString(),
                 })
                 .eq("user_id", existingProfile.user_id);
               
