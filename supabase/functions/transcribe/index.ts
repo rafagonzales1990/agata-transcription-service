@@ -114,18 +114,6 @@ Deno.serve(async (req) => {
       })
     }
 
-    // TEMPORARY: List available models
-    const modelsResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models?key=${geminiApiKey}`
-    )
-    const modelsData = await modelsResponse.json()
-    console.log('Available models:', JSON.stringify(modelsData.models?.map((m: any) => m.name)))
-
-    return new Response(JSON.stringify({ models: modelsData.models?.map((m: any) => m.name) }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-
     // Determine MIME type
     const ext = storagePath.split('.').pop()?.toLowerCase() || ''
     const mimeMap: Record<string, string> = {
