@@ -61,6 +61,10 @@ export default function UploadPage() {
       return;
     }
 
+    if (file && file.size > 50 * 1024 * 1024) {
+      toast.info('Arquivo grande detectado. A transcrição pode levar alguns minutos.');
+    }
+
     setUploading(true);
     setUploadProgress(0);
     setStatusMessage('Enviando arquivo...');
