@@ -118,6 +118,7 @@ Deno.serve(async (req) => {
               image: legacyUser.image,
               has_completed_onboarding: legacyUser.hasCompletedOnboarding,
               trial_ends_at: legacyUser.trialEndsAt,
+              updated_at: new Date().toISOString(),
             })
             .eq("user_id", newAuthUser.user.id);
         }
