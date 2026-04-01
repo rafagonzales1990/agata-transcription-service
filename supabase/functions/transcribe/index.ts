@@ -14,9 +14,7 @@ async function transcribeChunk(
   chunkIndex: number,
   totalChunks: number
 ): Promise<string> {
-  const isLastChunk = chunkIndex === totalChunks - 1
-  const prompt = totalChunks === 1
-    ? `Transcreva este áudio completamente em português brasileiro.
+  const prompt = `Transcreva este áudio completamente em português brasileiro.
        Inclua marcações de quem está falando quando possível.
        Mantenha a transcrição fiel ao que foi dito, sem resumir.
        Após a transcrição completa, adicione:
@@ -24,19 +22,6 @@ async function transcribeChunk(
        (resumo executivo dos pontos principais)
        ## Itens de Ação
        (tarefas e compromissos mencionados, um por linha)`
-    : isLastChunk
-    ? `Este é o trecho ${chunkIndex + 1} de ${totalChunks} de uma reunião.
-       Transcreva este trecho completamente em português brasileiro.
-       Inclua marcações de quem está falando quando possível.
-       IMPORTANTE: Este é o último trecho. Após a transcrição adicione:
-       ## Resumo
-       (resumo executivo de TODO o áudio, não só este trecho)
-       ## Itens de Ação
-       (todas as tarefas mencionadas ao longo de toda a reunião)`
-    : `Este é o trecho ${chunkIndex + 1} de ${totalChunks} de uma reunião.
-       Transcreva este trecho completamente em português brasileiro.
-       Inclua marcações de quem está falando quando possível.
-       NÃO adicione resumo nem itens de ação — apenas a transcrição.`
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
@@ -57,7 +42,7 @@ async function transcribeChunk(
 
   if (!response.ok) {
     const errorText = await response.text()
-    console.error(`Gemini API error (chunk ${chunkIndex + 1}/${totalChunks}):`, errorText)
+    console.error(`Gemini API error:`, errorText)
     throw new Error(`Gemini error: ${response.status}`)
   }
 
@@ -70,6 +55,8 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  let meetingId: string | null = null
+
   try {
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
@@ -79,7 +66,10 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { meetingId, storagePath } = await req.json()
+    const body = await req.json()
+    meetingId = body.meetingId
+    const storagePath = body.storagePath
+
     if (!meetingId || !storagePath) {
       return new Response(JSON.stringify({ error: 'meetingId and storagePath are required' }), {
         status: 400,
@@ -138,35 +128,91 @@ Deno.serve(async (req) => {
     }
     const mimeType = mimeMap[ext] || 'audio/mpeg'
 
-    // Chunked transcription for large files
+    // Transcribe based on file size
     const arrayBuffer = await fileData.arrayBuffer()
     const totalBytes = arrayBuffer.byteLength
-    const totalChunks = Math.ceil(totalBytes / MAX_CHUNK_BYTES)
-    const chunkTranscriptions: string[] = []
+    let fullTranscriptionText = ''
 
-    console.log(`Processing file: ${totalBytes} bytes, ${totalChunks} chunk(s)`)
-
-    for (let i = 0; i < totalChunks; i++) {
-      const start = i * MAX_CHUNK_BYTES
-      const end = Math.min(start + MAX_CHUNK_BYTES, totalBytes)
-      const chunkBuffer = arrayBuffer.slice(start, end)
-
-      const base64Chunk = btoa(
-        new Uint8Array(chunkBuffer)
+    if (totalBytes <= MAX_CHUNK_BYTES) {
+      // Small file: use inline_data
+      console.log(`Small file (${totalBytes} bytes), using inline_data`)
+      const base64Data = btoa(
+        new Uint8Array(arrayBuffer)
           .reduce((data, byte) => data + String.fromCharCode(byte), '')
       )
-
-      console.log(`Transcribing chunk ${i + 1}/${totalChunks} (${end - start} bytes)`)
-
-      const chunkText = await transcribeChunk(
-        base64Chunk, mimeType, geminiApiKey, i, totalChunks
+      fullTranscriptionText = await transcribeChunk(
+        base64Data, mimeType, geminiApiKey, 0, 1
       )
-      chunkTranscriptions.push(chunkText)
+    } else {
+      // Large file: upload via Gemini Files API
+      console.log(`Large file (${totalBytes} bytes), using Gemini Files API`)
+
+      const uploadResponse = await fetch(
+        `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${geminiApiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': mimeType,
+            'X-Goog-Upload-Protocol': 'raw',
+            'X-Goog-Upload-Header-Content-Length': totalBytes.toString(),
+            'X-Goog-Upload-Header-Content-Type': mimeType,
+          },
+          body: new Uint8Array(arrayBuffer),
+        }
+      )
+
+      if (!uploadResponse.ok) {
+        const errText = await uploadResponse.text()
+        console.error('Gemini file upload error:', errText)
+        throw new Error(`Gemini file upload failed: ${uploadResponse.status}`)
+      }
+
+      const uploadResult = await uploadResponse.json()
+      const fileUri = uploadResult.file?.uri
+      if (!fileUri) throw new Error('Gemini file upload did not return a URI')
+
+      console.log(`File uploaded to Gemini: ${fileUri}`)
+
+      // Wait for file to be processed
+      await new Promise(resolve => setTimeout(resolve, 3000))
+
+      const prompt = `Transcreva este áudio completamente em português brasileiro.
+         Inclua marcações de quem está falando quando possível.
+         Mantenha a transcrição fiel ao que foi dito, sem resumir.
+         Após a transcrição completa, adicione:
+         ## Resumo
+         (resumo executivo dos pontos principais)
+         ## Itens de Ação
+         (tarefas e compromissos mencionados, um por linha)`
+
+      const geminiResponse = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { file_data: { mime_type: mimeType, file_uri: fileUri } },
+                { text: prompt }
+              ]
+            }],
+            generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
+          })
+        }
+      )
+
+      if (!geminiResponse.ok) {
+        const errText = await geminiResponse.text()
+        console.error('Gemini transcription error:', errText)
+        throw new Error(`Gemini transcription failed: ${geminiResponse.status}`)
+      }
+
+      const geminiResult = await geminiResponse.json()
+      fullTranscriptionText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || ''
     }
 
-    const fullTranscriptionText = chunkTranscriptions.join('\n\n')
-
-    // Parse summary and action items from the transcription
+    // Parse summary and action items
     let transcription = fullTranscriptionText
     let summary = null
     let actionItems: string[] = []
@@ -203,16 +249,19 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Transcription error:', error)
 
-    // Try to mark meeting as failed
-    try {
-      const { meetingId } = await (async () => {
-        // We can't re-read the body, so just extract from error context
-        return { meetingId: null }
-      })()
-      // If we had the meetingId we'd update status, but since we're in catch
-      // and body was already consumed, log the error
-    } catch (_) {
-      // ignore
+    if (meetingId) {
+      try {
+        const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+        const supabase = createClient(supabaseUrl, supabaseServiceKey)
+        await supabase.from('Meeting').update({
+          status: 'failed',
+          errorMessage: (error as Error).message,
+          updatedAt: new Date().toISOString(),
+        }).eq('id', meetingId)
+      } catch (_) {
+        console.error('Failed to update meeting status to failed')
+      }
     }
 
     return new Response(JSON.stringify({ error: (error as Error).message }), {
