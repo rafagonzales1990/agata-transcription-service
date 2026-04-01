@@ -23,6 +23,18 @@ export default {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
         },
+        emerald: {
+          50: "hsl(var(--emerald-50))",
+          100: "hsl(var(--emerald-100))",
+          200: "hsl(var(--emerald-200))",
+          300: "hsl(var(--emerald-300))",
+          400: "hsl(var(--emerald-400))",
+          500: "hsl(var(--emerald-500))",
+          600: "hsl(var(--emerald-600))",
+          700: "hsl(var(--emerald-700))",
+          800: "hsl(var(--emerald-800))",
+          900: "hsl(var(--emerald-900))",
+        },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
           foreground: "hsl(var(--secondary-foreground))",
