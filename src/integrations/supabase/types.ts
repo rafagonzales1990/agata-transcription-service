@@ -321,6 +321,7 @@ export type Database = {
           id: string
           image: string | null
           name: string | null
+          old_user_id: string | null
           phone: string | null
           plan_id: string | null
           trial_ends_at: string | null
@@ -336,6 +337,7 @@ export type Database = {
           id?: string
           image?: string | null
           name?: string | null
+          old_user_id?: string | null
           phone?: string | null
           plan_id?: string | null
           trial_ends_at?: string | null
@@ -351,6 +353,7 @@ export type Database = {
           id?: string
           image?: string | null
           name?: string | null
+          old_user_id?: string | null
           phone?: string | null
           plan_id?: string | null
           trial_ends_at?: string | null
@@ -762,7 +765,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_old_user_id: { Args: { _auth_uid: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
