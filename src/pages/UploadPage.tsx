@@ -1,13 +1,15 @@
 import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, FileAudio, Mic, ClipboardPaste, CheckCircle, Calendar, Clock, MapPin, User, Users } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Progress } from '@/components/ui/progress';
+import { Upload, Mic, ClipboardPaste, CheckCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const tabs = [
   { id: 'upload' as const, label: 'Upload', icon: Upload },
@@ -16,6 +18,7 @@ const tabs = [
 ];
 
 export default function UploadPage() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'upload' | 'record' | 'paste'>('upload');
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
@@ -27,6 +30,9 @@ export default function UploadPage() {
   const [responsible, setResponsible] = useState('');
   const [participants, setParticipants] = useState('');
   const [isDragging, setIsDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [statusMessage, setStatusMessage] = useState('');
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -46,8 +52,93 @@ export default function UploadPage() {
     if (e.target.files?.[0]) setFile(e.target.files[0]);
   };
 
-  const handleSubmit = () => {
-    toast.info('Funcionalidade de transcrição requer backend conectado. Configure o Lovable Cloud para habilitar.');
+  const handleSubmit = async () => {
+    if (activeTab === 'upload' && !file) return;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('Você precisa estar logado para fazer upload');
+      return;
+    }
+
+    setUploading(true);
+    setUploadProgress(0);
+    setStatusMessage('Enviando arquivo...');
+
+    try {
+      // Step 1: Upload to Supabase Storage
+      const storagePath = `uploads/${Date.now()}-${file!.name}`;
+      setUploadProgress(10);
+
+      const { error: uploadError } = await supabase.storage
+        .from('meetings')
+        .upload(storagePath, file!, { cacheControl: '3600', upsert: false });
+
+      if (uploadError) throw new Error(`Erro no upload: ${uploadError.message}`);
+      setUploadProgress(50);
+      setStatusMessage('Arquivo enviado! Criando registro...');
+
+      // Step 2: Create Meeting record
+      const meetingId = crypto.randomUUID();
+      const now = new Date().toISOString();
+      const defaultTitle = title || file!.name.replace(/\.[^/.]+$/, '');
+      const participantsList = participants
+        ? participants.split(',').map((p) => p.trim()).filter(Boolean)
+        : [];
+
+      const { error: insertError } = await supabase.from('Meeting').insert({
+        id: meetingId,
+        userId: user.id,
+        title: defaultTitle,
+        fileName: file!.name,
+        fileSize: file!.size,
+        fileDuration: 0,
+        cloudStoragePath: storagePath,
+        status: 'processing',
+        visibility: 'private',
+        description: description || null,
+        meetingDate: meetingDate ? new Date(meetingDate).toISOString() : null,
+        meetingTime: meetingTime || null,
+        location: location || null,
+        responsible: responsible || null,
+        participants: participantsList,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      if (insertError) throw new Error(`Erro ao criar reunião: ${insertError.message}`);
+      setUploadProgress(70);
+      setStatusMessage('Processando transcrição...');
+
+      // Step 3: Call transcribe edge function
+      const { error: fnError } = await supabase.functions.invoke('transcribe', {
+        body: { meetingId, storagePath },
+      });
+
+      if (fnError) {
+        // Mark as failed but still redirect so user can see the meeting
+        await supabase.from('Meeting').update({
+          status: 'failed',
+          errorMessage: fnError.message,
+          updatedAt: new Date().toISOString(),
+        }).eq('id', meetingId);
+
+        toast.error(`Transcrição falhou: ${fnError.message}`);
+        navigate(`/meetings`);
+        return;
+      }
+
+      setUploadProgress(100);
+      setStatusMessage('Transcrição concluída!');
+      toast.success('Transcrição concluída com sucesso!');
+
+      setTimeout(() => navigate(`/meetings`), 1000);
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      toast.error(error.message || 'Erro inesperado durante o upload');
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -64,6 +155,7 @@ export default function UploadPage() {
             <button
               key={tab.id}
               onClick={() => { setActiveTab(tab.id); setFile(null); }}
+              disabled={uploading}
               className={cn(
                 'flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-colors',
                 activeTab === tab.id
@@ -90,7 +182,7 @@ export default function UploadPage() {
                   isDragging ? 'border-primary bg-emerald-50' : 'border-border hover:border-primary/50',
                   file && 'border-primary bg-emerald-50'
                 )}
-                onClick={() => document.getElementById('file-input')?.click()}
+                onClick={() => !uploading && document.getElementById('file-input')?.click()}
               >
                 <input
                   id="file-input"
@@ -98,6 +190,7 @@ export default function UploadPage() {
                   accept="audio/*,video/*,.mp3,.wav,.m4a,.aac,.caf,.ogg,.webm,.mp4"
                   className="hidden"
                   onChange={handleFileChange}
+                  disabled={uploading}
                 />
                 {file ? (
                   <div className="flex flex-col items-center gap-2">
@@ -122,7 +215,7 @@ export default function UploadPage() {
                 </div>
                 <p className="font-medium text-foreground mb-2">Gravação de Áudio</p>
                 <p className="text-sm text-muted-foreground mb-4">Clique para iniciar a gravação diretamente do navegador</p>
-                <Button className="bg-primary hover:bg-emerald-600 text-primary-foreground" onClick={() => toast.info('Gravação requer backend conectado')}>
+                <Button className="bg-primary hover:bg-emerald-600 text-primary-foreground" onClick={() => toast.info('Gravação será implementada em breve')}>
                   <Mic className="h-4 w-4 mr-2" /> Iniciar Gravação
                 </Button>
               </div>
@@ -136,7 +229,20 @@ export default function UploadPage() {
                   value={pastedText}
                   onChange={(e) => setPastedText(e.target.value)}
                   rows={8}
+                  disabled={uploading}
                 />
+              </div>
+            )}
+
+            {/* Upload Progress */}
+            {uploading && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <span className="text-sm font-medium text-foreground">{statusMessage}</span>
+                </div>
+                <Progress value={uploadProgress} className="h-2" />
+                <p className="text-xs text-muted-foreground text-right">{uploadProgress}%</p>
               </div>
             )}
 
@@ -146,32 +252,32 @@ export default function UploadPage() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Título</label>
-                  <Input placeholder="Ex: Sprint Planning" value={title} onChange={(e) => setTitle(e.target.value)} />
+                  <Input placeholder="Ex: Sprint Planning" value={title} onChange={(e) => setTitle(e.target.value)} disabled={uploading} />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Data</label>
-                  <Input type="date" value={meetingDate} onChange={(e) => setMeetingDate(e.target.value)} />
+                  <Input type="date" value={meetingDate} onChange={(e) => setMeetingDate(e.target.value)} disabled={uploading} />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Horário</label>
-                  <Input type="time" value={meetingTime} onChange={(e) => setMeetingTime(e.target.value)} />
+                  <Input type="time" value={meetingTime} onChange={(e) => setMeetingTime(e.target.value)} disabled={uploading} />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Local</label>
-                  <Input placeholder="Ex: Sala 3" value={location} onChange={(e) => setLocation(e.target.value)} />
+                  <Input placeholder="Ex: Sala 3" value={location} onChange={(e) => setLocation(e.target.value)} disabled={uploading} />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Responsável</label>
-                  <Input placeholder="Nome" value={responsible} onChange={(e) => setResponsible(e.target.value)} />
+                  <Input placeholder="Nome" value={responsible} onChange={(e) => setResponsible(e.target.value)} disabled={uploading} />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Participantes</label>
-                  <Input placeholder="Separar por vírgula" value={participants} onChange={(e) => setParticipants(e.target.value)} />
+                  <Input placeholder="Separar por vírgula" value={participants} onChange={(e) => setParticipants(e.target.value)} disabled={uploading} />
                 </div>
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Descrição</label>
-                <Textarea placeholder="Pauta ou observações..." value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+                <Textarea placeholder="Pauta ou observações..." value={description} onChange={(e) => setDescription(e.target.value)} rows={3} disabled={uploading} />
               </div>
             </div>
 
@@ -179,9 +285,16 @@ export default function UploadPage() {
               className="w-full bg-primary hover:bg-emerald-600 text-primary-foreground"
               size="lg"
               onClick={handleSubmit}
-              disabled={activeTab === 'upload' && !file}
+              disabled={uploading || (activeTab === 'upload' && !file)}
             >
-              Transcrever Reunião
+              {uploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {statusMessage}
+                </>
+              ) : (
+                'Transcrever Reunião'
+              )}
             </Button>
           </CardContent>
         </Card>
