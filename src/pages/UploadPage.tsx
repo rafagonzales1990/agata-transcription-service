@@ -1,15 +1,19 @@
-import { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useCallback, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
-import { Upload, Mic, ClipboardPaste, CheckCircle, Loader2 } from 'lucide-react';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog';
+import { Upload, Mic, ClipboardPaste, CheckCircle, Loader2, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { Link } from 'react-router-dom';
 
 const tabs = [
   { id: 'upload' as const, label: 'Upload', icon: Upload },
@@ -19,6 +23,8 @@ const tabs = [
 
 export default function UploadPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const routineId = searchParams.get('routineId');
   const [activeTab, setActiveTab] = useState<'upload' | 'record' | 'paste'>('upload');
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
@@ -33,33 +39,92 @@ export default function UploadPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
+  const [limitReached, setLimitReached] = useState(false);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
+  // Check usage limits
+  useEffect(() => {
+    async function checkUsage() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const now = new Date();
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+      const [usageRes, profileRes] = await Promise.all([
+        supabase.from('Usage').select('transcriptionsUsed').eq('userId', user.id).eq('currentMonth', currentMonth).maybeSingle(),
+        supabase.from('profiles').select('plan_id').eq('user_id', user.id).single(),
+      ]);
+
+      const planId = profileRes.data?.plan_id || 'basic';
+      const { data: plan } = await supabase.from('Plan').select('maxTranscriptions').eq('id', planId).single();
+
+      const used = usageRes.data?.transcriptionsUsed || 0;
+      const max = plan?.maxTranscriptions || 5;
+
+      if (used >= max) setLimitReached(true);
+    }
+    checkUsage();
   }, []);
 
+  const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); }, []);
   const handleDragLeave = useCallback(() => setIsDragging(false), []);
-
   const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
+    e.preventDefault(); setIsDragging(false);
     const droppedFile = e.dataTransfer.files[0];
     if (droppedFile) setFile(droppedFile);
   }, []);
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) setFile(e.target.files[0]);
   };
 
   const handleSubmit = async () => {
-    if (activeTab === 'upload' && !file) return;
+    if (limitReached) return;
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      toast.error('Você precisa estar logado para fazer upload');
+    if (!user) { toast.error('Você precisa estar logado'); return; }
+
+    // Paste text flow
+    if (activeTab === 'paste') {
+      if (!pastedText.trim()) { toast.error('Cole algum texto'); return; }
+      setUploading(true);
+      setStatusMessage('Salvando transcrição...');
+      try {
+        const defaultTitle = title || 'Transcrição colada';
+        const participantsList = participants ? participants.split(',').map(p => p.trim()).filter(Boolean) : [];
+        const { error } = await supabase.from('Meeting').insert({
+          userId: user.id,
+          title: defaultTitle,
+          fileName: 'texto-colado.txt',
+          fileSize: new Blob([pastedText]).size,
+          cloudStoragePath: '',
+          status: 'completed',
+          transcription: pastedText,
+          visibility: 'private',
+          description: description || null,
+          meetingDate: meetingDate ? new Date(meetingDate).toISOString() : null,
+          meetingTime: meetingTime || null,
+          location: location || null,
+          responsible: responsible || null,
+          participants: participantsList,
+          routineId: routineId || null,
+        });
+        if (error) throw error;
+
+        // Update usage
+        await updateUsage(user.id, 0);
+
+        toast.success('Transcrição salva!');
+        navigate('/meetings');
+      } catch (err: any) {
+        toast.error(err.message || 'Erro ao salvar');
+      } finally {
+        setUploading(false);
+      }
       return;
     }
+
+    // Upload flow
+    if (activeTab === 'upload' && !file) return;
 
     if (file && file.size > 50 * 1024 * 1024) {
       toast.info('Arquivo grande detectado. A transcrição pode levar alguns minutos.');
@@ -70,7 +135,6 @@ export default function UploadPage() {
     setStatusMessage('Enviando arquivo...');
 
     try {
-      // Step 1: Upload to Supabase Storage
       const storagePath = `uploads/${Date.now()}-${file!.name}`;
       setUploadProgress(10);
 
@@ -82,13 +146,10 @@ export default function UploadPage() {
       setUploadProgress(50);
       setStatusMessage('Arquivo enviado! Criando registro...');
 
-      // Step 2: Create Meeting record
       const meetingId = crypto.randomUUID();
       const now = new Date().toISOString();
       const defaultTitle = title || file!.name.replace(/\.[^/.]+$/, '');
-      const participantsList = participants
-        ? participants.split(',').map((p) => p.trim()).filter(Boolean)
-        : [];
+      const participantsList = participants ? participants.split(',').map(p => p.trim()).filter(Boolean) : [];
 
       const { error: insertError } = await supabase.from('Meeting').insert({
         id: meetingId,
@@ -106,6 +167,7 @@ export default function UploadPage() {
         location: location || null,
         responsible: responsible || null,
         participants: participantsList,
+        routineId: routineId || null,
         createdAt: now,
         updatedAt: now,
       });
@@ -114,32 +176,29 @@ export default function UploadPage() {
       setUploadProgress(70);
       setStatusMessage('Processando transcrição...');
 
-      // Step 3: Call transcribe edge function
       const { error: fnError } = await supabase.functions.invoke('transcribe', {
         body: { meetingId, storagePath },
       });
 
       if (fnError) {
-        // Mark as failed but still redirect so user can see the meeting
         await supabase.from('Meeting').update({
-          status: 'failed',
-          errorMessage: fnError.message,
-          updatedAt: new Date().toISOString(),
+          status: 'failed', errorMessage: fnError.message, updatedAt: new Date().toISOString(),
         }).eq('id', meetingId);
-
         toast.error(`Transcrição falhou: ${fnError.message}`);
-        navigate(`/meetings`);
+        navigate('/meetings');
         return;
       }
+
+      // Update usage
+      await updateUsage(user.id, Math.round(file!.size / 1024 / 1024));
 
       setUploadProgress(100);
       setStatusMessage('Transcrição concluída!');
       toast.success('Transcrição concluída com sucesso!');
-
-      setTimeout(() => navigate(`/meetings`), 1000);
+      setTimeout(() => navigate('/meetings'), 1000);
     } catch (error: any) {
       console.error('Upload error:', error);
-      toast.error(error.message || 'Erro inesperado durante o upload');
+      toast.error(error.message || 'Erro inesperado');
     } finally {
       setUploading(false);
     }
@@ -151,6 +210,9 @@ export default function UploadPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Nova Transcrição</h1>
           <p className="text-muted-foreground">Envie um áudio, grave ou cole o texto da reunião</p>
+          {routineId && (
+            <p className="text-sm text-primary mt-1">📌 Vinculada a uma rotina</p>
+          )}
         </div>
 
         {/* Tabs */}
@@ -162,9 +224,7 @@ export default function UploadPage() {
               disabled={uploading}
               className={cn(
                 'flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-colors',
-                activeTab === tab.id
-                  ? 'bg-card text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
+                activeTab === tab.id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
               )}
             >
               <tab.icon className="h-4 w-4" />
@@ -175,7 +235,6 @@ export default function UploadPage() {
 
         <Card>
           <CardContent className="p-6 space-y-6">
-            {/* Upload Area */}
             {activeTab === 'upload' && (
               <div
                 onDragOver={handleDragOver}
@@ -188,14 +247,7 @@ export default function UploadPage() {
                 )}
                 onClick={() => !uploading && document.getElementById('file-input')?.click()}
               >
-                <input
-                  id="file-input"
-                  type="file"
-                  accept="audio/*,video/*,.mp3,.wav,.m4a,.aac,.caf,.ogg,.webm,.mp4"
-                  className="hidden"
-                  onChange={handleFileChange}
-                  disabled={uploading}
-                />
+                <input id="file-input" type="file" accept="audio/*,video/*,.mp3,.wav,.m4a,.aac,.caf,.ogg,.webm,.mp4" className="hidden" onChange={handleFileChange} disabled={uploading} />
                 {file ? (
                   <div className="flex flex-col items-center gap-2">
                     <CheckCircle className="h-10 w-10 text-primary" />
@@ -218,7 +270,7 @@ export default function UploadPage() {
                   <Mic className="h-10 w-10 text-primary" />
                 </div>
                 <p className="font-medium text-foreground mb-2">Gravação de Áudio</p>
-                <p className="text-sm text-muted-foreground mb-4">Clique para iniciar a gravação diretamente do navegador</p>
+                <p className="text-sm text-muted-foreground mb-4">Clique para iniciar a gravação</p>
                 <Button className="bg-primary hover:bg-emerald-600 text-primary-foreground" onClick={() => toast.info('Gravação será implementada em breve')}>
                   <Mic className="h-4 w-4 mr-2" /> Iniciar Gravação
                 </Button>
@@ -228,17 +280,10 @@ export default function UploadPage() {
             {activeTab === 'paste' && (
               <div>
                 <label className="text-sm font-medium text-foreground mb-2 block">Cole a transcrição ou texto da reunião</label>
-                <Textarea
-                  placeholder="Cole aqui o texto da reunião..."
-                  value={pastedText}
-                  onChange={(e) => setPastedText(e.target.value)}
-                  rows={8}
-                  disabled={uploading}
-                />
+                <Textarea placeholder="Cole aqui o texto da reunião..." value={pastedText} onChange={e => setPastedText(e.target.value)} rows={8} disabled={uploading} />
               </div>
             )}
 
-            {/* Upload Progress */}
             {uploading && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
@@ -256,32 +301,32 @@ export default function UploadPage() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Título</label>
-                  <Input placeholder="Ex: Sprint Planning" value={title} onChange={(e) => setTitle(e.target.value)} disabled={uploading} />
+                  <Input placeholder="Ex: Sprint Planning" value={title} onChange={e => setTitle(e.target.value)} disabled={uploading} />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Data</label>
-                  <Input type="date" value={meetingDate} onChange={(e) => setMeetingDate(e.target.value)} disabled={uploading} />
+                  <Input type="date" value={meetingDate} onChange={e => setMeetingDate(e.target.value)} disabled={uploading} />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Horário</label>
-                  <Input type="time" value={meetingTime} onChange={(e) => setMeetingTime(e.target.value)} disabled={uploading} />
+                  <Input type="time" value={meetingTime} onChange={e => setMeetingTime(e.target.value)} disabled={uploading} />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Local</label>
-                  <Input placeholder="Ex: Sala 3" value={location} onChange={(e) => setLocation(e.target.value)} disabled={uploading} />
+                  <Input placeholder="Ex: Sala 3" value={location} onChange={e => setLocation(e.target.value)} disabled={uploading} />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Responsável</label>
-                  <Input placeholder="Nome" value={responsible} onChange={(e) => setResponsible(e.target.value)} disabled={uploading} />
+                  <Input placeholder="Nome" value={responsible} onChange={e => setResponsible(e.target.value)} disabled={uploading} />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">Participantes</label>
-                  <Input placeholder="Separar por vírgula" value={participants} onChange={(e) => setParticipants(e.target.value)} disabled={uploading} />
+                  <Input placeholder="Separar por vírgula" value={participants} onChange={e => setParticipants(e.target.value)} disabled={uploading} />
                 </div>
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Descrição</label>
-                <Textarea placeholder="Pauta ou observações..." value={description} onChange={(e) => setDescription(e.target.value)} rows={3} disabled={uploading} />
+                <Textarea placeholder="Pauta ou observações..." value={description} onChange={e => setDescription(e.target.value)} rows={3} disabled={uploading} />
               </div>
             </div>
 
@@ -289,20 +334,63 @@ export default function UploadPage() {
               className="w-full bg-primary hover:bg-emerald-600 text-primary-foreground"
               size="lg"
               onClick={handleSubmit}
-              disabled={uploading || (activeTab === 'upload' && !file)}
+              disabled={uploading || limitReached || (activeTab === 'upload' && !file) || (activeTab === 'paste' && !pastedText.trim())}
             >
               {uploading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {statusMessage}
-                </>
-              ) : (
-                'Transcrever Reunião'
-              )}
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />{statusMessage}</>
+              ) : activeTab === 'paste' ? 'Salvar Transcrição' : 'Transcrever Reunião'}
             </Button>
           </CardContent>
         </Card>
       </div>
+
+      {/* Limit Reached Modal */}
+      <Dialog open={limitReached} onOpenChange={() => {}}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Limite atingido
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Você atingiu o limite de transcrições do seu plano este mês. Faça upgrade para continuar transcrevendo.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => navigate('/dashboard')}>Voltar</Button>
+            <Link to="/plans">
+              <Button className="bg-primary text-primary-foreground">Ver Planos</Button>
+            </Link>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
+}
+
+async function updateUsage(userId: string, durationMinutes: number) {
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  const { data: existing } = await supabase
+    .from('Usage')
+    .select('id, transcriptionsUsed, totalMinutesTranscribed')
+    .eq('userId', userId)
+    .eq('currentMonth', currentMonth)
+    .maybeSingle();
+
+  if (existing) {
+    await supabase.from('Usage').update({
+      transcriptionsUsed: (existing.transcriptionsUsed || 0) + 1,
+      totalMinutesTranscribed: (existing.totalMinutesTranscribed || 0) + durationMinutes,
+      updatedAt: now.toISOString(),
+    }).eq('id', existing.id);
+  } else {
+    await supabase.from('Usage').insert({
+      userId,
+      currentMonth,
+      transcriptionsUsed: 1,
+      totalMinutesTranscribed: durationMinutes,
+    });
+  }
 }
