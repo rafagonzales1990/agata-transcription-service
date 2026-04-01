@@ -5,13 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, ChevronLeft, CheckCircle, AlertCircle, Clock, Users, FileText, ListChecks, AlignLeft, Sparkles, Lock, Download } from 'lucide-react';
+import { Loader2, ChevronLeft, CheckCircle, AlertCircle, Clock, Users, FileText, ListChecks, Sparkles, Lock, Download, Printer } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import remarkGfm from 'remark-gfm';
 
 interface MeetingRow {
   id: string;
@@ -29,6 +28,7 @@ interface MeetingRow {
   location: string | null;
   description: string | null;
   ataTemplate: string | null;
+  fileDuration: number | null;
 }
 
 const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: typeof CheckCircle }> = {
@@ -73,7 +73,7 @@ export default function MeetingDetail() {
       if (!id) return;
       const { data, error } = await supabase
         .from('Meeting')
-        .select('id, title, fileName, status, createdAt, summary, transcription, participants, meetingDate, meetingTime, actionItems, responsible, location, description, ataTemplate')
+        .select('id, title, fileName, status, createdAt, summary, transcription, participants, meetingDate, meetingTime, actionItems, responsible, location, description, ataTemplate, fileDuration')
         .eq('id', id)
         .single();
 
@@ -131,42 +131,24 @@ export default function MeetingDetail() {
 
       if (error) throw error;
 
-      // data is the HTML string
-      const htmlContent = typeof data === 'string' ? data : data?.toString();
-      if (!htmlContent || htmlContent.startsWith('{')) {
-        const parsed = JSON.parse(htmlContent);
-        if (parsed.error) throw new Error(parsed.error);
+      let htmlContent: string;
+      if (typeof data === 'object' && data.html) {
+        htmlContent = data.html;
+      } else if (typeof data === 'string') {
+        htmlContent = data;
+      } else {
+        throw new Error('Formato de resposta inválido');
       }
 
-      const container = document.createElement('div');
-      container.innerHTML = htmlContent;
-      container.style.width = '794px';
-      container.style.position = 'absolute';
-      container.style.left = '-9999px';
-      document.body.appendChild(container);
-
-      const canvas = await html2canvas(container, { scale: 2, useCORS: true });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgWidth = 210;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= 297;
-
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= 297;
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+        printWindow.onload = () => {
+          setTimeout(() => { printWindow.print(); }, 500);
+        };
       }
-
-      pdf.save(`ATA_${meeting.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
-      document.body.removeChild(container);
-      toast.success('PDF gerado com sucesso!');
+      toast.success('ATA gerada! Use Ctrl+P para salvar como PDF.');
     } catch (err: any) {
       toast.error(err.message || 'Erro ao gerar PDF');
     } finally {
@@ -201,6 +183,12 @@ export default function MeetingDetail() {
     ? new Date(meeting.meetingDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
     : new Date(meeting.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
 
+  const durationLabel = meeting.fileDuration
+    ? `${Math.round(meeting.fileDuration / 60)} min`
+    : null;
+
+  const nextDepth = summaryDepth === 'executivo' ? 'detalhado' : summaryDepth === 'detalhado' ? 'ata_completa' : null;
+
   return (
     <AppLayout>
       <div className="space-y-6 max-w-4xl">
@@ -216,6 +204,7 @@ export default function MeetingDetail() {
                 {date}
                 {meeting.meetingTime && ` · ${meeting.meetingTime}`}
                 {meeting.location && ` · ${meeting.location}`}
+                {durationLabel && ` · ${durationLabel}`}
               </p>
             </div>
             <Badge variant={cfg.variant} className="shrink-0 flex items-center gap-1">
@@ -246,6 +235,22 @@ export default function MeetingDetail() {
           </Card>
         )}
 
+        {/* Transcription */}
+        {meeting.transcription && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" /> Transcrição Completa
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap text-sm leading-relaxed max-h-[400px] overflow-y-auto">
+                {meeting.transcription}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* AI Summary Section */}
         {meeting.transcription && (
           <Card>
@@ -261,7 +266,6 @@ export default function MeetingDetail() {
                   variant={summaryDepth === 'executivo' ? 'default' : 'outline'}
                   onClick={() => generateSummary('executivo')}
                   disabled={summaryLoading}
-                  className={summaryDepth === 'executivo' ? 'bg-primary text-primary-foreground' : ''}
                 >
                   Executivo
                 </Button>
@@ -270,7 +274,6 @@ export default function MeetingDetail() {
                   variant={summaryDepth === 'detalhado' ? 'default' : 'outline'}
                   onClick={() => isPaidPlan ? generateSummary('detalhado') : toast.error('Disponível apenas para planos pagos')}
                   disabled={summaryLoading}
-                  className={summaryDepth === 'detalhado' ? 'bg-primary text-primary-foreground' : ''}
                 >
                   {!isPaidPlan && <Lock className="h-3 w-3 mr-1" />}
                   Detalhado
@@ -280,7 +283,6 @@ export default function MeetingDetail() {
                   variant={summaryDepth === 'ata_completa' ? 'default' : 'outline'}
                   onClick={() => isPaidPlan ? generateSummary('ata_completa') : toast.error('Disponível apenas para planos pagos')}
                   disabled={summaryLoading}
-                  className={summaryDepth === 'ata_completa' ? 'bg-primary text-primary-foreground' : ''}
                 >
                   {!isPaidPlan && <Lock className="h-3 w-3 mr-1" />}
                   ATA Completa
@@ -295,33 +297,27 @@ export default function MeetingDetail() {
               )}
 
               {summaryContent && !summaryLoading && (
-                <div className="markdown-rendered prose prose-sm max-w-none">
-                  <ReactMarkdown
-                    components={{
-                      h1: ({ children }) => <h1 className="md-h1">{children}</h1>,
-                      h2: ({ children }) => <h2 className="md-h2">{children}</h2>,
-                      h3: ({ children }) => <h3 className="md-h3">{children}</h3>,
-                      p: ({ children }) => <p className="md-p">{children}</p>,
-                      ul: ({ children }) => <ul className="md-ul">{children}</ul>,
-                      table: ({ children }) => <table className="w-full border-collapse text-sm my-3">{children}</table>,
-                      th: ({ children }) => <th className="border border-primary/30 bg-primary/10 text-left px-3 py-1.5 text-xs font-semibold text-foreground">{children}</th>,
-                      td: ({ children }) => <td className="border border-border px-3 py-1.5 text-xs text-muted-foreground">{children}</td>,
-                    }}
-                  >
+                <div className="markdown-rendered">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
                     {summaryContent}
                   </ReactMarkdown>
                 </div>
               )}
 
-              {/* ATA PDF Generation */}
-              {summaryDepth === 'ata_completa' && summaryContent && !summaryLoading && (
-                <div className="border-t pt-4 space-y-3">
-                  <h4 className="text-sm font-medium text-foreground">Gerar ATA em PDF</h4>
-                  <div className="flex flex-wrap gap-3 items-end">
-                    <div className="flex-1 min-w-[200px]">
-                      <label className="text-xs text-muted-foreground mb-1 block">Template</label>
+              {/* Action buttons after summary */}
+              {summaryContent && !summaryLoading && (
+                <div className="border-t pt-4 flex flex-wrap gap-3 items-end">
+                  {nextDepth && isPaidPlan && (
+                    <Button size="sm" variant="outline" onClick={() => generateSummary(nextDepth)}>
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      Gerar como {nextDepth === 'detalhado' ? 'Detalhado' : 'ATA Completa'}
+                    </Button>
+                  )}
+
+                  <div className="flex items-center gap-2 ml-auto">
+                    <div className="min-w-[180px]">
                       <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-9 text-xs">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -332,20 +328,21 @@ export default function MeetingDetail() {
                       </Select>
                     </div>
                     <Button
+                      size="sm"
                       onClick={generatePDF}
                       disabled={pdfLoading}
-                      className="bg-primary text-primary-foreground"
                     >
-                      {pdfLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-                      Gerar ATA em PDF
+                      {pdfLoading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Printer className="h-3 w-3 mr-1" />}
+                      Baixar PDF
                     </Button>
                   </div>
-                  {!isPaidPlan && (
-                    <p className="text-xs text-muted-foreground">
-                      ⚠️ O PDF será gerado com marca d'água. <Link to="/plans" className="text-primary underline">Faça upgrade</Link> para remover.
-                    </p>
-                  )}
                 </div>
+              )}
+
+              {summaryContent && !summaryLoading && !isPaidPlan && (
+                <p className="text-xs text-muted-foreground">
+                  ⚠️ O PDF será gerado com marca d'água. <Link to="/plans" className="text-primary underline">Faça upgrade</Link> para remover.
+                </p>
               )}
             </CardContent>
           </Card>
@@ -368,22 +365,6 @@ export default function MeetingDetail() {
                   </li>
                 ))}
               </ul>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Transcription */}
-        {meeting.transcription && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <FileText className="h-4 w-4 text-primary" /> Transcrição Completa
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap text-sm leading-relaxed max-h-[600px] overflow-y-auto">
-                {meeting.transcription}
-              </div>
             </CardContent>
           </Card>
         )}

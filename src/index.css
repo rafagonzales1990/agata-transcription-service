@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -74,38 +76,79 @@
     @apply border-border;
   }
   body {
+    font-family: 'Inter', sans-serif;
     @apply bg-background text-foreground;
   }
 }
 
 /* Markdown Renderer Styles */
-.markdown-rendered .md-h1 {
+.markdown-rendered h1 {
   @apply text-xl font-bold mt-6 mb-3 pb-2 border-b-2;
   color: hsl(var(--emerald-800));
   border-color: hsl(var(--emerald-200));
 }
-.markdown-rendered .md-h2 {
+.markdown-rendered h2 {
   @apply text-lg font-bold mt-5 mb-2 pb-1.5 border-b;
   color: hsl(var(--emerald-700));
   border-color: hsl(var(--emerald-100));
 }
-.markdown-rendered .md-h3 {
+.markdown-rendered h3 {
   @apply text-base font-semibold mt-4 mb-2;
   color: hsl(var(--foreground));
 }
-.markdown-rendered .md-p {
+.markdown-rendered p {
   @apply text-sm leading-relaxed my-2;
   color: hsl(var(--muted-foreground));
 }
-.markdown-rendered .md-ul {
-  @apply my-2 ml-1 space-y-1;
+.markdown-rendered ul {
+  @apply my-2 ml-1 space-y-1 list-none;
 }
-.markdown-rendered .md-ul li {
+.markdown-rendered ul li {
   @apply text-sm pl-4 relative;
   color: hsl(var(--muted-foreground));
 }
-.markdown-rendered .md-ul li::before {
+.markdown-rendered ul li::before {
   content: '•';
   @apply absolute left-0 font-bold;
   color: hsl(var(--emerald-500));
+}
+.markdown-rendered ol {
+  @apply my-2 ml-4 space-y-1 list-decimal;
+}
+.markdown-rendered ol li {
+  @apply text-sm;
+  color: hsl(var(--muted-foreground));
+}
+.markdown-rendered strong {
+  @apply font-semibold;
+  color: hsl(var(--foreground));
+}
+.markdown-rendered hr {
+  @apply my-4;
+  border-color: hsl(var(--emerald-200));
+}
+.markdown-rendered table {
+  @apply w-full border-collapse text-sm my-3;
+}
+.markdown-rendered thead {
+  background: hsl(var(--emerald-50));
+}
+.markdown-rendered th {
+  @apply border px-3 py-1.5 text-xs font-semibold text-left;
+  border-color: hsl(var(--emerald-300));
+  color: hsl(var(--emerald-800));
+  background: hsl(var(--emerald-100));
+}
+.markdown-rendered td {
+  @apply border px-3 py-1.5 text-xs;
+  border-color: hsl(var(--border));
+  color: hsl(var(--muted-foreground));
+}
+.markdown-rendered tr:nth-child(even) td {
+  background: hsl(var(--emerald-50));
+}
+
+@media print {
+  body { margin: 0; padding: 0; }
+  .no-print { display: none !important; }
 }

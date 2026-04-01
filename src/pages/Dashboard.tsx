@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { FileAudio, Upload, TrendingUp, Clock, Zap, FolderOpen, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -16,6 +17,8 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
   pending: { label: 'Pendente', variant: 'outline', icon: Clock },
   failed: { label: 'Falhou', variant: 'destructive', icon: AlertCircle },
 };
+
+const borderColors = ['border-l-purple-500', 'border-l-blue-500', 'border-l-green-500', 'border-l-orange-500'];
 
 export default function DashboardPage() {
   const { profile } = useAuth();
@@ -34,9 +37,8 @@ export default function DashboardPage() {
 
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const currentMonth = now.toISOString().slice(0, 7);
 
-      // Parallel fetches
       const [meetingsRes, usageRes, planRes, recentRes] = await Promise.all([
         supabase.from('Meeting')
           .select('id', { count: 'exact', head: true })
@@ -71,10 +73,12 @@ export default function DashboardPage() {
     fetchDashboard();
   }, [profile]);
 
+  const usagePercent = maxTranscriptions > 0 ? Math.min(100, (transcriptionsUsed / maxTranscriptions) * 100) : 0;
+
   const stats = [
     { label: 'Reuniões (mês)', value: loading ? null : String(meetingCount), icon: FileAudio },
     { label: 'Minutos Transcritos', value: loading ? null : String(totalMinutes), icon: Clock },
-    { label: 'Transcrições Usadas', value: loading ? null : `${transcriptionsUsed}/${maxTranscriptions}`, icon: TrendingUp },
+    { label: 'Uso Mensal', value: loading ? null : `${transcriptionsUsed}/${maxTranscriptions}`, icon: TrendingUp, showProgress: true },
     { label: 'Plano Atual', value: loading ? null : planName, icon: Zap },
   ];
 
@@ -94,7 +98,7 @@ export default function DashboardPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
             >
-              <Card>
+              <Card className={`border-l-4 ${borderColors[i]} shadow-lg hover:shadow-xl transition-shadow`}>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-sm text-muted-foreground">{stat.label}</p>
@@ -103,7 +107,12 @@ export default function DashboardPage() {
                   {stat.value === null ? (
                     <Skeleton className="h-8 w-20" />
                   ) : (
-                    <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+                    <>
+                      <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+                      {stat.showProgress && (
+                        <Progress value={usagePercent} className="h-1.5 mt-2" />
+                      )}
+                    </>
                   )}
                 </CardContent>
               </Card>
@@ -112,7 +121,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          <Card>
+          <Card className="shadow-lg">
             <CardHeader>
               <CardTitle className="text-lg">Começar Nova Transcrição</CardTitle>
               <CardDescription>Envie um áudio ou grave diretamente</CardDescription>
@@ -126,7 +135,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="shadow-lg">
             <CardHeader>
               <CardTitle className="text-lg">Reuniões Recentes</CardTitle>
               <CardDescription>Suas últimas transcrições</CardDescription>

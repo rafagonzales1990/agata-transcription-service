@@ -3,11 +3,9 @@ import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FolderOpen, Download, Loader2, FileText } from 'lucide-react';
+import { FolderOpen, Printer, Loader2, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 const templateLabels: Record<string, string> = {
   geral: 'Ata Geral',
@@ -63,23 +61,24 @@ export default function DocumentsPage() {
       });
 
       if (error) throw error;
-      const htmlContent = typeof data === 'string' ? data : data?.toString();
 
-      const container = document.createElement('div');
-      container.innerHTML = htmlContent;
-      container.style.width = '794px';
-      container.style.position = 'absolute';
-      container.style.left = '-9999px';
-      document.body.appendChild(container);
+      let htmlContent: string;
+      if (typeof data === 'object' && data.html) {
+        htmlContent = data.html;
+      } else if (typeof data === 'string') {
+        htmlContent = data;
+      } else {
+        throw new Error('Formato inválido');
+      }
 
-      const canvas = await html2canvas(container, { scale: 2, useCORS: true });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgWidth = 210;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-      pdf.save(`ATA_${doc.title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
-      document.body.removeChild(container);
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+        printWindow.onload = () => {
+          setTimeout(() => { printWindow.print(); }, 500);
+        };
+      }
     } catch (err: any) {
       toast.error(err.message || 'Erro ao baixar ATA');
     } finally {
@@ -135,7 +134,7 @@ export default function DocumentsPage() {
                       onClick={() => handleDownload(doc)}
                       disabled={downloadingId === doc.id}
                     >
-                      {downloadingId === doc.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5 mr-1" />}
+                      {downloadingId === doc.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Printer className="h-3.5 w-3.5 mr-1" />}
                       Baixar ATA
                     </Button>
                   </CardContent>
