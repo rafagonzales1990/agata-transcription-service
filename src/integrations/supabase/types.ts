@@ -311,6 +311,54 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          billing_cycle: string | null
+          cpf: string | null
+          created_at: string
+          email: string
+          has_completed_onboarding: boolean
+          id: string
+          image: string | null
+          name: string | null
+          phone: string | null
+          plan_id: string | null
+          trial_ends_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          billing_cycle?: string | null
+          cpf?: string | null
+          created_at?: string
+          email: string
+          has_completed_onboarding?: boolean
+          id?: string
+          image?: string | null
+          name?: string | null
+          phone?: string | null
+          plan_id?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          billing_cycle?: string | null
+          cpf?: string | null
+          created_at?: string
+          email?: string
+          has_completed_onboarding?: boolean
+          id?: string
+          image?: string | null
+          name?: string | null
+          phone?: string | null
+          plan_id?: string | null
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       Routine: {
         Row: {
           color: string
