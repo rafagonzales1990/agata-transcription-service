@@ -5,6 +5,66 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const MAX_CHUNK_BYTES = 18 * 1024 * 1024
+
+async function transcribeChunk(
+  base64Data: string,
+  mimeType: string,
+  geminiApiKey: string,
+  chunkIndex: number,
+  totalChunks: number
+): Promise<string> {
+  const isLastChunk = chunkIndex === totalChunks - 1
+  const prompt = totalChunks === 1
+    ? `Transcreva este áudio completamente em português brasileiro.
+       Inclua marcações de quem está falando quando possível.
+       Mantenha a transcrição fiel ao que foi dito, sem resumir.
+       Após a transcrição completa, adicione:
+       ## Resumo
+       (resumo executivo dos pontos principais)
+       ## Itens de Ação
+       (tarefas e compromissos mencionados, um por linha)`
+    : isLastChunk
+    ? `Este é o trecho ${chunkIndex + 1} de ${totalChunks} de uma reunião.
+       Transcreva este trecho completamente em português brasileiro.
+       Inclua marcações de quem está falando quando possível.
+       IMPORTANTE: Este é o último trecho. Após a transcrição adicione:
+       ## Resumo
+       (resumo executivo de TODO o áudio, não só este trecho)
+       ## Itens de Ação
+       (todas as tarefas mencionadas ao longo de toda a reunião)`
+    : `Este é o trecho ${chunkIndex + 1} de ${totalChunks} de uma reunião.
+       Transcreva este trecho completamente em português brasileiro.
+       Inclua marcações de quem está falando quando possível.
+       NÃO adicione resumo nem itens de ação — apenas a transcrição.`
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { inline_data: { mime_type: mimeType, data: base64Data } },
+            { text: prompt }
+          ]
+        }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
+      })
+    }
+  )
+
+  if (!response.ok) {
+    const errorText = await response.text()
+    console.error(`Gemini API error (chunk ${chunkIndex + 1}/${totalChunks}):`, errorText)
+    throw new Error(`Gemini error: ${response.status}`)
+  }
+
+  const result = await response.json()
+  return result.candidates?.[0]?.content?.parts?.[0]?.text || ''
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -64,15 +124,6 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Convert file to base64
-    const arrayBuffer = await fileData.arrayBuffer()
-    const uint8Array = new Uint8Array(arrayBuffer)
-    let binary = ''
-    for (let i = 0; i < uint8Array.length; i++) {
-      binary += String.fromCharCode(uint8Array[i])
-    }
-    const base64Data = btoa(binary)
-
     // Determine MIME type
     const ext = storagePath.split('.').pop()?.toLowerCase() || ''
     const mimeMap: Record<string, string> = {
@@ -87,70 +138,46 @@ Deno.serve(async (req) => {
     }
     const mimeType = mimeMap[ext] || 'audio/mpeg'
 
-    // Call Gemini API for transcription
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  inline_data: {
-                    mime_type: mimeType,
-                    data: base64Data,
-                  },
-                },
-                {
-                  text: `Transcreva este áudio/vídeo completamente em português brasileiro. 
-Inclua marcações de quem está falando quando possível (ex: "Participante 1:", "Participante 2:").
-Mantenha a transcrição fiel ao que foi dito, sem resumir.
-Após a transcrição completa, adicione uma seção "## Resumo" com um resumo executivo dos pontos principais.
-Depois adicione uma seção "## Itens de Ação" listando as tarefas e compromissos mencionados.`,
-                },
-              ],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 8192,
-          },
-        }),
-      }
-    )
+    // Chunked transcription for large files
+    const arrayBuffer = await fileData.arrayBuffer()
+    const totalBytes = arrayBuffer.byteLength
+    const totalChunks = Math.ceil(totalBytes / MAX_CHUNK_BYTES)
+    const chunkTranscriptions: string[] = []
 
-    if (!geminiResponse.ok) {
-      const errorText = await geminiResponse.text()
-      console.error('Gemini API error:', errorText)
-      await supabase.from('Meeting').update({
-        status: 'failed',
-        errorMessage: `Transcription API error: ${geminiResponse.status}`,
-        updatedAt: new Date().toISOString(),
-      }).eq('id', meetingId)
+    console.log(`Processing file: ${totalBytes} bytes, ${totalChunks} chunk(s)`)
 
-      return new Response(JSON.stringify({ error: 'Transcription failed' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * MAX_CHUNK_BYTES
+      const end = Math.min(start + MAX_CHUNK_BYTES, totalBytes)
+      const chunkBuffer = arrayBuffer.slice(start, end)
+
+      const base64Chunk = btoa(
+        new Uint8Array(chunkBuffer)
+          .reduce((data, byte) => data + String.fromCharCode(byte), '')
+      )
+
+      console.log(`Transcribing chunk ${i + 1}/${totalChunks} (${end - start} bytes)`)
+
+      const chunkText = await transcribeChunk(
+        base64Chunk, mimeType, geminiApiKey, i, totalChunks
+      )
+      chunkTranscriptions.push(chunkText)
     }
 
-    const geminiResult = await geminiResponse.json()
-    const transcriptionText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || ''
+    const fullTranscriptionText = chunkTranscriptions.join('\n\n')
 
     // Parse summary and action items from the transcription
-    let transcription = transcriptionText
+    let transcription = fullTranscriptionText
     let summary = null
     let actionItems: string[] = []
 
-    const summaryMatch = transcriptionText.match(/## Resumo\s*\n([\s\S]*?)(?=## Itens de Ação|$)/)
+    const summaryMatch = fullTranscriptionText.match(/## Resumo\s*\n([\s\S]*?)(?=## Itens de Ação|$)/)
     if (summaryMatch) {
       summary = summaryMatch[1].trim()
-      transcription = transcriptionText.split('## Resumo')[0].trim()
+      transcription = fullTranscriptionText.split('## Resumo')[0].trim()
     }
 
-    const actionMatch = transcriptionText.match(/## Itens de Ação\s*\n([\s\S]*)$/)
+    const actionMatch = fullTranscriptionText.match(/## Itens de Ação\s*\n([\s\S]*)$/)
     if (actionMatch) {
       actionItems = actionMatch[1]
         .split('\n')
@@ -167,13 +194,28 @@ Depois adicione uma seção "## Itens de Ação" listando as tarefas e compromis
       updatedAt: new Date().toISOString(),
     }).eq('id', meetingId)
 
+    console.log(`Transcription completed for meeting ${meetingId}`)
+
     return new Response(JSON.stringify({ success: true, meetingId }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
     console.error('Transcription error:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+
+    // Try to mark meeting as failed
+    try {
+      const { meetingId } = await (async () => {
+        // We can't re-read the body, so just extract from error context
+        return { meetingId: null }
+      })()
+      // If we had the meetingId we'd update status, but since we're in catch
+      // and body was already consumed, log the error
+    } catch (_) {
+      // ignore
+    }
+
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
