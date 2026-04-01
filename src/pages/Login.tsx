@@ -12,22 +12,86 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showResetNotice, setShowResetNotice] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
+
     if (error) {
-      toast.error(error.message === 'Invalid login credentials'
-        ? 'Email ou senha incorretos'
-        : error.message);
+      if (error.message === 'Invalid login credentials') {
+        // Check if this email exists as a legacy migrated user
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('old_user_id')
+          .eq('email', email)
+          .maybeSingle();
+
+        if (profile?.old_user_id) {
+          // Legacy user — trigger password reset
+          const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}/auth/reset-password`,
+          });
+
+          if (!resetError) {
+            setShowResetNotice(true);
+            setLoading(false);
+            return;
+          }
+        }
+
+        toast.error('Email ou senha incorretos');
+      } else {
+        toast.error(error.message);
+      }
     } else {
       toast.success('Login realizado com sucesso!');
       navigate('/dashboard');
     }
+
+    setLoading(false);
   };
+
+  if (showResetNotice) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center px-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <Link to="/" className="inline-flex items-center gap-2 mb-4">
+              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+                <Sparkles className="h-6 w-6 text-primary-foreground" />
+              </div>
+              <span className="text-2xl font-bold text-foreground">Ágata</span>
+            </Link>
+          </div>
+
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle>Bem-vindo de volta! 👋</CardTitle>
+              <CardDescription>
+                Detectamos que sua conta foi migrada para nosso novo sistema.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground text-center">
+                Enviamos um link para <strong>{email}</strong> para você criar uma nova senha. 
+                Suas reuniões e transcrições continuam disponíveis!
+              </p>
+              <Button
+                className="w-full bg-primary hover:bg-emerald-600 text-primary-foreground"
+                onClick={() => setShowResetNotice(false)}
+              >
+                Voltar ao login
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-muted/30 flex items-center justify-center px-4">
