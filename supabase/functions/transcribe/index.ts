@@ -24,7 +24,7 @@ async function transcribeChunk(
        (tarefas e compromissos mencionados, um por linha)`
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-002:generateContent?key=${geminiApiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -114,18 +114,6 @@ Deno.serve(async (req) => {
       })
     }
 
-    // TEMPORARY: List available models
-    const modelsResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models?key=${geminiApiKey}`
-    )
-    const modelsData = await modelsResponse.json()
-    console.log('Available models:', JSON.stringify(modelsData.models?.map((m: any) => m.name)))
-
-    return new Response(JSON.stringify({ models: modelsData.models?.map((m: any) => m.name) }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-
     // Determine MIME type
     const ext = storagePath.split('.').pop()?.toLowerCase() || ''
     const mimeMap: Record<string, string> = {
@@ -198,7 +186,7 @@ Deno.serve(async (req) => {
          (tarefas e compromissos mencionados, um por linha)`
 
       const geminiResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-002:generateContent?key=${geminiApiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
