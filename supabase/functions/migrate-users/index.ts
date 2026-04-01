@@ -67,11 +67,15 @@ Deno.serve(async (req) => {
 
         if (createError) {
           if (createError.message?.includes("already been registered")) {
-            // User exists in Auth but not mapped - find and map them
-            const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
-            const existingAuthUser = users?.find((u) => u.email === legacyUser.email);
-            if (existingAuthUser) {
-              await supabaseAdmin
+            // User exists in Auth but not mapped - find by email in profiles
+            const { data: existingProfile } = await supabaseAdmin
+              .from("profiles")
+              .select("user_id, old_user_id")
+              .eq("email", legacyUser.email)
+              .maybeSingle();
+
+            if (existingProfile && !existingProfile.old_user_id) {
+              const { error: updateError } = await supabaseAdmin
                 .from("profiles")
                 .update({
                   old_user_id: legacyUser.id,
@@ -82,9 +86,15 @@ Deno.serve(async (req) => {
                   billing_cycle: legacyUser.billingCycle,
                   image: legacyUser.image,
                   has_completed_onboarding: legacyUser.hasCompletedOnboarding,
+                  updated_at: new Date().toISOString(),
                 })
-                .eq("user_id", existingAuthUser.id);
-              results.created++;
+                .eq("user_id", existingProfile.user_id);
+              
+              if (updateError) {
+                results.errors.push(`${legacyUser.email}: update failed - ${updateError.message}`);
+              } else {
+                results.created++;
+              }
             } else {
               results.skipped++;
             }
@@ -108,6 +118,7 @@ Deno.serve(async (req) => {
               image: legacyUser.image,
               has_completed_onboarding: legacyUser.hasCompletedOnboarding,
               trial_ends_at: legacyUser.trialEndsAt,
+              updated_at: new Date().toISOString(),
             })
             .eq("user_id", newAuthUser.user.id);
         }
