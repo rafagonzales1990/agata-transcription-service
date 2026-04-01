@@ -179,7 +179,7 @@ export default function UploadPage() {
               className="w-full bg-primary hover:bg-emerald-600 text-primary-foreground"
               size="lg"
               onClick={handleSubmit}
-              disabled={activeTab === 'upload' && !file && activeTab !== 'paste'}
+              disabled={activeTab === 'upload' && !file}
             >
               Transcrever Reunião
             </Button>
