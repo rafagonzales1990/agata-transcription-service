@@ -9,7 +9,7 @@ import { CheckCircle, Loader2, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { conversionBeginCheckout, conversionPurchase } from '@/lib/gtag';
+import { conversionBeginCheckout, conversionPurchase, trackBeginCheckout, trackPurchase } from '@/lib/gtag';
 
 interface Plan {
   id: string;
@@ -41,6 +41,7 @@ export default function PlansPage() {
       const planName = searchParams.get('plan') || 'unknown';
       const planValue = parseFloat(searchParams.get('value') || '0');
       conversionPurchase(planName, planValue);
+      trackPurchase(planName, planValue);
     }
     if (searchParams.get('canceled') === 'true') toast.error('Pagamento cancelado');
   }, [searchParams]);
@@ -67,6 +68,7 @@ export default function PlansPage() {
     if (plan) {
       const price = yearly ? plan.priceYearly : plan.priceMonthly;
       conversionBeginCheckout(plan.name, price / 100);
+      trackBeginCheckout(plan.name, price / 100);
     }
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {

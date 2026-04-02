@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { LimitReachedDialog } from '@/components/LimitReachedDialog';
-import { eventFirstTranscription } from '@/lib/gtag';
+import { eventFirstTranscription, trackUploadStarted, trackFirstTranscription } from '@/lib/gtag';
 
 const tabs = [
   { id: 'upload' as const, label: 'Upload', icon: Upload },
@@ -77,6 +77,7 @@ export default function UploadPage() {
 
   const handleSubmit = async () => {
     if (limitReached) return;
+    trackUploadStarted();
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error('Você precisa estar logado'); return; }
@@ -151,6 +152,7 @@ export default function UploadPage() {
       await updateUsage(user.id, Math.round(file!.size / 1024 / 1024));
       setUploadProgress(100); setStatusMessage('Transcrição concluída!');
       eventFirstTranscription();
+      trackFirstTranscription();
       toast.success('Transcrição concluída com sucesso!');
       setTimeout(() => navigate('/meetings'), 1000);
     } catch (error: any) {
