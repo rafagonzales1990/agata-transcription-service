@@ -9,8 +9,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   ChevronLeft, Plus, Loader2, FileText, CheckCircle, Clock, AlertCircle,
-  X, Search, Sparkles, Download, RefreshCw, Hourglass, FileDown,
+  X, Search, Sparkles, Download, RefreshCw, FileDown, Calendar, TrendingUp, BarChart3,
 } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -111,6 +112,146 @@ function convertMarkdownToHtml(md: string): string {
   html = html.replace(/<p>\s*(<ul>|<ol>|<\/ol>|<\/table>|<hr\/>)\s*<\/p>/g, '$1');
 
   return html;
+}
+
+function ProgressTab({ meetings, routineColor }: { meetings: MeetingRow[]; routineColor: string }) {
+  const completed = meetings.filter(m => m.status === 'completed');
+  const sorted = [...completed].sort((a, b) => {
+    const da = a.meetingDate || a.createdAt;
+    const db = b.meetingDate || b.createdAt;
+    return new Date(da).getTime() - new Date(db).getTime();
+  });
+
+  const totalMinutes = completed.reduce((acc, m) => acc + (m.fileDuration ? Math.floor(m.fileDuration / 60) : 0), 0);
+  const withSummary = completed.filter(m => m.summary).length;
+  const completionRate = meetings.length > 0 ? Math.round((completed.length / meetings.length) * 100) : 0;
+
+  // Extract action items count from summaries (heuristic: count lines starting with "- ")
+  const avgDuration = completed.length > 0 ? Math.round(totalMinutes / completed.length) : 0;
+
+  // Monthly grouping for activity chart
+  const monthlyData: Record<string, number> = {};
+  sorted.forEach(m => {
+    const d = new Date(m.meetingDate || m.createdAt);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    monthlyData[key] = (monthlyData[key] || 0) + 1;
+  });
+  const months = Object.entries(monthlyData).sort(([a], [b]) => a.localeCompare(b));
+  const maxInMonth = Math.max(...months.map(([, v]) => v), 1);
+
+  if (meetings.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <BarChart3 className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
+          <h3 className="font-medium text-foreground mb-1">Sem dados de progresso</h3>
+          <p className="text-sm text-muted-foreground">Adicione reuniões à rotina para visualizar o progresso.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Stats cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card><CardContent className="p-4 text-center">
+          <p className="text-2xl font-bold text-foreground">{completed.length}</p>
+          <p className="text-xs text-muted-foreground">Reuniões concluídas</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 text-center">
+          <p className="text-2xl font-bold text-foreground">{totalMinutes}min</p>
+          <p className="text-xs text-muted-foreground">Tempo total transcrito</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 text-center">
+          <p className="text-2xl font-bold text-foreground">{avgDuration}min</p>
+          <p className="text-xs text-muted-foreground">Duração média</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 text-center">
+          <p className="text-2xl font-bold text-foreground">{withSummary}</p>
+          <p className="text-xs text-muted-foreground">Com resumo gerado</p>
+        </CardContent></Card>
+      </div>
+
+      {/* Completion rate */}
+      <Card>
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-primary" /> Taxa de conclusão
+            </h3>
+            <span className="text-sm font-bold text-foreground">{completionRate}%</span>
+          </div>
+          <Progress value={completionRate} className="h-2" />
+          <p className="text-xs text-muted-foreground mt-2">
+            {completed.length} de {meetings.length} reuniões concluídas
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Monthly activity */}
+      {months.length > 0 && (
+        <Card>
+          <CardContent className="p-5">
+            <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-primary" /> Atividade mensal
+            </h3>
+            <div className="flex items-end gap-2 h-32">
+              {months.map(([month, count]) => {
+                const [y, m] = month.split('-');
+                const label = `${m}/${y.slice(2)}`;
+                const pct = (count / maxInMonth) * 100;
+                return (
+                  <div key={month} className="flex-1 flex flex-col items-center gap-1">
+                    <span className="text-xs font-medium text-foreground">{count}</span>
+                    <div className="w-full rounded-t-sm" style={{ height: `${Math.max(pct, 8)}%`, backgroundColor: routineColor, opacity: 0.8 }} />
+                    <span className="text-[10px] text-muted-foreground">{label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Timeline */}
+      <Card>
+        <CardContent className="p-5">
+          <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-primary" /> Linha do tempo
+          </h3>
+          <div className="relative">
+            {sorted.map((m, i) => {
+              const date = new Date(m.meetingDate || m.createdAt);
+              const duration = m.fileDuration ? `${Math.floor(m.fileDuration / 60)}min` : '';
+              const hasSummary = !!m.summary;
+              return (
+                <div key={m.id} className="flex gap-4 pb-6 last:pb-0">
+                  {/* Timeline line + dot */}
+                  <div className="flex flex-col items-center">
+                    <div className="w-3 h-3 rounded-full shrink-0 border-2" style={{ borderColor: routineColor, backgroundColor: hasSummary ? routineColor : 'transparent' }} />
+                    {i < sorted.length - 1 && <div className="w-px flex-1 bg-border mt-1" />}
+                  </div>
+                  {/* Content */}
+                  <div className="flex-1 min-w-0 -mt-0.5">
+                    <div className="flex items-center gap-2">
+                      <Link to={`/meetings/${m.id}`} className="text-sm font-medium text-foreground hover:underline truncate">
+                        {m.title}
+                      </Link>
+                      {hasSummary && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Resumo</Badge>}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {date.toLocaleDateString('pt-BR')} {duration && `· ${duration}`}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
 
 export default function RoutineDetailPage() {
@@ -517,14 +658,8 @@ export default function RoutineDetailPage() {
           </TabsContent>
 
           {/* Tab 3: Progress */}
-          <TabsContent value="progress">
-            <Card>
-              <CardContent className="p-8 text-center">
-                <Hourglass className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
-                <h3 className="font-medium text-foreground mb-1">Em breve</h3>
-                <p className="text-sm text-muted-foreground">Acompanhe o progresso visual da rotina ao longo do tempo.</p>
-              </CardContent>
-            </Card>
+          <TabsContent value="progress" className="space-y-6">
+            <ProgressTab meetings={routineMeetings} routineColor={routine.color} />
           </TabsContent>
         </Tabs>
       </div>
