@@ -488,7 +488,12 @@ export default function RoutineDetailPage() {
                   <div className="flex items-center justify-between mb-4">
                     <p className="text-sm text-muted-foreground">Gerado em: {formatDate(routine.updatedAt)}</p>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={downloadPDF}><Download className="h-4 w-4 mr-1" /> Baixar PDF</Button>
+                      <Button variant="outline" size="sm" onClick={() => downloadDoc('pdf')}>
+                        <Download className="h-4 w-4 mr-1" /> Baixar PDF
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => downloadDoc('word')}>
+                        <FileDown className="h-4 w-4 mr-1" /> Baixar Word
+                      </Button>
                       <Button variant="outline" size="sm" onClick={handleConsolidate} disabled={generating}>
                         <RefreshCw className={`h-4 w-4 mr-1 ${generating ? 'animate-spin' : ''}`} /> Regenerar
                       </Button>
