@@ -18,6 +18,7 @@ import {
   Lock,
   Download,
   Printer,
+  FileDown,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -81,6 +82,7 @@ export default function MeetingDetail() {
   const [summaryDepth, setSummaryDepth] = useState<string>("");
   const [selectedTemplate, setSelectedTemplate] = useState("geral");
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [wordLoading, setWordLoading] = useState(false);
 
   const isPaidPlan = PAID_PLANS.includes(profile?.plan_id || "basic");
 
@@ -167,7 +169,6 @@ export default function MeetingDetail() {
         printWindow.document.write(htmlContent);
         printWindow.document.close();
 
-        // Aguarda imagens carregarem antes de imprimir
         const images = printWindow.document.images;
         if (images.length === 0) {
           setTimeout(() => printWindow.print(), 800);
@@ -184,7 +185,7 @@ export default function MeetingDetail() {
               tryPrint();
             } else {
               img.onload = tryPrint;
-              img.onerror = tryPrint; // continua mesmo se logo falhar
+              img.onerror = tryPrint;
             }
           });
         }
@@ -194,6 +195,48 @@ export default function MeetingDetail() {
       toast.error(err.message || "Erro ao gerar PDF");
     } finally {
       setPdfLoading(false);
+    }
+  }, [id, meeting, selectedTemplate]);
+
+  const generateWord = useCallback(async () => {
+    if (!id || !meeting) return;
+    setWordLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-ata-word", {
+        body: { meetingId: id, template: selectedTemplate },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const { base64, filename } = data;
+
+      // Converte base64 para blob e faz download
+      const byteChars = atob(base64);
+      const byteNumbers = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) {
+        byteNumbers[i] = byteChars.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], {
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename || "ATA.docx";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success("Arquivo Word baixado com sucesso!");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao gerar Word");
+    } finally {
+      setWordLoading(false);
     }
   }, [id, meeting, selectedTemplate]);
 
@@ -362,7 +405,7 @@ export default function MeetingDetail() {
                     </Button>
                   )}
 
-                  <div className="flex items-center gap-2 ml-auto">
+                  <div className="flex items-center gap-2 ml-auto flex-wrap">
                     <div className="min-w-[180px]">
                       <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
                         <SelectTrigger className="h-9 text-xs">
@@ -377,7 +420,7 @@ export default function MeetingDetail() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button size="sm" onClick={generatePDF} disabled={pdfLoading}>
+                    <Button size="sm" onClick={generatePDF} disabled={pdfLoading || wordLoading}>
                       {pdfLoading ? (
                         <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                       ) : (
@@ -385,13 +428,21 @@ export default function MeetingDetail() {
                       )}
                       Baixar PDF
                     </Button>
+                    <Button size="sm" variant="outline" onClick={generateWord} disabled={pdfLoading || wordLoading}>
+                      {wordLoading ? (
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      ) : (
+                        <FileDown className="h-3 w-3 mr-1" />
+                      )}
+                      Baixar Word
+                    </Button>
                   </div>
                 </div>
               )}
 
               {summaryContent && !summaryLoading && !isPaidPlan && (
                 <p className="text-xs text-muted-foreground">
-                  ⚠️ O PDF será gerado com marca d'água.{" "}
+                  ⚠️ Os documentos serão gerados com marca d'água.{" "}
                   <Link to="/plans" className="text-primary underline">
                     Faça upgrade
                   </Link>{" "}
