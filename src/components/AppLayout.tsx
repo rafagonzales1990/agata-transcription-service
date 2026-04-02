@@ -1,10 +1,10 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard, FileText, Upload, FolderOpen, Settings,
   Repeat, Sparkles, LogOut, Menu, X, User, CreditCard,
-  ChevronDown,
+  ChevronDown, Shield,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { TrialBanner } from '@/components/TrialBanner';
 import { LogoIcon } from '@/components/LogoIcon';
+import { supabase } from '@/integrations/supabase/client';
 
 const menuItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -33,6 +34,25 @@ export function AppLayout({ children }: AppLayoutProps) {
   const navigate = useNavigate();
   const { signOut, profile } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [userPlanId, setUserPlanId] = useState<string>('basic');
+
+  useEffect(() => {
+    async function fetchAdminStatus() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from('User')
+        .select('isAdmin, planId')
+        .eq('id', user.id)
+        .single();
+      if (data) {
+        setIsAdmin(data.isAdmin || false);
+        setUserPlanId(data.planId || 'basic');
+      }
+    }
+    fetchAdminStatus();
+  }, []);
 
   const isActive = (path: string) => {
     if (path === '/dashboard') return location.pathname === path;
@@ -51,6 +71,16 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   const activeClasses = 'bg-gradient-to-r from-emerald-700 to-teal-700 text-white shadow-md';
   const inactiveClasses = 'text-gray-700 hover:bg-gray-100 hover:text-gray-900';
+
+  const LogoBrand = ({ logoSize = 32 }: { logoSize?: number }) => (
+    <Link to="/" className="flex items-center gap-2.5">
+      <LogoIcon size={logoSize} />
+      <div className="flex flex-col">
+        <span className="text-lg font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent leading-tight">Ágata</span>
+        <span className="text-[10px] text-muted-foreground -mt-0.5">Transcription</span>
+      </div>
+    </Link>
+  );
 
   const SidebarNav = ({ onNavigate }: { onNavigate?: () => void }) => (
     <>
@@ -72,6 +102,21 @@ export function AppLayout({ children }: AppLayoutProps) {
       </nav>
 
       <div className="p-3 border-t border-border space-y-2">
+        {isAdmin && (
+          <Link
+            to="/admin"
+            onClick={onNavigate}
+            className={cn(
+              'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
+              location.pathname.startsWith('/admin')
+                ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-md'
+                : 'text-red-700 hover:bg-red-50 hover:text-red-900'
+            )}
+          >
+            <Shield className="h-5 w-5" />
+            Painel Admin
+          </Link>
+        )}
         {!isPaid && (
           <Link to="/plans" onClick={onNavigate}>
             <button className="w-full px-3 py-2.5 rounded-lg text-sm font-semibold bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200 flex items-center justify-center gap-2">
@@ -107,13 +152,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       {/* Sidebar - Desktop */}
       <aside className="hidden md:flex w-64 bg-white border-r border-border flex-col fixed inset-y-0 left-0 z-30">
         <div className="p-4 border-b border-border">
-          <Link to="/" className="flex items-center gap-2.5">
-            <LogoIcon size={32} />
-            <div className="flex flex-col">
-              <span className="text-lg font-bold text-foreground leading-tight">Ágata</span>
-              <span className="text-[10px] text-muted-foreground -mt-0.5">Transcription</span>
-            </div>
-          </Link>
+          <LogoBrand />
         </div>
         <SidebarNav />
       </aside>
@@ -124,10 +163,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           <button onClick={() => setSidebarOpen(true)}>
             <Menu className="h-5 w-5 text-foreground" />
           </button>
-          <Link to="/" className="flex items-center gap-2">
-            <LogoIcon size={28} />
-            <span className="font-bold text-foreground">Ágata</span>
-          </Link>
+          <LogoBrand logoSize={28} />
         </div>
 
         <div className="hidden md:block" />
@@ -180,10 +216,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           <div className="absolute inset-0 bg-foreground/50" onClick={() => setSidebarOpen(false)} />
           <aside className="absolute left-0 top-0 bottom-0 w-64 bg-white border-r border-border flex flex-col">
             <div className="p-4 border-b border-border flex items-center justify-between">
-              <Link to="/" className="flex items-center gap-2">
-                <LogoIcon size={32} />
-                <span className="text-lg font-bold text-foreground">Ágata</span>
-              </Link>
+              <LogoBrand />
               <button onClick={() => setSidebarOpen(false)}>
                 <X className="h-5 w-5 text-muted-foreground" />
               </button>
