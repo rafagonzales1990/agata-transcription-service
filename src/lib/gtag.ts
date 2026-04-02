@@ -47,3 +47,27 @@ export const eventFirstTranscription = () => {
     event_category: 'engagement',
   })
 }
+
+// --- GTM dataLayer events ---
+export const pushEvent = (eventName: string, params?: Record<string, any>) => {
+  if (typeof window !== 'undefined' && (window as any).dataLayer) {
+    ;(window as any).dataLayer.push({
+      event: eventName,
+      ...params,
+    })
+  }
+}
+
+export const trackSignup = () => pushEvent('signup_completed')
+
+export const trackBeginCheckout = (planName: string, value: number) =>
+  pushEvent('begin_checkout', { plan_name: planName, value, currency: 'BRL' })
+
+export const trackPurchase = (planName: string, value: number) =>
+  pushEvent('purchase_completed', { plan_name: planName, value, currency: 'BRL' })
+
+export const trackFirstTranscription = () =>
+  pushEvent('first_transcription')
+
+export const trackUploadStarted = () =>
+  pushEvent('upload_started')
