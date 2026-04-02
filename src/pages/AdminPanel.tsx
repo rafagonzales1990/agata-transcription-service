@@ -7,13 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  RefreshCw, Plus, Pencil, Trash2, ShieldCheck, ShieldOff, X,
-  DollarSign, Users, Clock, Zap, TrendingUp, BarChart3, FileAudio, Loader2,
+  RefreshCw, Plus, Pencil, Trash2, ShieldCheck, Shield, X, Copy,
+  DollarSign, Users, Clock, Zap, TrendingUp, BarChart3, FileAudio, Loader2, FolderOpen, Gift,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -34,14 +35,38 @@ const PLAN_LABELS: Record<string, string> = {
   enterprise: 'Enterprise',
 };
 
+const PLAN_PRICES: Record<string, number> = {
+  basic: 0,
+  inteligente: 49,
+  automacao: 99,
+  enterprise: 199,
+};
+
 const COLOR_PRESETS = ['#10B981', '#3B82F6', '#EF4444', '#F59E0B', '#8B5CF6', '#06B6D4', '#EC4899', '#64748B'];
 
+function formatCPF(cpf: string | null): string {
+  if (!cpf) return '—';
+  const clean = cpf.replace(/\D/g, '');
+  if (clean.length !== 11) return cpf;
+  return `${clean.slice(0, 3)}.${clean.slice(3, 6)}.${clean.slice(6, 9)}-${clean.slice(9)}`;
+}
+
+function formatPhone(phone: string | null): string {
+  if (!phone) return '—';
+  const clean = phone.replace(/\D/g, '');
+  if (clean.length === 11) {
+    return `(${clean.slice(0, 2)}) ${clean.slice(2, 7)}-${clean.slice(7)}`;
+  }
+  return phone;
+}
+
 interface AdminUser {
-  id: string; name: string | null; email: string; planId: string | null;
-  billingCycle: string | null; isAdmin: boolean; createdAt: string;
+  id: string; name: string | null; email: string; cpf: string | null; phone: string | null;
+  planId: string | null; billingCycle: string | null; isAdmin: boolean; createdAt: string;
   trialEndsAt: string | null; stripeCustomerId: string | null;
   stripeSubscriptionId: string | null; stripePriceId: string | null;
   adminGroupId: string | null; meetingCount: number;
+  hasCompletedOnboarding: boolean;
   usage: { transcriptionsUsed: number; totalMinutesTranscribed: number } | null;
   group: { id: string; name: string; color: string } | null;
 }
@@ -62,11 +87,14 @@ export default function AdminPanel() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showNewUser, setShowNewUser] = useState(false);
-  const [showEditUser, setShowEditUser] = useState<AdminUser | null>(null);
+  const [editUser, setEditUser] = useState<AdminUser | null>(null);
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [showEditGroup, setShowEditGroup] = useState<AdminGroup | null>(null);
   const [costsData, setCostsData] = useState<any>(null);
   const [costsLoading, setCostsLoading] = useState(false);
+  const [giftConfirm, setGiftConfirm] = useState<AdminUser | null>(null);
+  const [assignGroupUser, setAssignGroupUser] = useState<AdminUser | null>(null);
+  const [assignGroupId, setAssignGroupId] = useState('');
 
   // Form states
   const [formName, setFormName] = useState('');
@@ -76,6 +104,8 @@ export default function AdminPanel() {
   const [formCycle, setFormCycle] = useState('monthly');
   const [formAdmin, setFormAdmin] = useState(false);
   const [formGroupId, setFormGroupId] = useState('');
+  const [formCpf, setFormCpf] = useState('');
+  const [formPhone, setFormPhone] = useState('');
 
   // Group form
   const [gName, setGName] = useState('');
@@ -104,20 +134,48 @@ export default function AdminPanel() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('admin-users', { method: 'GET' });
-      if (error) throw error;
-      setUsers(data.users || []);
-      setGroups(data.groups?.map((g: any) => ({ ...g, memberCount: 0 })) || []);
+      // Fetch users directly from Supabase (admin can read all via RLS)
+      const { data: usersData, error: usersError } = await supabase
+        .from('User')
+        .select('id, name, email, cpf, phone, planId, isAdmin, billingCycle, trialEndsAt, stripeCustomerId, stripeSubscriptionId, stripePriceId, adminGroupId, hasCompletedOnboarding, createdAt, updatedAt')
+        .order('createdAt', { ascending: false });
+      if (usersError) throw usersError;
+
+      // Fetch meeting counts (admin can read all meetings via RLS)
+      const { data: meetings } = await supabase.from('Meeting').select('userId');
+      const countMap: Record<string, number> = {};
+      meetings?.forEach(m => { countMap[m.userId] = (countMap[m.userId] || 0) + 1; });
+
+      // Fetch groups
+      const { data: groupsData } = await supabase.from('AdminGroup').select('*');
+
+      const groupMap: Record<string, { id: string; name: string; color: string }> = {};
+      groupsData?.forEach(g => { groupMap[g.id] = { id: g.id, name: g.name, color: g.color }; });
+
+      const mappedUsers: AdminUser[] = (usersData || []).map(u => ({
+        ...u,
+        meetingCount: countMap[u.id] || 0,
+        usage: null,
+        group: u.adminGroupId ? groupMap[u.adminGroupId] || null : null,
+      }));
+
+      setUsers(mappedUsers);
+      setGroups((groupsData || []).map(g => ({ ...g, memberCount: (usersData || []).filter(u => u.adminGroupId === g.id).length })));
     } catch (e: any) {
-      toast.error(e.message);
+      toast.error('Erro ao carregar dados: ' + e.message);
     }
     setLoading(false);
   }, []);
 
   const fetchGroups = useCallback(async () => {
-    const { data, error } = await supabase.functions.invoke('admin-groups', { method: 'GET' });
-    if (!error && data) setGroups(data.groups || []);
-  }, []);
+    const { data } = await supabase.from('AdminGroup').select('*');
+    if (data) {
+      setGroups(data.map(g => ({
+        ...g,
+        memberCount: users.filter(u => u.adminGroupId === g.id).length,
+      })));
+    }
+  }, [users]);
 
   const fetchCosts = useCallback(async () => {
     setCostsLoading(true);
@@ -140,16 +198,24 @@ export default function AdminPanel() {
     } catch (e: any) { toast.error(e.message); }
   };
 
-  const updateUser = async () => {
-    if (!showEditUser) return;
+  const saveEditUser = async () => {
+    if (!editUser) return;
     try {
-      const { error } = await supabase.functions.invoke('admin-users', {
-        method: 'PATCH',
-        body: { userId: showEditUser.id, name: formName, planId: formPlan, billingCycle: formCycle, isAdmin: formAdmin, adminGroupId: formGroupId || null },
-      });
+      const { error } = await supabase
+        .from('User')
+        .update({
+          name: formName,
+          planId: formPlan,
+          billingCycle: formCycle,
+          isAdmin: formAdmin,
+          adminGroupId: formGroupId || null,
+          cpf: formCpf || null,
+          phone: formPhone || null,
+        })
+        .eq('id', editUser.id);
       if (error) throw error;
       toast.success('Usuário atualizado!');
-      setShowEditUser(null);
+      setEditUser(null);
       fetchData();
     } catch (e: any) { toast.error(e.message); }
   };
@@ -157,11 +223,46 @@ export default function AdminPanel() {
   const deleteUser = async (userId: string) => {
     if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
     try {
-      const { error } = await supabase.functions.invoke('admin-users', {
-        method: 'DELETE', body: { userId },
-      });
+      const { error } = await supabase.from('User').delete().eq('id', userId);
       if (error) throw error;
       toast.success('Usuário excluído');
+      fetchData();
+    } catch (e: any) { toast.error(e.message); }
+  };
+
+  const toggleAdmin = async (u: AdminUser) => {
+    try {
+      const { error } = await supabase.from('User').update({ isAdmin: !u.isAdmin }).eq('id', u.id);
+      if (error) throw error;
+      toast.success(u.isAdmin ? 'Admin removido' : 'Usuário agora é admin');
+      fetchData();
+    } catch (e: any) { toast.error(e.message); }
+  };
+
+  const grantEnterprise = async (u: AdminUser) => {
+    try {
+      const trialEnd = new Date();
+      trialEnd.setDate(trialEnd.getDate() + 30);
+      const { error } = await supabase.from('User').update({
+        planId: 'enterprise',
+        trialEndsAt: trialEnd.toISOString(),
+      }).eq('id', u.id);
+      if (error) throw error;
+      toast.success(`Enterprise concedido para ${u.name || u.email} por 30 dias`);
+      setGiftConfirm(null);
+      fetchData();
+    } catch (e: any) { toast.error(e.message); }
+  };
+
+  const assignGroup = async () => {
+    if (!assignGroupUser) return;
+    try {
+      const { error } = await supabase.from('User').update({
+        adminGroupId: assignGroupId || null,
+      }).eq('id', assignGroupUser.id);
+      if (error) throw error;
+      toast.success('Grupo atribuído');
+      setAssignGroupUser(null);
       fetchData();
     } catch (e: any) { toast.error(e.message); }
   };
@@ -171,14 +272,14 @@ export default function AdminPanel() {
     for (const id of ids) {
       try {
         if (action === 'delete') {
-          await supabase.functions.invoke('admin-users', { method: 'DELETE', body: { userId: id } });
+          await supabase.from('User').delete().eq('id', id);
         } else {
-          const body: any = { userId: id };
+          const body: any = {};
           if (action === 'plan' && bulkPlan) body.planId = bulkPlan;
           if (action === 'group' && bulkGroup) body.adminGroupId = bulkGroup;
           if (action === 'addAdmin') body.isAdmin = true;
           if (action === 'removeAdmin') body.isAdmin = false;
-          await supabase.functions.invoke('admin-users', { method: 'PATCH', body });
+          await supabase.from('User').update(body).eq('id', id);
         }
       } catch (_) {}
     }
@@ -228,6 +329,7 @@ export default function AdminPanel() {
   const resetForm = () => {
     setFormName(''); setFormEmail(''); setFormPassword('');
     setFormPlan('basic'); setFormCycle('monthly'); setFormAdmin(false); setFormGroupId('');
+    setFormCpf(''); setFormPhone('');
   };
 
   const openEditUser = (u: AdminUser) => {
@@ -237,12 +339,19 @@ export default function AdminPanel() {
     setFormCycle(u.billingCycle || 'monthly');
     setFormAdmin(u.isAdmin);
     setFormGroupId(u.adminGroupId || '');
-    setShowEditUser(u);
+    setFormCpf(u.cpf || '');
+    setFormPhone(u.phone || '');
+    setEditUser(u);
   };
 
   const openEditGroup = (g: AdminGroup) => {
     setGName(g.name); setGDesc(g.description || ''); setGColor(g.color);
     setShowEditGroup(g);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Copiado!');
   };
 
   if (isAdmin === null) {
@@ -254,24 +363,23 @@ export default function AdminPanel() {
     const matchSearch = !search || u.name?.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
     if (!matchSearch) return false;
     if (statusFilter === 'all') return true;
-    const trialActive = u.planId === 'basic' && u.trialEndsAt && new Date(u.trialEndsAt) > now;
-    const trialExpired = u.planId === 'basic' && u.trialEndsAt && new Date(u.trialEndsAt) <= now;
+    const trialActive = u.trialEndsAt && new Date(u.trialEndsAt) > now;
+    const trialExpired = u.trialEndsAt && new Date(u.trialEndsAt) <= now;
     const paid = !!u.stripeSubscriptionId;
     if (statusFilter === 'trial') return trialActive;
     if (statusFilter === 'expired') return trialExpired;
     if (statusFilter === 'paid') return paid;
-    if (statusFilter === 'free') return u.planId === 'basic' && !trialActive;
+    if (statusFilter === 'free') return (u.planId || 'basic') === 'basic' && !trialActive;
     return true;
   });
 
   const totalUsers = users.length;
   const activeSubscriptions = users.filter(u => u.stripeSubscriptionId).length;
-  const trialUsers = users.filter(u => u.planId === 'basic' && u.trialEndsAt && new Date(u.trialEndsAt) > now).length;
-  const freeUsers = users.filter(u => u.planId === 'basic' && (!u.trialEndsAt || new Date(u.trialEndsAt) <= now)).length;
+  const trialUsers = users.filter(u => u.trialEndsAt && new Date(u.trialEndsAt) > now).length;
+  const freeUsers = users.filter(u => (u.planId || 'basic') === 'basic' && (!u.trialEndsAt || new Date(u.trialEndsAt) <= now)).length;
   const newLast7 = users.filter(u => (now.getTime() - new Date(u.createdAt).getTime()) < 7 * 86400000).length;
   const newLast30 = users.filter(u => (now.getTime() - new Date(u.createdAt).getTime()) < 30 * 86400000).length;
   const totalMeetings = users.reduce((s, u) => s + u.meetingCount, 0);
-  const totalMinutesAll = users.reduce((s, u) => s + (u.usage?.totalMinutesTranscribed || 0), 0);
 
   const planDistribution = Object.entries(PLAN_LABELS).map(([id, label]) => {
     const count = users.filter(u => (u.planId || 'basic') === id).length;
@@ -282,14 +390,20 @@ export default function AdminPanel() {
 
   const getUserStatus = (u: AdminUser) => {
     if (u.stripeSubscriptionId) return { label: 'Ativo', cls: 'bg-green-100 text-green-700' };
-    const trialActive = u.planId === 'basic' && u.trialEndsAt && new Date(u.trialEndsAt) > now;
-    if (trialActive) {
-      const days = Math.ceil((new Date(u.trialEndsAt!).getTime() - now.getTime()) / 86400000);
+    if (u.trialEndsAt && new Date(u.trialEndsAt) > now) {
+      const days = Math.ceil((new Date(u.trialEndsAt).getTime() - now.getTime()) / 86400000);
       return { label: `Trial ${days}d`, cls: 'bg-amber-100 text-amber-700' };
     }
-    const trialExpired = u.trialEndsAt && new Date(u.trialEndsAt) <= now;
-    if (trialExpired) return { label: 'Trial expirado', cls: 'bg-red-100 text-red-700' };
+    if (u.trialEndsAt && new Date(u.trialEndsAt) <= now) return { label: 'Trial expirado', cls: 'bg-red-100 text-red-700' };
     return { label: 'Gratuito', cls: 'bg-gray-100 text-gray-700' };
+  };
+
+  const getMonthlyValue = (u: AdminUser) => {
+    if (!u.stripeSubscriptionId && (u.planId || 'basic') === 'basic') return '—';
+    const price = PLAN_PRICES[u.planId || 'basic'] || 0;
+    if (price === 0) return '—';
+    if (u.billingCycle === 'yearly') return `R$ ${Math.round(price * 0.8)}`;
+    return `R$ ${price}`;
   };
 
   return (
@@ -298,12 +412,10 @@ export default function AdminPanel() {
       <div className="sticky top-0 z-40 bg-white border-b px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <LogoIcon size={32} />
-          <div>
-            <h1 className="text-lg font-bold text-foreground">Admin Console v2.0</h1>
-          </div>
+          <h1 className="text-lg font-bold text-foreground">Admin Console</h1>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => { fetchData(); fetchGroups(); }}>
+          <Button variant="outline" size="sm" onClick={() => fetchData()}>
             <RefreshCw className="h-4 w-4 mr-1" /> Refresh
           </Button>
           <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => { resetForm(); setShowNewUser(true); }}>
@@ -348,7 +460,7 @@ export default function AdminPanel() {
                 { label: 'Total Usuários', value: String(totalUsers), sub: `${newLast7} novos (7d)`, color: 'border-l-indigo-500', icon: Users },
                 { label: 'Novos (30d)', value: String(newLast30), sub: '', color: 'border-l-violet-500', icon: Zap },
                 { label: 'Reuniões', value: String(totalMeetings), sub: '', color: 'border-l-cyan-500', icon: FileAudio },
-                { label: 'Min Transcritos', value: String(totalMinutesAll), sub: `~${Math.round(totalMinutesAll / 60)}h`, color: 'border-l-pink-500', icon: Clock },
+                { label: 'Grupos', value: String(groups.length), sub: '', color: 'border-l-pink-500', icon: Clock },
               ].map((c, i) => (
                 <Card key={i} className={`border-l-4 ${c.color} bg-white`}>
                   <CardContent className="p-5">
@@ -405,15 +517,6 @@ export default function AdminPanel() {
                   </SelectContent>
                 </Select>
                 <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => bulkAction('plan')} disabled={!bulkPlan}>Aplicar</Button>
-                <Select value={bulkGroup} onValueChange={setBulkGroup}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Grupo" /></SelectTrigger>
-                  <SelectContent>
-                    {groups.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => bulkAction('group')} disabled={!bulkGroup}>Aplicar</Button>
-                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => bulkAction('addAdmin')}><ShieldCheck className="h-3 w-3 mr-1" />+Admin</Button>
-                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => bulkAction('removeAdmin')}><ShieldOff className="h-3 w-3 mr-1" />-Admin</Button>
                 <Button size="sm" variant="destructive" className="h-8 text-xs" onClick={() => bulkAction('delete')}><Trash2 className="h-3 w-3 mr-1" />Excluir</Button>
                 <Button size="sm" variant="ghost" className="h-8 text-xs ml-auto" onClick={() => setSelected(new Set())}><X className="h-3 w-3" /></Button>
               </div>
@@ -422,7 +525,7 @@ export default function AdminPanel() {
             {loading ? (
               <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
             ) : (
-              <Card className="bg-white">
+              <Card className="bg-white overflow-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -433,17 +536,22 @@ export default function AdminPanel() {
                         />
                       </TableHead>
                       <TableHead>Nome</TableHead>
+                      <TableHead>E-mail</TableHead>
+                      <TableHead>CPF</TableHead>
+                      <TableHead>Telefone</TableHead>
                       <TableHead>Plano</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Grupo</TableHead>
+                      <TableHead>Valor/mês</TableHead>
                       <TableHead className="text-center">Reuniões</TableHead>
-                      <TableHead>Criado em</TableHead>
-                      <TableHead className="w-20">Ações</TableHead>
+                      <TableHead>Cadastro</TableHead>
+                      <TableHead className="w-40">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredUsers.map(u => {
                       const status = getUserStatus(u);
+                      const d = new Date(u.createdAt);
+                      const dateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getFullYear()).slice(2)}`;
                       return (
                         <TableRow key={u.id}>
                           <TableCell>
@@ -458,26 +566,42 @@ export default function AdminPanel() {
                           </TableCell>
                           <TableCell>
                             <div>
-                              <p className="text-sm font-medium">{u.name || '—'} {u.isAdmin && <Badge variant="destructive" className="text-[9px] ml-1">ADMIN</Badge>}</p>
+                              <p className="text-sm font-bold">{u.name || '—'} {u.isAdmin && <Badge variant="destructive" className="text-[9px] ml-1">ADMIN</Badge>}</p>
                               <p className="text-xs text-muted-foreground font-mono">{u.email}</p>
                             </div>
                           </TableCell>
-                          <TableCell><Badge className={`${PLAN_COLORS[u.planId || 'basic']} text-[10px]`}>{PLAN_LABELS[u.planId || 'basic']}</Badge></TableCell>
-                          <TableCell><span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${status.cls}`}>{status.label}</span></TableCell>
                           <TableCell>
-                            {u.group ? (
-                              <div className="flex items-center gap-1.5">
-                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: u.group.color }} />
-                                <span className="text-xs">{u.group.name}</span>
-                              </div>
-                            ) : <span className="text-xs text-muted-foreground">—</span>}
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs font-mono truncate max-w-[140px]">{u.email}</span>
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => copyToClipboard(u.email)}>
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </div>
                           </TableCell>
+                          <TableCell className="text-xs font-mono">{formatCPF(u.cpf)}</TableCell>
+                          <TableCell className="text-xs">{formatPhone(u.phone)}</TableCell>
+                          <TableCell><Badge className={`${PLAN_COLORS[u.planId || 'basic']} text-[10px]`}>{PLAN_LABELS[u.planId || 'basic']}</Badge></TableCell>
+                          <TableCell><span className={`px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap ${status.cls}`}>{status.label}</span></TableCell>
+                          <TableCell className="text-sm font-mono">{getMonthlyValue(u)}</TableCell>
                           <TableCell className="text-center font-mono text-sm">{u.meetingCount}</TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{new Date(u.createdAt).toLocaleDateString('pt-BR')}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{dateStr}</TableCell>
                           <TableCell>
-                            <div className="flex gap-1">
-                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => openEditUser(u)}><Pencil className="h-3.5 w-3.5" /></Button>
-                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => deleteUser(u.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                            <div className="flex gap-0.5">
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Editar" onClick={() => openEditUser(u)}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Atribuir grupo" onClick={() => { setAssignGroupUser(u); setAssignGroupId(u.adminGroupId || ''); }}>
+                                <FolderOpen className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-amber-600" title="Conceder Enterprise" onClick={() => setGiftConfirm(u)}>
+                                <Gift className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title={u.isAdmin ? 'Remover admin' : 'Tornar admin'} onClick={() => toggleAdmin(u)}>
+                                {u.isAdmin ? <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> : <Shield className="h-3.5 w-3.5" />}
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" title="Excluir" onClick={() => deleteUser(u.id)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -548,7 +672,9 @@ export default function AdminPanel() {
                     <div className="grid sm:grid-cols-2 gap-4">
                       {Object.entries(costsData.currentMonthProviders || {}).map(([provider, stats]: [string, any]) => (
                         <div key={provider} className="border rounded-lg p-4">
-                          <Badge className={provider.includes('openai') ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}>{provider}</Badge>
+                          <Badge className={provider === 'gemini' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}>
+                            {provider === 'gemini' ? 'Gemini (Free Tier)' : provider}
+                          </Badge>
                           <div className="mt-3 space-y-1">
                             <p className="text-sm"><span className="text-muted-foreground">Minutos:</span> <span className="font-mono font-medium">{stats.minutes}</span></p>
                             <p className="text-sm"><span className="text-muted-foreground">Custo:</span> <span className="font-mono font-medium">R$ {(stats.cost / 100).toFixed(2)}</span></p>
@@ -582,7 +708,9 @@ export default function AdminPanel() {
                           <TableRow key={log.id}>
                             <TableCell className="text-xs font-mono">{new Date(log.createdAt).toLocaleDateString('pt-BR')}</TableCell>
                             <TableCell>
-                              <Badge className={log.provider?.includes('openai') ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}>{log.provider}</Badge>
+                              <Badge className={log.provider === 'gemini' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}>
+                                {log.provider === 'gemini' ? 'Gemini (Free Tier)' : log.provider}
+                              </Badge>
                             </TableCell>
                             <TableCell className="font-mono text-sm">{Math.round(log.durationSecs / 60)}min</TableCell>
                             <TableCell className="font-mono text-sm">{log.chunks}</TableCell>
@@ -609,7 +737,10 @@ export default function AdminPanel() {
       {/* New User Dialog */}
       <Dialog open={showNewUser} onOpenChange={setShowNewUser}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Novo Usuário</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Novo Usuário</DialogTitle>
+            <DialogDescription>Crie um novo usuário na plataforma.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
             <div><Label>Nome</Label><Input value={formName} onChange={e => setFormName(e.target.value)} /></div>
             <div><Label>Email *</Label><Input type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} /></div>
@@ -620,15 +751,6 @@ export default function AdminPanel() {
                 <SelectContent>{Object.entries(PLAN_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div><Label>Ciclo</Label>
-              <Select value={formCycle} onValueChange={setFormCycle}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="monthly">Mensal</SelectItem>
-                  <SelectItem value="yearly">Anual</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
             <div className="flex items-center gap-2"><Switch checked={formAdmin} onCheckedChange={setFormAdmin} /><Label>Admin</Label></div>
           </div>
           <DialogFooter><Button onClick={createUser}>Criar Usuário</Button></DialogFooter>
@@ -636,12 +758,17 @@ export default function AdminPanel() {
       </Dialog>
 
       {/* Edit User Dialog */}
-      <Dialog open={!!showEditUser} onOpenChange={() => setShowEditUser(null)}>
+      <Dialog open={!!editUser} onOpenChange={(open) => { if (!open) setEditUser(null); }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Editar Usuário</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Editar Usuário</DialogTitle>
+            <DialogDescription>{editUser?.email}</DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
             <div><Label>Nome</Label><Input value={formName} onChange={e => setFormName(e.target.value)} /></div>
             <div><Label>Email</Label><Input value={formEmail} disabled className="bg-muted" /></div>
+            <div><Label>CPF</Label><Input value={formCpf} onChange={e => setFormCpf(e.target.value)} placeholder="000.000.000-00" /></div>
+            <div><Label>Telefone</Label><Input value={formPhone} onChange={e => setFormPhone(e.target.value)} placeholder="(00) 00000-0000" /></div>
             <div><Label>Plano</Label>
               <Select value={formPlan} onValueChange={setFormPlan}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -666,24 +793,60 @@ export default function AdminPanel() {
                 </SelectContent>
               </Select>
             </div>
-            {showEditUser?.stripeSubscriptionId && (
+            {editUser?.stripeSubscriptionId && (
               <div className="border rounded-lg p-3 bg-muted/50 space-y-1">
                 <p className="text-xs font-medium text-muted-foreground">Stripe Info</p>
-                <p className="text-xs font-mono">Customer: {showEditUser.stripeCustomerId}</p>
-                <p className="text-xs font-mono">Subscription: {showEditUser.stripeSubscriptionId}</p>
-                <p className="text-xs font-mono">Price: {showEditUser.stripePriceId}</p>
+                <p className="text-xs font-mono">Customer: {editUser.stripeCustomerId}</p>
+                <p className="text-xs font-mono">Subscription: {editUser.stripeSubscriptionId}</p>
               </div>
             )}
             <div className="flex items-center gap-2"><Switch checked={formAdmin} onCheckedChange={setFormAdmin} /><Label>Admin</Label></div>
           </div>
-          <DialogFooter><Button onClick={updateUser}>Salvar</Button></DialogFooter>
+          <DialogFooter><Button onClick={saveEditUser}>Salvar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Grant Enterprise Dialog */}
+      <AlertDialog open={!!giftConfirm} onOpenChange={(open) => { if (!open) setGiftConfirm(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Conceder Enterprise</AlertDialogTitle>
+            <AlertDialogDescription>
+              Conceder acesso Enterprise gratuito por 30 dias para <strong>{giftConfirm?.name || giftConfirm?.email}</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => giftConfirm && grantEnterprise(giftConfirm)}>Confirmar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Assign Group Dialog */}
+      <Dialog open={!!assignGroupUser} onOpenChange={(open) => { if (!open) setAssignGroupUser(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Atribuir Grupo</DialogTitle>
+            <DialogDescription>Selecione o grupo para {assignGroupUser?.name || assignGroupUser?.email}</DialogDescription>
+          </DialogHeader>
+          <Select value={assignGroupId} onValueChange={setAssignGroupId}>
+            <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Nenhum</SelectItem>
+              {groups.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <DialogFooter><Button onClick={assignGroup}>Salvar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* New Group Dialog */}
       <Dialog open={showNewGroup} onOpenChange={setShowNewGroup}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Novo Grupo</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Novo Grupo</DialogTitle>
+            <DialogDescription>Crie um grupo para organizar usuários.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
             <div><Label>Nome</Label><Input value={gName} onChange={e => setGName(e.target.value)} /></div>
             <div><Label>Descrição</Label><Input value={gDesc} onChange={e => setGDesc(e.target.value)} /></div>
@@ -704,7 +867,10 @@ export default function AdminPanel() {
       {/* Edit Group Dialog */}
       <Dialog open={!!showEditGroup} onOpenChange={() => setShowEditGroup(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Editar Grupo</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Editar Grupo</DialogTitle>
+            <DialogDescription>Atualize as informações do grupo.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
             <div><Label>Nome</Label><Input value={gName} onChange={e => setGName(e.target.value)} /></div>
             <div><Label>Descrição</Label><Input value={gDesc} onChange={e => setGDesc(e.target.value)} /></div>
