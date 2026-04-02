@@ -3,7 +3,7 @@ import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FolderOpen, Printer, Loader2, FileText } from 'lucide-react';
+import { FolderOpen, Download, Loader2, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -62,22 +62,25 @@ export default function DocumentsPage() {
 
       if (error) throw error;
 
-      let htmlContent: string;
-      if (typeof data === 'object' && data.html) {
-        htmlContent = data.html;
-      } else if (typeof data === 'string') {
-        htmlContent = data;
+      if (typeof data === 'object' && data.base64 && data.filename) {
+        // DOCX download
+        const byteCharacters = atob(data.base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = data.filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
       } else {
         throw new Error('Formato inválido');
-      }
-
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        printWindow.document.write(htmlContent);
-        printWindow.document.close();
-        printWindow.onload = () => {
-          setTimeout(() => { printWindow.print(); }, 500);
-        };
       }
     } catch (err: any) {
       toast.error(err.message || 'Erro ao baixar ATA');
@@ -134,7 +137,7 @@ export default function DocumentsPage() {
                       onClick={() => handleDownload(doc)}
                       disabled={downloadingId === doc.id}
                     >
-                      {downloadingId === doc.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Printer className="h-3.5 w-3.5 mr-1" />}
+                      {downloadingId === doc.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5 mr-1" />}
                       Baixar ATA
                     </Button>
                   </CardContent>

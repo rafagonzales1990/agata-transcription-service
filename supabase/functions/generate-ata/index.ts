@@ -1,11 +1,20 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+// docx via esm.sh
+import {
+  Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+  HeadingLevel, AlignmentType, BorderStyle, WidthType, ShadingType,
+  VerticalAlign, LevelFormat, Header, ImageRun,
+} from 'https://esm.sh/docx@8.5.0'
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
 const PAID_PLANS = ['inteligente', 'automacao', 'enterprise']
+
+const AGATA_LOGO_URL = 'https://hblczvmpyaznbxvdcaze.supabase.co/storage/v1/object/public/assets/logo_transparent.png'
 
 const templateLabels: Record<string, string> = {
   geral: 'Ata Geral',
@@ -22,62 +31,235 @@ const templateLabels: Record<string, string> = {
   comercial: 'Ata Comercial',
 }
 
-const CSS = `
-body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10pt; line-height: 1.4; color: #333; padding: 20px; }
-.header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
-.main-title { font-size: 16pt; font-weight: bold; color: #065F46; }
-.header-line { border-top: 3px solid #10B981; margin: 10px 0 15px 0; }
-.info-table td { padding: 6px 10px; border: 1px solid #10B981; }
-.info-table td:first-child { background: #D1FAE5; font-weight: bold; color: #065F46; width: 140px; }
-h2 { color: #10B981; font-size: 11pt; border-bottom: 1px solid #10B981; padding-bottom: 3px; }
-h3 { color: #065F46; font-size: 10pt; }
-.ata-table th { background: #D1FAE5; color: #065F46; font-weight: bold; }
-.ata-table th, .ata-table td { border: 1px solid #10B981; padding: 6px 8px; }
-.ata-table tr:nth-child(even) td { background: #F0FDF4; }
-.watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) rotate(-45deg); font-size: 80pt; color: rgba(16,185,129,0.15); font-weight: bold; z-index: -1; }
-table { border-collapse: collapse; width: 100%; margin: 10px 0; }
-ul, ol { padding-left: 20px; }
-li { margin-bottom: 4px; }
-strong { color: #065F46; }
-`
+// Colors
+const GREEN_DARK = '065F46'
+const GREEN_MID = '059669'
+const GREEN_LIGHT = 'D1FAE5'
+const GREEN_PALE = 'F0FDF4'
+const GREEN_BORDER = 'A7F3D0'
+const WHITE = 'FFFFFF'
 
-function markdownToHtml(md: string): string {
-  let html = md
-    // Tables
-    .replace(/\|(.+)\|\n\|[-| :]+\|\n((?:\|.+\|\n?)*)/g, (_match, header, body) => {
-      const headers = header.split('|').map((h: string) => h.trim()).filter(Boolean)
-      const rows = body.trim().split('\n').map((row: string) =>
-        row.split('|').map((c: string) => c.trim()).filter(Boolean)
-      )
-      let table = '<table class="ata-table"><thead><tr>'
-      headers.forEach((h: string) => { table += `<th>${h}</th>` })
-      table += '</tr></thead><tbody>'
-      rows.forEach((row: string[]) => {
-        table += '<tr>'
-        row.forEach((c: string) => { table += `<td>${c}</td>` })
-        table += '</tr>'
+const border = { style: BorderStyle.SINGLE, size: 1, color: GREEN_BORDER }
+const borders = { top: border, bottom: border, left: border, right: border }
+const cellMargins = { top: 80, bottom: 80, left: 120, right: 120 }
+
+// Page content width A4 with 2cm margins: 11906 - 2268 - 2268 = 7370 DXA
+const PAGE_WIDTH = 7370
+
+function applyInlineRuns(text: string): TextRun[] {
+  const runs: TextRun[] = []
+  const parts = text.split(/(\*\*[^*]+\*\*)/)
+  for (const part of parts) {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      runs.push(new TextRun({ text: part.slice(2, -2), bold: true, color: GREEN_DARK }))
+    } else if (part) {
+      runs.push(new TextRun({ text: part }))
+    }
+  }
+  return runs.length > 0 ? runs : [new TextRun({ text: '' })]
+}
+
+function makeInfoTable(rows: { label: string; value: string }[]): Table {
+  const labelWidth = 1800
+  const valueWidth = PAGE_WIDTH - labelWidth
+  return new Table({
+    width: { size: PAGE_WIDTH, type: WidthType.DXA },
+    columnWidths: [labelWidth, valueWidth],
+    rows: rows.map(({ label, value }) =>
+      new TableRow({
+        children: [
+          new TableCell({
+            borders,
+            width: { size: labelWidth, type: WidthType.DXA },
+            margins: cellMargins,
+            shading: { fill: GREEN_LIGHT, type: ShadingType.CLEAR },
+            children: [new Paragraph({ children: [new TextRun({ text: label, bold: true, color: GREEN_DARK, size: 18 })] })],
+          }),
+          new TableCell({
+            borders,
+            width: { size: valueWidth, type: WidthType.DXA },
+            margins: cellMargins,
+            children: [new Paragraph({ children: [new TextRun({ text: value, size: 18 })] })],
+          }),
+        ],
       })
-      table += '</tbody></table>'
-      return table
-    })
-    // Headers
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    // Bold
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    // Italic
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    // Unordered lists
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    // Wrap consecutive <li> in <ul>
-    .replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>')
-    // Paragraphs for remaining lines
-    .replace(/^(?!<[hultro])(.+)$/gm, '<p>$1</p>')
-    // Clean up
-    .replace(/\n{2,}/g, '\n')
+    ),
+  })
+}
 
-  return html
+function makeActionsTable(headers: string[], rows: string[][]): Table {
+  const colCount = headers.length
+  const colWidth = Math.floor(PAGE_WIDTH / colCount)
+  const lastColWidth = PAGE_WIDTH - colWidth * (colCount - 1)
+  const colWidths = headers.map((_, i) => (i === colCount - 1 ? lastColWidth : colWidth))
+
+  const headerRow = new TableRow({
+    tableHeader: true,
+    children: headers.map((h, i) =>
+      new TableCell({
+        borders,
+        width: { size: colWidths[i], type: WidthType.DXA },
+        margins: cellMargins,
+        shading: { fill: GREEN_MID, type: ShadingType.CLEAR },
+        verticalAlign: VerticalAlign.CENTER,
+        children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, color: WHITE, size: 18 })] })],
+      })
+    ),
+  })
+
+  const dataRows = rows.map((row, ri) =>
+    new TableRow({
+      children: row.map((cell, ci) =>
+        new TableCell({
+          borders,
+          width: { size: colWidths[ci], type: WidthType.DXA },
+          margins: cellMargins,
+          shading: { fill: ri % 2 === 0 ? WHITE : GREEN_PALE, type: ShadingType.CLEAR },
+          children: [new Paragraph({ children: applyInlineRuns(cell) })],
+        })
+      ),
+    })
+  )
+
+  return new Table({
+    width: { size: PAGE_WIDTH, type: WidthType.DXA },
+    columnWidths: colWidths,
+    rows: [headerRow, ...dataRows],
+  })
+}
+
+function makeCardParagraphs(lines: string[]): Paragraph[] {
+  return lines
+    .filter(l => l.trim())
+    .map(line => {
+      const content = line.replace(/^[-*] /, '')
+      return new Paragraph({
+        indent: { left: 280 },
+        border: { left: { style: BorderStyle.SINGLE, size: 12, color: GREEN_MID, space: 4 } },
+        spacing: { before: 40, after: 40 },
+        children: applyInlineRuns(content),
+      })
+    })
+}
+
+function parseMarkdownToDocx(md: string): (Paragraph | Table)[] {
+  const children: (Paragraph | Table)[] = []
+  const lines = md.split('\n')
+  let i = 0
+
+  const CARD_SECTIONS = ['pauta', 'tópicos discutidos', 'decisões tomadas', 'decisoes tomadas']
+
+  while (i < lines.length) {
+    const line = lines[i]
+
+    if (/^# (?!#)(.+)$/.test(line)) {
+      children.push(new Paragraph({
+        heading: HeadingLevel.HEADING_1,
+        spacing: { before: 240, after: 120 },
+        children: [new TextRun({ text: line.replace(/^# /, ''), bold: true, size: 28, color: '111111' })],
+      }))
+      i++
+      continue
+    }
+
+    if (/^## (.+)$/.test(line)) {
+      const title = line.replace(/^## /, '')
+      const isCardSection = CARD_SECTIONS.some(s => title.toLowerCase().includes(s))
+      children.push(new Paragraph({
+        spacing: { before: 280, after: 80 },
+        border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: GREEN_MID, space: 1 } },
+        children: [new TextRun({ text: title, bold: true, size: 22, color: GREEN_MID })],
+      }))
+      i++
+
+      if (isCardSection) {
+        while (i < lines.length && !/^## /.test(lines[i])) {
+          if (/^### (.+)$/.test(lines[i])) {
+            const cardTitle = lines[i].replace(/^### /, '')
+            children.push(new Paragraph({
+              spacing: { before: 120, after: 40 },
+              indent: { left: 280 },
+              border: { left: { style: BorderStyle.SINGLE, size: 12, color: GREEN_MID, space: 4 } },
+              children: [new TextRun({ text: cardTitle, bold: true, size: 20, color: GREEN_DARK })],
+            }))
+            i++
+            while (i < lines.length && !/^##/.test(lines[i])) {
+              if (lines[i].trim()) {
+                children.push(...makeCardParagraphs([lines[i]]))
+              }
+              i++
+            }
+            children.push(new Paragraph({ spacing: { before: 60, after: 0 }, children: [] }))
+          } else {
+            if (lines[i].trim()) {
+              children.push(new Paragraph({
+                spacing: { before: 40, after: 40 },
+                children: applyInlineRuns(lines[i].replace(/^[-*] /, '')),
+              }))
+            }
+            i++
+          }
+        }
+      }
+      continue
+    }
+
+    if (/^### (.+)$/.test(line)) {
+      children.push(new Paragraph({
+        spacing: { before: 160, after: 60 },
+        children: [new TextRun({ text: line.replace(/^### /, ''), bold: true, size: 20, color: GREEN_DARK })],
+      }))
+      i++
+      continue
+    }
+
+    if (/^\|.+\|$/.test(line) && i + 1 < lines.length && /^\|[-| :]+\|$/.test(lines[i + 1])) {
+      const headers = line.split('|').map(h => h.trim()).filter(Boolean)
+      i += 2
+      const tableRows: string[][] = []
+      while (i < lines.length && /^\|.+\|$/.test(lines[i])) {
+        tableRows.push(lines[i].split('|').map(c => c.trim()).filter(Boolean))
+        i++
+      }
+      children.push(makeActionsTable(headers, tableRows))
+      children.push(new Paragraph({ spacing: { before: 120, after: 0 }, children: [] }))
+      continue
+    }
+
+    if (/^[-*] (.+)$/.test(line)) {
+      while (i < lines.length && /^[-*] (.+)$/.test(lines[i])) {
+        children.push(new Paragraph({
+          numbering: { reference: 'bullets', level: 0 },
+          spacing: { before: 40, after: 40 },
+          children: applyInlineRuns(lines[i].replace(/^[-*] /, '')),
+        }))
+        i++
+      }
+      continue
+    }
+
+    if (/^\d+\. (.+)$/.test(line)) {
+      while (i < lines.length && /^\d+\. (.+)$/.test(lines[i])) {
+        children.push(new Paragraph({
+          numbering: { reference: 'numbers', level: 0 },
+          spacing: { before: 40, after: 40 },
+          children: applyInlineRuns(lines[i].replace(/^\d+\. /, '')),
+        }))
+        i++
+      }
+      continue
+    }
+
+    if (line.trim() === '') { i++; continue }
+
+    children.push(new Paragraph({
+      spacing: { before: 40, after: 40 },
+      children: applyInlineRuns(line),
+    }))
+    i++
+  }
+
+  return children
 }
 
 Deno.serve(async (req) => {
@@ -115,102 +297,149 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Check plan + branding
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('plan_id')
-      .eq('user_id', user.id)
-      .single()
-
+      .from('profiles').select('plan_id').eq('user_id', user.id).single()
     const planId = profile?.plan_id || 'basic'
-    const showWatermark = !PAID_PLANS.includes(planId)
+    const isPaid = PAID_PLANS.includes(planId)
 
-    let brandName = 'Ágata Transcription'
-    let brandColor = '#10B981'
-    let brandSecondaryColor = '#065F46'
+    let brandFooter = 'Documento gerado automaticamente por Ágata Transcription | agatatranscription.com'
+    let isEnterprise = false
+    let enterpriseName = ''
 
-    // Enterprise branding
     const { data: userData } = await supabase
-      .from('User')
-      .select('planId, teamId')
-      .eq('id', user.id)
-      .single()
+      .from('User').select('planId, teamId').eq('id', user.id).single()
 
     if (userData?.planId === 'enterprise' && userData?.teamId) {
       const { data: team } = await supabase
-        .from('Team')
-        .select('name, companyName, primaryColor, secondaryColor')
-        .eq('id', userData.teamId)
-        .single()
-
+        .from('Team').select('name, companyName').eq('id', userData.teamId).single()
       if (team) {
-        brandName = team.companyName || team.name || 'Ágata Transcription'
-        brandColor = team.primaryColor || '#10B981'
-        brandSecondaryColor = team.secondaryColor || '#065F46'
+        isEnterprise = true
+        enterpriseName = team.companyName || team.name || ''
+        brandFooter = `Documento gerado por ${enterpriseName} | powered by Ágata Transcription`
       }
     }
 
-    // Fetch meeting
     const { data: meeting, error: meetingError } = await supabase
       .from('Meeting')
       .select('title, summary, userId, meetingDate, meetingTime, location, responsible, participants')
-      .eq('id', meetingId)
-      .single()
+      .eq('id', meetingId).single()
 
     if (meetingError || !meeting) {
       return new Response(JSON.stringify({ error: 'Meeting not found' }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
-
     if (meeting.userId !== user.id) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
-
     if (!meeting.summary) {
-      return new Response(JSON.stringify({ error: 'No summary available. Generate a summary first.' }), {
+      return new Response(JSON.stringify({ error: 'No summary available.' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    // Strip metadata prefix
     let summaryContent = meeting.summary
     const metaMatch = summaryContent.match(/^<!-- depth:\w+ -->\n/)
-    if (metaMatch) {
-      summaryContent = summaryContent.slice(metaMatch[0].length)
-    }
+    if (metaMatch) summaryContent = summaryContent.slice(metaMatch[0].length)
 
     const date = meeting.meetingDate
       ? new Date(meeting.meetingDate).toLocaleDateString('pt-BR')
       : new Date().toLocaleDateString('pt-BR')
 
-    const contentHtml = markdownToHtml(summaryContent)
+    const infoRows = [
+      { label: 'Título', value: meeting.title },
+      { label: 'Data', value: `${date}${meeting.meetingTime ? ' · ' + meeting.meetingTime : ''}` },
+    ]
+    if (meeting.location) infoRows.push({ label: 'Local', value: meeting.location })
+    if (meeting.responsible) infoRows.push({ label: 'Responsável', value: meeting.responsible })
+    if (meeting.participants?.length) infoRows.push({ label: 'Participantes', value: meeting.participants.join(', ') })
 
-    const html = `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<style>${CSS}</style>
-</head>
-<body>
-${showWatermark ? '<div class="watermark">ÁGATA</div>' : ''}
-<div class="header">
-  <div class="main-title">${templateLabels[template]}</div>
-  <div style="font-size:9pt;color:#666;">${brandName}</div>
-</div>
-<div class="header-line"></div>
-<table class="info-table">
-  <tr><td>Título</td><td>${meeting.title}</td></tr>
-  <tr><td>Data</td><td>${date}${meeting.meetingTime ? ' · ' + meeting.meetingTime : ''}</td></tr>
-  ${meeting.location ? `<tr><td>Local</td><td>${meeting.location}</td></tr>` : ''}
-  ${meeting.responsible ? `<tr><td>Responsável</td><td>${meeting.responsible}</td></tr>` : ''}
-  ${meeting.participants?.length ? `<tr><td>Participantes</td><td>${meeting.participants.join(', ')}</td></tr>` : ''}
-</table>
-${contentHtml}
-</body>
-</html>`
+    // Fetch logo
+    let logoImageRun: ImageRun | null = null
+    try {
+      const logoRes = await fetch(AGATA_LOGO_URL)
+      if (logoRes.ok) {
+        const logoBuffer = await logoRes.arrayBuffer()
+        logoImageRun = new ImageRun({
+          data: logoBuffer,
+          transformation: { width: 40, height: 40 },
+          type: 'png',
+        })
+      }
+    } catch (_) { /* logo optional */ }
+
+    const contentChildren = parseMarkdownToDocx(summaryContent)
+
+    const headerChildren: (TextRun | ImageRun)[] = []
+    if (logoImageRun) headerChildren.push(logoImageRun)
+    if (isEnterprise) {
+      headerChildren.push(new TextRun({ text: `  ${enterpriseName}`, bold: true, color: GREEN_DARK, size: 24 }))
+    }
+
+    const doc = new Document({
+      numbering: {
+        config: [
+          {
+            reference: 'bullets',
+            levels: [{ level: 0, format: LevelFormat.BULLET, text: '\u2022', alignment: AlignmentType.LEFT,
+              style: { paragraph: { indent: { left: 720, hanging: 360 } } } }],
+          },
+          {
+            reference: 'numbers',
+            levels: [{ level: 0, format: LevelFormat.DECIMAL, text: '%1.', alignment: AlignmentType.LEFT,
+              style: { paragraph: { indent: { left: 720, hanging: 360 } } } }],
+          },
+        ],
+      },
+      styles: {
+        default: { document: { run: { font: 'Segoe UI', size: 20 } } },
+      },
+      sections: [{
+        properties: {
+          page: {
+            size: { width: 11906, height: 16838 },
+            margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 },
+          },
+        },
+        headers: {
+          default: new Header({
+            children: [
+              new Paragraph({
+                spacing: { after: 60 },
+                border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: GREEN_MID, space: 4 } },
+                children: headerChildren.length > 0 ? headerChildren : [new TextRun({ text: '' })],
+              }),
+            ],
+          }),
+        },
+        children: [
+          ...(!isPaid ? [new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 0, after: 120 },
+            children: [new TextRun({ text: '\u26A0 Vers\u00E3o gratuita \u2014 fa\u00E7a upgrade para remover esta marca', color: 'AAAAAA', size: 16, italics: true })],
+          })] : []),
+
+          makeInfoTable(infoRows),
+          new Paragraph({ spacing: { before: 160, after: 0 }, children: [] }),
+
+          ...contentChildren,
+
+          new Paragraph({ spacing: { before: 480, after: 0 }, children: [] }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            border: { top: { style: BorderStyle.SINGLE, size: 2, color: 'E5E7EB', space: 4 } },
+            children: [new TextRun({ text: brandFooter, color: 'AAAAAA', size: 16 })],
+          }),
+        ],
+      }],
+    })
+
+    const buffer = await Packer.toBuffer(doc)
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)))
+
+    const filename = `ATA_${meeting.title.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 40)}_${date.replace(/\//g, '-')}.docx`
 
     // Update meeting with template
     await supabase.from('Meeting').update({
@@ -218,12 +447,12 @@ ${contentHtml}
       updatedAt: new Date().toISOString(),
     }).eq('id', meetingId)
 
-    return new Response(JSON.stringify({ html }), {
+    return new Response(JSON.stringify({ base64, filename }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
-    console.error('Generate ATA error:', error)
+    console.error('Generate ATA Word error:', error)
     return new Response(JSON.stringify({ error: (error as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
