@@ -34,9 +34,9 @@ export default function DashboardPage() {
           .select('transcriptionsUsed, totalMinutesTranscribed, currentMonth')
           .eq('userId', user.id)
           .single(),
-        supabase.from('profiles')
-          .select('plan_id')
-          .eq('user_id', user.id)
+        supabase.from('User')
+          .select('planId')
+          .eq('id', user.id)
           .single(),
       ]);
 
@@ -48,7 +48,7 @@ export default function DashboardPage() {
           : 0
       );
 
-      const planId = userRes.data?.plan_id || 'basic';
+      const planId = userRes.data?.planId || 'basic';
       const { data: plan } = await supabase
         .from('Plan')
         .select('name, maxTranscriptions')
@@ -93,13 +93,11 @@ export default function DashboardPage() {
   return (
     <AppLayout>
       <div className="space-y-8">
-        {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Bem-vindo, {userName}!</h1>
           <p className="text-muted-foreground mt-1">Gerencie suas transcrições de reuniões com inteligência artificial</p>
         </div>
 
-        {/* Stats */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
@@ -128,7 +126,6 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Quick Access */}
         <div className="grid md:grid-cols-3 gap-6">
           <Card className="shadow-lg hover:shadow-xl transition-shadow">
             <CardHeader>

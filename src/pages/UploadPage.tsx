@@ -47,15 +47,17 @@ export default function UploadPage() {
 
       const currentMonth = new Date().toISOString().slice(0, 7);
 
-      const [usageRes, profileRes] = await Promise.all([
-        supabase.from('Usage').select('transcriptionsUsed').eq('userId', user.id).eq('currentMonth', currentMonth).maybeSingle(),
-        supabase.from('profiles').select('plan_id').eq('user_id', user.id).single(),
+      const [usageRes, userRes] = await Promise.all([
+        supabase.from('Usage').select('transcriptionsUsed, currentMonth').eq('userId', user.id).single(),
+        supabase.from('User').select('planId').eq('id', user.id).single(),
       ]);
 
-      const planId = profileRes.data?.plan_id || 'basic';
+      const planId = userRes.data?.planId || 'basic';
       const { data: plan } = await supabase.from('Plan').select('maxTranscriptions, name').eq('id', planId).single();
 
-      const used = usageRes.data?.transcriptionsUsed || 0;
+      const used = usageRes.data?.currentMonth === currentMonth
+        ? (usageRes.data?.transcriptionsUsed || 0)
+        : 0;
       const max = plan?.maxTranscriptions || 5;
 
       setUsageInfo({ planName: plan?.name || 'Gratuito', used, max });
@@ -98,7 +100,6 @@ export default function UploadPage() {
           responsible: responsible || null, participants: participantsList, routineId: routineId || null,
         });
         if (error) throw error;
-        await updateUsage(user.id, 0);
         toast.success('Transcrição salva!');
         navigate('/meetings');
       } catch (err: any) {
@@ -149,7 +150,6 @@ export default function UploadPage() {
         return;
       }
 
-      await updateUsage(user.id, Math.round(file!.size / 1024 / 1024));
       setUploadProgress(100); setStatusMessage('Transcrição concluída!');
       eventFirstTranscription();
       trackFirstTranscription();
@@ -272,28 +272,4 @@ export default function UploadPage() {
       />
     </AppLayout>
   );
-}
-
-async function updateUsage(userId: string, durationMinutes: number) {
-  const currentMonth = new Date().toISOString().slice(0, 7);
-
-  const { data: existing } = await supabase
-    .from('Usage')
-    .select('id, transcriptionsUsed, totalMinutesTranscribed, currentMonth')
-    .eq('userId', userId)
-    .order('createdAt', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (existing && existing.currentMonth === currentMonth) {
-    await supabase.from('Usage').update({
-      transcriptionsUsed: (existing.transcriptionsUsed || 0) + 1,
-      totalMinutesTranscribed: (existing.totalMinutesTranscribed || 0) + durationMinutes,
-      updatedAt: new Date().toISOString(),
-    }).eq('id', existing.id);
-  } else {
-    await supabase.from('Usage').insert({
-      userId, currentMonth, transcriptionsUsed: 1, totalMinutesTranscribed: durationMinutes,
-    });
-  }
 }
