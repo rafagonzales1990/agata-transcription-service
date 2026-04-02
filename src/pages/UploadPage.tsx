@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { LimitReachedDialog } from '@/components/LimitReachedDialog';
+import { eventFirstTranscription } from '@/lib/gtag';
 
 const tabs = [
   { id: 'upload' as const, label: 'Upload', icon: Upload },
