@@ -232,6 +232,8 @@ Deno.serve(async (req) => {
     }
 
     // Update Meeting with transcription
+    const { data: meetingData } = await supabase.from('Meeting').select('userId').eq('id', meetingId).single()
+    
     await supabase.from('Meeting').update({
       status: 'completed',
       transcription,
@@ -239,6 +241,40 @@ Deno.serve(async (req) => {
       actionItems,
       updatedAt: new Date().toISOString(),
     }).eq('id', meetingId)
+
+    // Update usage counter
+    if (meetingData?.userId) {
+      const currentMonth = new Date().toISOString().slice(0, 7)
+      const { data: existingUsage } = await supabase
+        .from('Usage')
+        .select('id, transcriptionsUsed, currentMonth')
+        .eq('userId', meetingData.userId)
+        .single()
+
+      if (existingUsage) {
+        if (existingUsage.currentMonth === currentMonth) {
+          await supabase.from('Usage').update({
+            transcriptionsUsed: (existingUsage.transcriptionsUsed || 0) + 1,
+            updatedAt: new Date().toISOString(),
+          }).eq('id', existingUsage.id)
+        } else {
+          await supabase.from('Usage').update({
+            transcriptionsUsed: 1,
+            currentMonth: currentMonth,
+            updatedAt: new Date().toISOString(),
+          }).eq('id', existingUsage.id)
+        }
+      } else {
+        await supabase.from('Usage').insert({
+          userId: meetingData.userId,
+          transcriptionsUsed: 1,
+          currentMonth: currentMonth,
+          totalMinutesTranscribed: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+      }
+    }
 
     console.log(`Transcription completed for meeting ${meetingId}`)
 

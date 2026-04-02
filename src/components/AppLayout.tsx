@@ -181,18 +181,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           <aside className="absolute left-0 top-0 bottom-0 w-64 bg-white border-r border-border flex flex-col">
             <div className="p-4 border-b border-border flex items-center justify-between">
               <Link to="/" className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg overflow-hidden">
-                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                    <rect width="32" height="32" rx="8" fill="url(#logo-grad-s)" />
-                    <path d="M16 6L26 26H6L16 6Z" fill="white" fillOpacity="0.9" />
-                    <defs>
-                      <linearGradient id="logo-grad-s" x1="0" y1="0" x2="32" y2="32">
-                        <stop stopColor="#059669" />
-                        <stop offset="1" stopColor="#0d9488" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                </div>
+                <LogoIcon size={32} />
                 <span className="text-lg font-bold text-foreground">Ágata</span>
               </Link>
               <button onClick={() => setSidebarOpen(false)}>

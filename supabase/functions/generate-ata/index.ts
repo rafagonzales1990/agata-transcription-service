@@ -198,7 +198,7 @@ Deno.serve(async (req) => {
 ${showWatermark ? '<div class="watermark">ÁGATA</div>' : ''}
 <div class="header">
   <div class="main-title">${templateLabels[template]}</div>
-  <div style="font-size:9pt;color:#666;">Ágata Transcription</div>
+  <div style="font-size:9pt;color:#666;">${brandName}</div>
 </div>
 <div class="header-line"></div>
 <table class="info-table">
