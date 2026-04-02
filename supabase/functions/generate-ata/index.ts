@@ -309,12 +309,15 @@ Deno.serve(async (req) => {
     const { data: userData } = await supabase
       .from('User').select('planId, teamId').eq('id', user.id).single()
 
+    let teamLogoUrl: string | null = null
+
     if (userData?.planId === 'enterprise' && userData?.teamId) {
       const { data: team } = await supabase
-        .from('Team').select('name, companyName').eq('id', userData.teamId).single()
+        .from('Team').select('name, companyName, logoUrl').eq('id', userData.teamId).single()
       if (team) {
         isEnterprise = true
         enterpriseName = team.companyName || team.name || ''
+        teamLogoUrl = team.logoUrl || null
         brandFooter = `Documento gerado por ${enterpriseName} | powered by Ágata Transcription`
       }
     }
@@ -356,16 +359,18 @@ Deno.serve(async (req) => {
     if (meeting.responsible) infoRows.push({ label: 'Responsável', value: meeting.responsible })
     if (meeting.participants?.length) infoRows.push({ label: 'Participantes', value: meeting.participants.join(', ') })
 
-    // Fetch logo
+    // Fetch logo - use team logo for enterprise, otherwise Ágata logo
     let logoImageRun: ImageRun | null = null
+    const logoUrlToFetch = (isEnterprise && teamLogoUrl) ? teamLogoUrl : AGATA_LOGO_URL
     try {
-      const logoRes = await fetch(AGATA_LOGO_URL)
+      const logoRes = await fetch(logoUrlToFetch)
       if (logoRes.ok) {
         const logoBuffer = await logoRes.arrayBuffer()
+        const logoExt = logoUrlToFetch.toLowerCase().includes('.png') ? 'png' : 'jpg'
         logoImageRun = new ImageRun({
           data: logoBuffer,
           transformation: { width: 40, height: 40 },
-          type: 'png',
+          type: logoExt as 'png' | 'jpg',
         })
       }
     } catch (_) { /* logo optional */ }
