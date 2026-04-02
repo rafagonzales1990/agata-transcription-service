@@ -63,6 +63,11 @@ export default function PlansPage() {
   const handleSubscribe = async (planId: string) => {
     if (planId === 'basic') return;
     setCheckoutLoading(planId);
+    const plan = plans.find(p => p.id === planId);
+    if (plan) {
+      const price = yearly ? plan.priceYearly : plan.priceMonthly;
+      conversionBeginCheckout(plan.name, price / 100);
+    }
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { planId, billingCycle: yearly ? 'yearly' : 'monthly' },

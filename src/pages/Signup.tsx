@@ -43,6 +43,7 @@ export default function SignupPage() {
       } catch (emailErr) {
         console.error('Failed to send welcome email:', emailErr);
       }
+      conversionSignup();
       toast.success('Conta criada! Verifique seu email para confirmar.');
       navigate('/auth/login');
     }
