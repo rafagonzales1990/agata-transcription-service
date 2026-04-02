@@ -63,16 +63,62 @@ export default function SettingsBranding() {
 
     if (existing) {
       await supabase.from('Team').update({
-        companyName, primaryColor, secondaryColor, updatedAt: new Date().toISOString(),
+        companyName, primaryColor, secondaryColor, logoUrl, updatedAt: new Date().toISOString(),
       }).eq('id', existing.id);
     } else {
       await supabase.from('Team').insert({
-        ownerId: user.id, name: companyName || 'Minha Empresa', companyName, primaryColor, secondaryColor,
+        ownerId: user.id, name: companyName || 'Minha Empresa', companyName, primaryColor, secondaryColor, logoUrl,
       });
     }
 
     toast.success('Personalização salva!');
     setSaving(false);
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Selecione um arquivo de imagem');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('O logo deve ter no máximo 2MB');
+      return;
+    }
+
+    setUploadingLogo(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const ext = file.name.split('.').pop();
+    const path = `${user.id}/logo.${ext}`;
+
+    const { error } = await supabase.storage.from('team-logos').upload(path, file, { upsert: true });
+    if (error) {
+      toast.error('Erro ao fazer upload do logo');
+      setUploadingLogo(false);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from('team-logos').getPublicUrl(path);
+    const url = `${urlData.publicUrl}?t=${Date.now()}`;
+    setLogoUrl(url);
+    setUploadingLogo(false);
+    toast.success('Logo enviado!');
+  };
+
+  const handleRemoveLogo = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: files } = await supabase.storage.from('team-logos').list(user.id);
+    if (files?.length) {
+      await supabase.storage.from('team-logos').remove(files.map(f => `${user.id}/${f.name}`));
+    }
+    setLogoUrl(null);
+    toast.success('Logo removido');
   };
 
   const selectPreset = (preset: typeof COLOR_PRESETS[0]) => {
