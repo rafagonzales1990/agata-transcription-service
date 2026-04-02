@@ -47,19 +47,70 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
 };
 
 function convertMarkdownToHtml(md: string): string {
-  return md
-    .replace(/^### (.*$)/gm, '<h3>$1</h3>')
-    .replace(/^## (.*$)/gm, '<h2>$1</h2>')
-    .replace(/^# (.*$)/gm, '<h1>$1</h1>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/^\- (.*$)/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
-    .replace(/\n{2,}/g, '<br/><br/>')
-    .replace(/\|(.+)\|/g, (match) => {
-      const cells = match.split('|').filter(Boolean).map(c => c.trim());
-      return '<tr>' + cells.map(c => `<td>${c}</td>`).join('') + '</tr>';
+  let html = md;
+
+  // Tables
+  html = html.replace(/(?:^\|.+\|$\n?)+/gm, (tableMatch) => {
+    const rows = tableMatch.trim().split('\n').filter(row => row.trim());
+    if (rows.length < 2) return tableMatch;
+    let tableHtml = '<table class="ata-table">';
+    rows.forEach((row, idx) => {
+      if (/^\|[\s\-:]+\|$/.test(row.trim())) return;
+      const cells = row.split('|').filter(c => c.trim() !== '');
+      const tag = idx === 0 ? 'th' : 'td';
+      tableHtml += '<tr>';
+      cells.forEach(cell => { tableHtml += `<${tag}>${cell.trim()}</${tag}>`; });
+      tableHtml += '</tr>';
     });
+    tableHtml += '</table>';
+    return tableHtml;
+  });
+
+  // Headers
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2 class="section-title">$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+  // Bold and italic
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+  // Unordered lists
+  html = html.replace(/(?:^- .+$\n?)+/gm, (listMatch) => {
+    const items = listMatch.trim().split('\n');
+    let listHtml = '<ul>';
+    items.forEach(item => {
+      const content = item.replace(/^- /, '').trim();
+      if (content) listHtml += `<li>${content}</li>`;
+    });
+    listHtml += '</ul>';
+    return listHtml;
+  });
+
+  // Ordered lists
+  html = html.replace(/(?:^\d+\. .+$\n?)+/gm, (listMatch) => {
+    const items = listMatch.trim().split('\n');
+    let listHtml = '<ol>';
+    items.forEach(item => {
+      const content = item.replace(/^\d+\. /, '').trim();
+      if (content) listHtml += `<li>${content}</li>`;
+    });
+    listHtml += '</ol>';
+    return listHtml;
+  });
+
+  // Horizontal rules
+  html = html.replace(/^---$/gm, '<hr/>');
+
+  // Paragraphs
+  html = html.replace(/\n\n+/g, '</p><p>');
+  html = html.replace(/\n/g, ' ');
+  html = `<p>${html}</p>`;
+  html = html.replace(/<p>\s*<\/p>/g, '');
+  html = html.replace(/<p>\s*(<h[123]>)/g, '$1');
+  html = html.replace(/<p>\s*(<ul>|<ol>|<\/ol>|<\/table>|<hr\/>)\s*<\/p>/g, '$1');
+
+  return html;
 }
 
 export default function RoutineDetailPage() {
