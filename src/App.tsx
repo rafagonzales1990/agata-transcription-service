@@ -81,11 +81,12 @@ const App = () => (
             <Route path="/legal/terms" element={<LegalTerms />} />
             <Route path="/legal/lgpd" element={<LegalLgpd />} />
             <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </Sentry.ErrorBoundary>
 );
 
 export default App;
