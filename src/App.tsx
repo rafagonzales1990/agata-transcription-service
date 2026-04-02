@@ -56,12 +56,15 @@ const App = () => (
             <Route path="/settings/security" element={<ProtectedRoute><SettingsSecurity /></ProtectedRoute>} />
             <Route path="/settings/branding" element={<ProtectedRoute><SettingsBranding /></ProtectedRoute>} />
             <Route path="/settings/notifications" element={<ProtectedRoute><SettingsPlaceholder /></ProtectedRoute>} />
-            <Route path="/settings/groups" element={<ProtectedRoute><SettingsPlaceholder /></ProtectedRoute>} />
+            <Route path="/settings/groups" element={<ProtectedRoute><SettingsGroups /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
+            <Route path="/teams" element={<ProtectedRoute><Teams /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPostPage />} />
+            <Route path="/legal/terms" element={<LegalTerms />} />
+            <Route path="/legal/lgpd" element={<LegalLgpd />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

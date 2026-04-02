@@ -23,6 +23,7 @@ const menuItems = [
   { label: 'Rotinas', href: '/routines', icon: Repeat },
   { label: 'Documentos', href: '/documents', icon: FolderOpen },
   { label: 'Planos', href: '/plans', icon: CreditCard },
+  { label: 'Equipe', href: '/teams', icon: Users, enterpriseOnly: true },
 ];
 
 interface AppLayoutProps {
