@@ -558,6 +558,31 @@ export default function AdminPanel() {
                 </div>
               </CardContent>
             </Card>
+
+            <Card className="bg-white">
+              <CardHeader>
+                <CardTitle className="text-base">Ações</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={async () => {
+                    toast.info('Iniciando backup...');
+                    const { data, error } = await supabase.functions.invoke('backup-database');
+                    if (error) {
+                      toast.error('Erro ao fazer backup');
+                    } else {
+                      toast.success(`Backup criado: ${data.file} (${data.stats.length} tabelas)`);
+                    }
+                  }}
+                >
+                  <Database className="h-4 w-4" />
+                  Backup Manual
+                </Button>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* ── Users Tab ──────────────────────────────────── */}
