@@ -125,18 +125,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <Menu className="h-5 w-5 text-foreground" />
           </button>
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg overflow-hidden">
-              <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-                <rect width="32" height="32" rx="8" fill="url(#logo-grad-m)" />
-                <path d="M16 6L26 26H6L16 6Z" fill="white" fillOpacity="0.9" />
-                <defs>
-                  <linearGradient id="logo-grad-m" x1="0" y1="0" x2="32" y2="32">
-                    <stop stopColor="#059669" />
-                    <stop offset="1" stopColor="#0d9488" />
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
+            <LogoIcon size={28} />
             <span className="font-bold text-foreground">Ágata</span>
           </Link>
         </div>
