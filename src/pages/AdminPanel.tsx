@@ -92,7 +92,7 @@ export default function AdminPanel() {
 
   const checkAdmin = async () => {
     if (!user) return;
-    const { data } = await supabase.from('User').select('isAdmin').eq('id', user.id).single();
+    const { data } = await supabase.from('User').select('isAdmin').eq('id', user.id).maybeSingle();
     if (!data?.isAdmin) {
       navigate('/dashboard');
       return;

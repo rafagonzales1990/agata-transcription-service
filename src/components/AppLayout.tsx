@@ -38,11 +38,14 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   useEffect(() => {
     async function fetchAdminStatus() {
-      const { data, error } = await supabase.functions.invoke('admin-users', {
-        method: 'GET',
-      });
-      // If the function returns users, the user is admin
-      if (!error && data?.users) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from('User')
+        .select('isAdmin')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (data?.isAdmin) {
         setIsAdmin(true);
       }
     }
