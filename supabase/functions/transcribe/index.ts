@@ -319,6 +319,39 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Send transcription done email
+    if (meetingData?.userId) {
+      try {
+        const { data: userData } = await supabase
+          .from('User')
+          .select('email, name')
+          .eq('id', meetingData.userId)
+          .maybeSingle()
+
+        if (userData) {
+          const { data: meetingInfo } = await supabase
+            .from('Meeting')
+            .select('title')
+            .eq('id', meetingId)
+            .maybeSingle()
+
+          await supabase.functions.invoke('send-email', {
+            body: {
+              type: 'transcription_done',
+              to: userData.email,
+              data: {
+                name: userData.name || 'Usuário',
+                meetingTitle: meetingInfo?.title || 'Reunião',
+                meetingId,
+              }
+            }
+          })
+        }
+      } catch (emailErr) {
+        console.error('Failed to send transcription email:', emailErr)
+      }
+    }
+
     console.log(`Transcription completed for meeting ${meetingId}`)
 
     return new Response(JSON.stringify({ success: true, meetingId }), {

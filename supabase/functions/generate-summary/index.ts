@@ -140,6 +140,22 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+    // Rate limiting: max 20 summary generations per user per hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+    const { count: summaryCount } = await supabase
+      .from('Meeting')
+      .select('*', { count: 'exact', head: true })
+      .eq('userId', user.id)
+      .not('summary', 'is', null)
+      .gte('updatedAt', oneHourAgo)
+
+    if ((summaryCount || 0) >= 20) {
+      return new Response(
+        JSON.stringify({ error: 'Limite de resumos por hora atingido.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Check plan permissions
     if (depth !== 'executivo') {
       const { data: profile } = await supabase

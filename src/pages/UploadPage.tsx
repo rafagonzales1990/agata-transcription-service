@@ -138,7 +138,11 @@ export default function UploadPage() {
       const { error: fnError } = await supabase.functions.invoke('transcribe', { body: { meetingId, storagePath } });
       if (fnError) {
         await supabase.from('Meeting').update({ status: 'failed', errorMessage: fnError.message, updatedAt: new Date().toISOString() }).eq('id', meetingId);
-        toast.error(`Transcrição falhou: ${fnError.message}`);
+        if (fnError.message?.includes('429') || (fnError as any).status === 429) {
+          toast.error('Limite de transcrições por hora atingido. Aguarde 1 hora.');
+        } else {
+          toast.error(`Transcrição falhou: ${fnError.message}`);
+        }
         navigate('/meetings');
         return;
       }

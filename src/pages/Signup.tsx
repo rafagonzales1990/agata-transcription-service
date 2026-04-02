@@ -34,6 +34,14 @@ export default function SignupPage() {
     if (error) {
       toast.error(error.message);
     } else {
+      // Send welcome email
+      try {
+        await supabase.functions.invoke('send-email', {
+          body: { type: 'welcome', to: email, data: { name: name || 'Usuário' } }
+        });
+      } catch (emailErr) {
+        console.error('Failed to send welcome email:', emailErr);
+      }
       toast.success('Conta criada! Verifique seu email para confirmar.');
       navigate('/auth/login');
     }
