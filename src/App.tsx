@@ -24,6 +24,8 @@ import SettingsPlaceholder from "./pages/SettingsPlaceholder";
 import Profile from "./pages/Profile";
 import Plans from "./pages/Plans";
 import AdminPanel from "./pages/AdminPanel";
+import Blog from "./pages/Blog";
+import BlogPostPage from "./pages/BlogPost";
 
 const queryClient = new QueryClient();
 
