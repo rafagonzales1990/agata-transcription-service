@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ChevronLeft, Palette, Loader2 } from 'lucide-react';
+import { ChevronLeft, Palette, Loader2, Upload, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,7 +24,10 @@ export default function SettingsBranding() {
   const [companyName, setCompanyName] = useState('');
   const [primaryColor, setPrimaryColor] = useState('#059669');
   const [secondaryColor, setSecondaryColor] = useState('#34d399');
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (profile && profile.plan_id !== 'enterprise') {
@@ -38,13 +41,14 @@ export default function SettingsBranding() {
       if (!user) return;
       const { data } = await supabase
         .from('Team')
-        .select('companyName, primaryColor, secondaryColor')
+        .select('companyName, primaryColor, secondaryColor, logoUrl')
         .eq('ownerId', user.id)
         .maybeSingle();
       if (data) {
         setCompanyName(data.companyName || '');
         setPrimaryColor(data.primaryColor || '#059669');
         setSecondaryColor(data.secondaryColor || '#34d399');
+        setLogoUrl(data.logoUrl || null);
       }
     }
     loadTeam();
@@ -59,16 +63,62 @@ export default function SettingsBranding() {
 
     if (existing) {
       await supabase.from('Team').update({
-        companyName, primaryColor, secondaryColor, updatedAt: new Date().toISOString(),
+        companyName, primaryColor, secondaryColor, logoUrl, updatedAt: new Date().toISOString(),
       }).eq('id', existing.id);
     } else {
       await supabase.from('Team').insert({
-        ownerId: user.id, name: companyName || 'Minha Empresa', companyName, primaryColor, secondaryColor,
+        ownerId: user.id, name: companyName || 'Minha Empresa', companyName, primaryColor, secondaryColor, logoUrl,
       });
     }
 
     toast.success('Personalização salva!');
     setSaving(false);
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Selecione um arquivo de imagem');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('O logo deve ter no máximo 2MB');
+      return;
+    }
+
+    setUploadingLogo(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const ext = file.name.split('.').pop();
+    const path = `${user.id}/logo.${ext}`;
+
+    const { error } = await supabase.storage.from('team-logos').upload(path, file, { upsert: true });
+    if (error) {
+      toast.error('Erro ao fazer upload do logo');
+      setUploadingLogo(false);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from('team-logos').getPublicUrl(path);
+    const url = `${urlData.publicUrl}?t=${Date.now()}`;
+    setLogoUrl(url);
+    setUploadingLogo(false);
+    toast.success('Logo enviado!');
+  };
+
+  const handleRemoveLogo = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: files } = await supabase.storage.from('team-logos').list(user.id);
+    if (files?.length) {
+      await supabase.storage.from('team-logos').remove(files.map(f => `${user.id}/${f.name}`));
+    }
+    setLogoUrl(null);
+    toast.success('Logo removido');
   };
 
   const selectPreset = (preset: typeof COLOR_PRESETS[0]) => {
@@ -149,8 +199,38 @@ export default function SettingsBranding() {
               </div>
             </div>
 
-            <div className="p-3 rounded-lg bg-muted text-sm text-muted-foreground">
-              📸 Upload de logo — em breve
+            <div>
+              <label className="text-xs text-muted-foreground mb-2 block">Logo da Empresa</label>
+              {logoUrl ? (
+                <div className="flex items-center gap-4">
+                  <img src={logoUrl} alt="Logo" className="h-16 w-16 object-contain rounded-lg border bg-white p-1" />
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                      {uploadingLogo ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Trocar'}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleRemoveLogo}>
+                      <X className="h-4 w-4 mr-1" /> Remover
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingLogo}
+                  className="w-full border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer"
+                >
+                  {uploadingLogo ? (
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                  ) : (
+                    <>
+                      <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">Clique para enviar seu logo</p>
+                      <p className="text-xs text-muted-foreground mt-1">PNG, JPG ou SVG · Máx 2MB</p>
+                    </>
+                  )}
+                </button>
+              )}
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
             </div>
 
             <Button onClick={handleSave} disabled={saving} className="bg-primary text-primary-foreground w-full">
