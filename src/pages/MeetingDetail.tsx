@@ -209,22 +209,49 @@ export default function MeetingDetail() {
         ? new Date(meeting.meetingDate).toLocaleDateString('pt-BR')
         : new Date(meeting.createdAt).toLocaleDateString('pt-BR');
 
-      const templateLabel = {
-        geral: 'Ata Geral', juridico_audiencia: 'Ata de Audiência', juridico_entrevista: 'Ata Jurídica',
-        rh_entrevista: 'Ata RH - Entrevista', rh_pdi: 'Ata RH - PDI', marketing_estrategia: 'Ata Marketing',
-        marketing_planejamento: 'Ata Marketing - Plan.', engenharia_projetos: 'Ata Eng. Projetos',
-        engenharia_obra: 'Ata Eng. Obra', ti_sprint: 'Ata TI Sprint', financeiro: 'Ata Financeiro',
-        comercial: 'Ata Comercial',
-      }[selectedTemplate] || 'Ata Geral';
+      const templateLabel = templateLabels[selectedTemplate] || 'Ata Geral';
 
       const infoRows = [
-        `<tr><td>Título:</td><td>${meeting.title}</td></tr>`,
-        `<tr><td>Tipo:</td><td>${templateLabel}</td></tr>`,
-        `<tr><td>Data:</td><td>${date}${meeting.meetingTime ? ' · ' + meeting.meetingTime : ''}</td></tr>`,
-        meeting.location ? `<tr><td>Local:</td><td>${meeting.location}</td></tr>` : '',
-        meeting.responsible ? `<tr><td>Responsável:</td><td>${meeting.responsible}</td></tr>` : '',
-        meeting.participants?.length ? `<tr><td>Participantes:</td><td>${meeting.participants.join(', ')}</td></tr>` : '',
+        `<tr><td class="label">Título</td><td>${meeting.title}</td></tr>`,
+        `<tr><td class="label">Data</td><td>${date}${meeting.meetingTime ? ' · ' + meeting.meetingTime : ''}</td></tr>`,
+        meeting.location ? `<tr><td class="label">Local</td><td>${meeting.location}</td></tr>` : '',
+        meeting.responsible ? `<tr><td class="label">Responsável</td><td>${meeting.responsible}</td></tr>` : '',
+        meeting.participants?.length ? `<tr><td class="label">Participantes</td><td>${meeting.participants.join(', ')}</td></tr>` : '',
       ].filter(Boolean).join('');
+
+      // Get enterprise info for branding
+      let headerHtml = '';
+      let footerText = 'Documento gerado automaticamente por Ágata Transcription | agatatranscription.com';
+      
+      try {
+        const { data: userData } = await supabase
+          .from('User')
+          .select('planId, teamId')
+          .eq('id', profile?.user_id || '')
+          .single();
+
+        if (userData?.planId === 'enterprise' && userData?.teamId) {
+          const { data: team } = await supabase
+            .from('Team')
+            .select('name, companyName, logoUrl')
+            .eq('id', userData.teamId)
+            .single();
+
+          if (team) {
+            const companyName = team.companyName || team.name || '';
+            footerText = `Documento gerado por ${companyName} | powered by Ágata Transcription`;
+            if (team.logoUrl) {
+              headerHtml = `<div class="header"><img src="${team.logoUrl}" class="logo" /><span class="logo-text">${companyName}</span></div>`;
+            } else {
+              headerHtml = `<div class="header"><span class="logo-text">${companyName}</span></div>`;
+            }
+          }
+        }
+      } catch (_) { /* fallback to default */ }
+
+      if (!headerHtml) {
+        headerHtml = `<div class="header"><span class="logo-text">Ágata Transcription</span></div>`;
+      }
 
       const fullHtml = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -233,45 +260,42 @@ export default function MeetingDetail() {
   <title>${templateLabel} — ${meeting.title}</title>
   <style>
     @page { margin: 1.5cm 2cm 2cm 2cm; }
-    body { font-family: 'Segoe UI', Aptos, Arial, sans-serif; font-size: 10pt; line-height: 1.4; color: #333; margin: 0; padding: 20px; }
-    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
-    .logo-text { font-size: 14pt; font-weight: 600; color: #065F46; }
-    .main-title { font-size: 16pt; font-weight: bold; color: #065F46; margin: 0; }
-    .header-line { border-top: 3px solid #10B981; margin: 10px 0 15px 0; }
+    body { font-family: 'Segoe UI', Aptos, Arial, sans-serif; font-size: 10pt; line-height: 1.5; color: #333; margin: 0; padding: 20px; }
+    .header { display: flex; align-items: center; gap: 10px; padding-bottom: 8px; border-bottom: 3px solid #059669; margin-bottom: 15px; }
+    .header .logo { width: 40px; height: 40px; object-fit: contain; }
+    .logo-text { font-size: 14pt; font-weight: 700; color: #065F46; }
     .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 10pt; }
-    .info-table td { padding: 6px 10px; border: 1px solid #10B981; }
-    .info-table td:first-child { background: #D1FAE5; font-weight: bold; color: #065F46; width: 140px; }
-    .section-title { color: #10B981; font-size: 12pt; margin: 20px 0 10px 0; border-bottom: 2px solid #10B981; padding-bottom: 4px; }
-    h2 { color: #10B981; font-size: 11pt; margin: 18px 0 8px 0; border-bottom: 1px solid #10B981; padding-bottom: 3px; }
-    h3 { color: #065F46; font-size: 10pt; margin: 12px 0 6px 0; }
-    p { margin: 6px 0; }
+    .info-table td { padding: 6px 10px; border: 1px solid #A7F3D0; }
+    .info-table td.label { background: #D1FAE5; font-weight: bold; color: #065F46; width: 140px; }
+    h1 { font-size: 14pt; font-weight: bold; color: #111; margin: 15px 0 8px 0; page-break-after: avoid; break-after: avoid; }
+    h2, .section-title { color: #059669; font-size: 11pt; font-weight: bold; margin: 18px 0 8px 0; border-bottom: 2px solid #059669; padding-bottom: 4px; page-break-after: avoid; break-after: avoid; }
+    h3 { color: #065F46; font-size: 10pt; font-weight: bold; margin: 12px 0 6px 0; page-break-after: avoid; break-after: avoid; }
+    p { margin: 6px 0; orphans: 3; widows: 3; }
     ul, ol { margin: 6px 0; padding-left: 20px; }
     li { margin: 3px 0; }
     strong { color: #065F46; }
-    .ata-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 9pt; }
-    .ata-table th, .ata-table td { border: 1px solid #10B981; padding: 6px 8px; text-align: left; }
-    .ata-table th { background: #D1FAE5; color: #065F46; font-weight: bold; }
+    .ata-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 9pt; page-break-inside: auto; }
+    .ata-table th, .ata-table td { border: 1px solid #A7F3D0; padding: 6px 8px; text-align: left; }
+    .ata-table th { background: #059669; color: #fff; font-weight: bold; }
     .ata-table tr:nth-child(even) td { background: #F0FDF4; }
-    hr { border: none; border-top: 1px solid #ccc; margin: 15px 0; }
-    .footer { margin-top: 30px; padding-top: 10px; border-top: 1px solid #ccc; text-align: center; color: #888; font-size: 8pt; }
+    .ata-table tr { page-break-inside: avoid; break-inside: avoid; }
+    hr { border: none; border-top: 1px solid #E5E7EB; margin: 15px 0; }
+    .footer { margin-top: 30px; padding-top: 10px; border-top: 1px solid #E5E7EB; text-align: center; color: #aaa; font-size: 8pt; }
+    @media print {
+      body { padding: 0; }
+      h1, h2, h3, .section-title { page-break-after: avoid !important; break-after: avoid !important; }
+      .info-table, .ata-table { page-break-inside: avoid; }
+      .footer { position: fixed; bottom: 0; left: 0; right: 0; }
+    }
   </style>
 </head>
 <body>
-  <div class="header">
-    <div class="logo-text">Ágata Transcription</div>
-  </div>
-  <div>
-    <div class="main-title">${templateLabel.toUpperCase()}</div>
-    <div style="font-size:12pt;color:#333;margin-top:2px;">${meeting.title}</div>
-  </div>
-  <div class="header-line"></div>
+  ${headerHtml}
   <table class="info-table">
     ${infoRows}
   </table>
   ${html}
-  <div class="footer">
-    Documento gerado automaticamente por Ágata Transcription | agatatranscription.com
-  </div>
+  <div class="footer">${footerText}</div>
 </body>
 </html>`;
 
@@ -288,7 +312,7 @@ export default function MeetingDetail() {
     } finally {
       setPdfLoading(false);
     }
-  }, [id, meeting, selectedTemplate]);
+  }, [id, meeting, selectedTemplate, profile]);
 
   const generateWord = useCallback(async () => {
     if (!id || !meeting) return;
