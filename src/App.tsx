@@ -21,11 +21,15 @@ import SettingsPage from "./pages/SettingsPage";
 import SettingsSecurity from "./pages/SettingsSecurity";
 import SettingsBranding from "./pages/SettingsBranding";
 import SettingsPlaceholder from "./pages/SettingsPlaceholder";
+import SettingsGroups from "./pages/SettingsGroups";
 import Profile from "./pages/Profile";
 import Plans from "./pages/Plans";
 import AdminPanel from "./pages/AdminPanel";
 import Blog from "./pages/Blog";
 import BlogPostPage from "./pages/BlogPost";
+import Teams from "./pages/Teams";
+import LegalTerms from "./pages/LegalTerms";
+import LegalLgpd from "./pages/LegalLgpd";
 
 const queryClient = new QueryClient();
 
