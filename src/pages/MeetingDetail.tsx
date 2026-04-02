@@ -281,24 +281,28 @@ export default function MeetingDetail() {
   <title>${templateLabel} — ${meeting.title}</title>
   <style>
     @page { margin: 1.5cm 2cm 2cm 2cm; }
+    html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     body { font-family: 'Segoe UI', Aptos, Arial, sans-serif; font-size: 10pt; line-height: 1.5; color: #333; margin: 0; padding: 20px; }
     .header { display: flex; align-items: center; gap: 10px; padding-bottom: 8px; border-bottom: 3px solid #059669; margin-bottom: 15px; }
     .header .logo { width: 40px; height: 40px; object-fit: contain; }
     .logo-text { font-size: 14pt; font-weight: 700; color: #065F46; }
     .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 10pt; }
     .info-table td { padding: 6px 10px; border: 1px solid #A7F3D0; }
-    .info-table td.label { background: #D1FAE5; font-weight: bold; color: #065F46; width: 140px; }
-    h1 { font-size: 14pt; font-weight: bold; color: #111; margin: 15px 0 8px 0; page-break-after: avoid; break-after: avoid; }
-    h2, .section-title { color: #059669; font-size: 11pt; font-weight: bold; margin: 18px 0 8px 0; border-bottom: 2px solid #059669; padding-bottom: 4px; page-break-after: avoid; break-after: avoid; }
-    h3 { color: #065F46; font-size: 10pt; font-weight: bold; margin: 12px 0 6px 0; page-break-after: avoid; break-after: avoid; }
+    .info-table td.label { background: #D1FAE5; font-weight: 700; color: #065F46; width: 140px; }
+    h1 { font-size: 14pt; font-weight: 700; color: #111; margin: 15px 0 8px 0; page-break-after: avoid; break-after: avoid; }
+    h2, .section-title { color: #059669; font-size: 11pt; font-weight: 700; margin: 18px 0 8px 0; border-bottom: 2px solid #059669; padding-bottom: 4px; page-break-after: avoid; break-after: avoid; }
+    h3 { color: #065F46; font-size: 10pt; font-weight: 700; margin: 12px 0 6px 0; page-break-after: avoid; break-after: avoid; }
     p { margin: 6px 0; orphans: 3; widows: 3; }
     ul, ol { margin: 6px 0; padding-left: 20px; }
     li { margin: 3px 0; }
-    strong { color: #065F46; }
-    .ata-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 9pt; page-break-inside: auto; }
-    .ata-table th, .ata-table td { border: 1px solid #A7F3D0; padding: 6px 8px; text-align: left; }
-    .ata-table th { background: #059669; color: #fff; font-weight: bold; }
-    .ata-table tr:nth-child(even) td { background: #F0FDF4; }
+    strong { color: #065F46; font-weight: 700; }
+    .ata-table { width: 100%; border-collapse: collapse; border-spacing: 0; margin: 10px 0; font-size: 9pt; page-break-inside: auto; }
+    .ata-table thead { display: table-header-group; }
+    .ata-table tbody { display: table-row-group; }
+    .ata-table th, .ata-table td { border: 1px solid #A7F3D0; padding: 6px 8px; text-align: left; vertical-align: top; }
+    .ata-table thead th { background: #059669 !important; color: #FFFFFF !important; font-weight: 700; }
+    .ata-table tbody tr:nth-child(even) td { background: #F0FDF4; }
+    .ata-table tbody tr:nth-child(odd) td { background: #FFFFFF; }
     .ata-table tr { page-break-inside: avoid; break-inside: avoid; }
     hr { border: none; border-top: 1px solid #E5E7EB; margin: 15px 0; }
     .footer { margin-top: 30px; padding-top: 10px; border-top: 1px solid #E5E7EB; text-align: center; color: #aaa; font-size: 8pt; }
@@ -306,6 +310,7 @@ export default function MeetingDetail() {
       body { padding: 0; }
       h1, h2, h3, .section-title { page-break-after: avoid !important; break-after: avoid !important; }
       .info-table, .ata-table { page-break-inside: avoid; }
+      .ata-table thead th { background: #059669 !important; color: #FFFFFF !important; }
       .footer { position: fixed; bottom: 0; left: 0; right: 0; }
     }
   </style>
