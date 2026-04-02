@@ -9,6 +9,7 @@ import { CheckCircle, Loader2, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { conversionBeginCheckout, conversionPurchase } from '@/lib/gtag';
 
 interface Plan {
   id: string;
