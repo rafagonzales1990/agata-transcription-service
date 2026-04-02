@@ -241,20 +241,36 @@ export default function LandingPage() {
 
       {/* Social Proof */}
       <section className="py-6 border-y border-border bg-muted/50">
-        <div className="max-w-7xl mx-auto px-4 flex flex-wrap items-center justify-center gap-6">
-          <p className="text-sm text-muted-foreground font-medium">Profissionais confiam na Ágata</p>
-          <div className="flex -space-x-2">
-            {[1,2,3,4,5].map(i => (
-              <div key={i} className="w-8 h-8 rounded-full bg-emerald-200 border-2 border-background flex items-center justify-center text-[10px] font-bold text-emerald-700">
-                {String.fromCharCode(64 + i)}
-              </div>
-            ))}
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-center gap-6 flex-wrap text-sm text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <CheckCircle className="h-4 w-4 text-primary" />
+              Gestores de Projeto
+            </span>
+            <span className="flex items-center gap-1.5">
+              <CheckCircle className="h-4 w-4 text-primary" />
+              Advogados
+            </span>
+            <span className="flex items-center gap-1.5">
+              <CheckCircle className="h-4 w-4 text-primary" />
+              Consultores
+            </span>
+            <span className="flex items-center gap-1.5">
+              <CheckCircle className="h-4 w-4 text-primary" />
+              Equipes de RH
+            </span>
+            <span className="flex items-center gap-1.5">
+              <CheckCircle className="h-4 w-4 text-primary" />
+              Startups
+            </span>
+            <span className="flex items-center gap-1.5">
+              ⭐⭐⭐⭐⭐ 5.0 de satisfação
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Shield className="h-4 w-4 text-primary" />
+              Garantia de 7 dias
+            </span>
           </div>
-          <div className="flex items-center gap-1">
-            {[1,2,3,4,5].map(i => <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />)}
-            <span className="text-sm font-medium ml-1">5.0 de satisfação</span>
-          </div>
-          <Badge variant="outline" className="text-xs"><Shield className="h-3 w-3 mr-1" />Garantia de 7 dias</Badge>
         </div>
       </section>
 
