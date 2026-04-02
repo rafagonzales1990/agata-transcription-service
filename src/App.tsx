@@ -56,6 +56,8 @@ const App = () => (
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPostPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
