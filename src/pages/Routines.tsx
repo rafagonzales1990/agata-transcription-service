@@ -33,6 +33,7 @@ interface Routine {
   icon: string | null;
   createdAt: string;
   meetingCount?: number;
+  consolidatedSummary?: string | null;
 }
 
 export default function RoutinesPage() {
