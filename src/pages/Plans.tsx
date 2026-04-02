@@ -36,7 +36,12 @@ export default function PlansPage() {
   const [hasSubscription, setHasSubscription] = useState(false);
 
   useEffect(() => {
-    if (searchParams.get('success') === 'true') toast.success('Plano atualizado com sucesso!');
+    if (searchParams.get('success') === 'true') {
+      toast.success('Plano atualizado com sucesso!');
+      const planName = searchParams.get('plan') || 'unknown';
+      const planValue = parseFloat(searchParams.get('value') || '0');
+      conversionPurchase(planName, planValue);
+    }
     if (searchParams.get('canceled') === 'true') toast.error('Pagamento cancelado');
   }, [searchParams]);
 
