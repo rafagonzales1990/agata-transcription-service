@@ -150,6 +150,7 @@ export default function UploadPage() {
 
       await updateUsage(user.id, Math.round(file!.size / 1024 / 1024));
       setUploadProgress(100); setStatusMessage('Transcrição concluída!');
+      eventFirstTranscription();
       toast.success('Transcrição concluída com sucesso!');
       setTimeout(() => navigate('/meetings'), 1000);
     } catch (error: any) {

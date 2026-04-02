@@ -50,6 +50,14 @@ const SentryErrorFallback = () => (
   </div>
 );
 
+const RouteTracker = () => {
+  const location = useLocation();
+  useEffect(() => {
+    pageview(location.pathname);
+  }, [location]);
+  return null;
+};
+
 const App = () => (
   <Sentry.ErrorBoundary fallback={<SentryErrorFallback />}>
     <QueryClientProvider client={queryClient}>
@@ -57,6 +65,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <RouteTracker />
           <AuthProvider>
             <Routes>
             <Route path="/" element={<Index />} />
