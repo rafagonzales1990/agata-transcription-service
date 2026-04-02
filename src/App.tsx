@@ -23,6 +23,7 @@ import SettingsBranding from "./pages/SettingsBranding";
 import SettingsPlaceholder from "./pages/SettingsPlaceholder";
 import Profile from "./pages/Profile";
 import Plans from "./pages/Plans";
+import AdminPanel from "./pages/AdminPanel";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/settings/groups" element={<ProtectedRoute><SettingsPlaceholder /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
