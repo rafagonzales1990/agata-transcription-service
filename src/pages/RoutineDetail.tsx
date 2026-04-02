@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   ChevronLeft, Plus, Loader2, FileText, CheckCircle, Clock, AlertCircle,
-  X, Search, Sparkles, Download, RefreshCw, Hourglass,
+  X, Search, Sparkles, Download, RefreshCw, Hourglass, FileDown,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -47,19 +47,70 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
 };
 
 function convertMarkdownToHtml(md: string): string {
-  return md
-    .replace(/^### (.*$)/gm, '<h3>$1</h3>')
-    .replace(/^## (.*$)/gm, '<h2>$1</h2>')
-    .replace(/^# (.*$)/gm, '<h1>$1</h1>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/^\- (.*$)/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
-    .replace(/\n{2,}/g, '<br/><br/>')
-    .replace(/\|(.+)\|/g, (match) => {
-      const cells = match.split('|').filter(Boolean).map(c => c.trim());
-      return '<tr>' + cells.map(c => `<td>${c}</td>`).join('') + '</tr>';
+  let html = md;
+
+  // Tables
+  html = html.replace(/(?:^\|.+\|$\n?)+/gm, (tableMatch) => {
+    const rows = tableMatch.trim().split('\n').filter(row => row.trim());
+    if (rows.length < 2) return tableMatch;
+    let tableHtml = '<table class="ata-table">';
+    rows.forEach((row, idx) => {
+      if (/^\|[\s\-:]+\|$/.test(row.trim())) return;
+      const cells = row.split('|').filter(c => c.trim() !== '');
+      const tag = idx === 0 ? 'th' : 'td';
+      tableHtml += '<tr>';
+      cells.forEach(cell => { tableHtml += `<${tag}>${cell.trim()}</${tag}>`; });
+      tableHtml += '</tr>';
     });
+    tableHtml += '</table>';
+    return tableHtml;
+  });
+
+  // Headers
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2 class="section-title">$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+  // Bold and italic
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+  // Unordered lists
+  html = html.replace(/(?:^- .+$\n?)+/gm, (listMatch) => {
+    const items = listMatch.trim().split('\n');
+    let listHtml = '<ul>';
+    items.forEach(item => {
+      const content = item.replace(/^- /, '').trim();
+      if (content) listHtml += `<li>${content}</li>`;
+    });
+    listHtml += '</ul>';
+    return listHtml;
+  });
+
+  // Ordered lists
+  html = html.replace(/(?:^\d+\. .+$\n?)+/gm, (listMatch) => {
+    const items = listMatch.trim().split('\n');
+    let listHtml = '<ol>';
+    items.forEach(item => {
+      const content = item.replace(/^\d+\. /, '').trim();
+      if (content) listHtml += `<li>${content}</li>`;
+    });
+    listHtml += '</ol>';
+    return listHtml;
+  });
+
+  // Horizontal rules
+  html = html.replace(/^---$/gm, '<hr/>');
+
+  // Paragraphs
+  html = html.replace(/\n\n+/g, '</p><p>');
+  html = html.replace(/\n/g, ' ');
+  html = `<p>${html}</p>`;
+  html = html.replace(/<p>\s*<\/p>/g, '');
+  html = html.replace(/<p>\s*(<h[123]>)/g, '$1');
+  html = html.replace(/<p>\s*(<ul>|<ol>|<\/ol>|<\/table>|<hr\/>)\s*<\/p>/g, '$1');
+
+  return html;
 }
 
 export default function RoutineDetailPage() {
@@ -157,24 +208,100 @@ export default function RoutineDetailPage() {
     }
   };
 
-  const downloadPDF = () => {
+  const downloadDoc = (format: 'pdf' | 'word') => {
     if (!routine?.consolidatedSummary) return;
     const summary = routine.consolidatedSummary;
-    const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Consolidação — ${routine.name}</title>
-<style>@page{margin:2cm}body{font-family:'Segoe UI',Arial,sans-serif;font-size:10pt;line-height:1.5;color:#333}
-h1,h2{color:#065F46;border-bottom:2px solid #10B981;padding-bottom:4px}h3{color:#065F46}
-table{width:100%;border-collapse:collapse;margin:10px 0}th{background:#D1FAE5;color:#065F46;padding:6px 8px;border:1px solid #10B981}
-td{padding:6px 8px;border:1px solid #10B981}tr:nth-child(even) td{background:#F0FDF4}
-.header{border-bottom:3px solid #10B981;padding-bottom:12px;margin-bottom:20px}
-.brand{font-size:18pt;font-weight:bold;color:#065F46}
-.footer{margin-top:30px;border-top:1px solid #ccc;text-align:center;color:#888;font-size:8pt}</style></head>
-<body><div class="header"><div class="brand">Ágata Transcription</div>
-<h1>Consolidação de Rotina: ${routine.name}</h1>
-<p>Gerado em: ${new Date().toLocaleDateString('pt-BR')}</p></div>
-${convertMarkdownToHtml(summary)}
-<div class="footer">Documento gerado por Ágata Transcription | agatatranscription.com</div></body></html>`;
-    const win = window.open('', '_blank');
-    if (win) { win.document.write(html); win.document.close(); win.onload = () => setTimeout(() => win.print(), 500); }
+    const html = convertMarkdownToHtml(summary);
+    const dateStr = new Date().toLocaleDateString('pt-BR');
+
+    // Compute meeting count and date range
+    const completedMeetings = routineMeetings.filter(m => m.status === 'completed');
+    const relevantMeetings = selectedIds.size > 0
+      ? completedMeetings.filter(m => selectedIds.has(m.id))
+      : completedMeetings;
+    const meetingCount = relevantMeetings.length;
+    const dates = relevantMeetings
+      .map(m => m.meetingDate ? new Date(m.meetingDate) : new Date(m.createdAt))
+      .sort((a, b) => a.getTime() - b.getTime());
+    const dateRange = dates.length > 0
+      ? `${dates[0].toLocaleDateString('pt-BR')} a ${dates[dates.length - 1].toLocaleDateString('pt-BR')}`
+      : dateStr;
+
+    const fullHtml = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Consolidação — ${routine.name}</title>
+  ${format === 'word' ? '<meta http-equiv="Content-Type" content="application/msword; charset=UTF-8">' : ''}
+  <style>
+    @page { margin: 1.5cm 2cm 2cm 2cm; }
+    body {
+      font-family: 'Segoe UI', Aptos, Arial, sans-serif;
+      font-size: 10pt; line-height: 1.4; color: #333;
+      margin: 0; padding: 20px;
+    }
+    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+    .logo-text { font-size: 14pt; font-weight: 600; color: #065F46; }
+    .main-title { font-size: 16pt; font-weight: bold; color: #065F46; margin: 0; }
+    .header-line { border-top: 3px solid #10B981; margin: 10px 0 15px 0; }
+    .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 10pt; }
+    .info-table td { padding: 6px 10px; border: 1px solid #10B981; }
+    .info-table td:first-child { background: #D1FAE5; font-weight: bold; color: #065F46; width: 140px; }
+    .section-title { color: #10B981; font-size: 12pt; margin: 20px 0 10px 0; border-bottom: 2px solid #10B981; padding-bottom: 4px; }
+    h2 { color: #10B981; font-size: 11pt; margin: 18px 0 8px 0; border-bottom: 1px solid #10B981; padding-bottom: 3px; }
+    h3 { color: #065F46; font-size: 10pt; margin: 12px 0 6px 0; }
+    p { margin: 6px 0; }
+    ul, ol { margin: 6px 0; padding-left: 20px; }
+    li { margin: 3px 0; }
+    strong { color: #065F46; }
+    .ata-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 9pt; }
+    .ata-table th, .ata-table td { border: 1px solid #10B981; padding: 6px 8px; text-align: left; }
+    .ata-table th { background: #D1FAE5; color: #065F46; font-weight: bold; }
+    .ata-table tr:nth-child(even) td { background: #F0FDF4; }
+    hr { border: none; border-top: 1px solid #ccc; margin: 15px 0; }
+    .footer { margin-top: 30px; padding-top: 10px; border-top: 1px solid #ccc; text-align: center; color: #888; font-size: 8pt; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo-text">Ágata Transcription</div>
+  </div>
+  <div>
+    <div class="main-title">CONSOLIDAÇÃO DE ROTINA</div>
+    <div style="font-size:12pt;color:#333;margin-top:2px;">${routine.name}</div>
+  </div>
+  <div class="header-line"></div>
+  <table class="info-table">
+    <tr><td>Rotina:</td><td>${routine.name}</td></tr>
+    <tr><td>Período:</td><td>${dateRange}</td></tr>
+    <tr><td>Reuniões analisadas:</td><td>${meetingCount}</td></tr>
+    <tr><td>Data de geração:</td><td>${dateStr}</td></tr>
+  </table>
+  ${html}
+  <div class="footer">
+    Documento gerado automaticamente por Ágata Transcription | agatatranscription.com
+  </div>
+</body>
+</html>`;
+
+    if (format === 'pdf') {
+      const win = window.open('', '_blank');
+      if (win) {
+        win.document.write(fullHtml);
+        win.document.close();
+        win.onload = () => setTimeout(() => win.print(), 500);
+      }
+    } else {
+      const blob = new Blob([fullHtml], { type: 'application/msword' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Consolidacao_${routine.name.replace(/[^a-zA-Z0-9]/g, '_')}.doc`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
   };
 
   const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString('pt-BR') : '—';
@@ -361,7 +488,12 @@ ${convertMarkdownToHtml(summary)}
                   <div className="flex items-center justify-between mb-4">
                     <p className="text-sm text-muted-foreground">Gerado em: {formatDate(routine.updatedAt)}</p>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={downloadPDF}><Download className="h-4 w-4 mr-1" /> Baixar PDF</Button>
+                      <Button variant="outline" size="sm" onClick={() => downloadDoc('pdf')}>
+                        <Download className="h-4 w-4 mr-1" /> Baixar PDF
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => downloadDoc('word')}>
+                        <FileDown className="h-4 w-4 mr-1" /> Baixar Word
+                      </Button>
                       <Button variant="outline" size="sm" onClick={handleConsolidate} disabled={generating}>
                         <RefreshCw className={`h-4 w-4 mr-1 ${generating ? 'animate-spin' : ''}`} /> Regenerar
                       </Button>
