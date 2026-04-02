@@ -41,13 +41,14 @@ export default function SettingsBranding() {
       if (!user) return;
       const { data } = await supabase
         .from('Team')
-        .select('companyName, primaryColor, secondaryColor')
+        .select('companyName, primaryColor, secondaryColor, logoUrl')
         .eq('ownerId', user.id)
         .maybeSingle();
       if (data) {
         setCompanyName(data.companyName || '');
         setPrimaryColor(data.primaryColor || '#059669');
         setSecondaryColor(data.secondaryColor || '#34d399');
+        setLogoUrl(data.logoUrl || null);
       }
     }
     loadTeam();
