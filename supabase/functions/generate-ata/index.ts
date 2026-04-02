@@ -309,12 +309,15 @@ Deno.serve(async (req) => {
     const { data: userData } = await supabase
       .from('User').select('planId, teamId').eq('id', user.id).single()
 
+    let teamLogoUrl: string | null = null
+
     if (userData?.planId === 'enterprise' && userData?.teamId) {
       const { data: team } = await supabase
-        .from('Team').select('name, companyName').eq('id', userData.teamId).single()
+        .from('Team').select('name, companyName, logoUrl').eq('id', userData.teamId).single()
       if (team) {
         isEnterprise = true
         enterpriseName = team.companyName || team.name || ''
+        teamLogoUrl = team.logoUrl || null
         brandFooter = `Documento gerado por ${enterpriseName} | powered by Ágata Transcription`
       }
     }
