@@ -517,14 +517,8 @@ export default function RoutineDetailPage() {
           </TabsContent>
 
           {/* Tab 3: Progress */}
-          <TabsContent value="progress">
-            <Card>
-              <CardContent className="p-8 text-center">
-                <Hourglass className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
-                <h3 className="font-medium text-foreground mb-1">Em breve</h3>
-                <p className="text-sm text-muted-foreground">Acompanhe o progresso visual da rotina ao longo do tempo.</p>
-              </CardContent>
-            </Card>
+          <TabsContent value="progress" className="space-y-6">
+            <ProgressTab meetings={routineMeetings} routineColor={routine.color} />
           </TabsContent>
         </Tabs>
       </div>
