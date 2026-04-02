@@ -143,52 +143,144 @@ export default function MeetingDetail() {
     [id],
   );
 
+  const convertMarkdownToHtml = (md: string): string => {
+    let html = md;
+    html = html.replace(/(?:^\|.+\|$\n?)+/gm, (tableMatch) => {
+      const rows = tableMatch.trim().split('\n').filter(row => row.trim());
+      if (rows.length < 2) return tableMatch;
+      let tableHtml = '<table class="ata-table">';
+      rows.forEach((row, idx) => {
+        if (/^\|[\s\-:]+\|$/.test(row.trim())) return;
+        const cells = row.split('|').filter(c => c.trim() !== '');
+        const tag = idx === 0 ? 'th' : 'td';
+        tableHtml += '<tr>';
+        cells.forEach(cell => { tableHtml += `<${tag}>${cell.trim()}</${tag}>`; });
+        tableHtml += '</tr>';
+      });
+      tableHtml += '</table>';
+      return tableHtml;
+    });
+    html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^## (.+)$/gm, '<h2 class="section-title">$1</h2>');
+    html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    html = html.replace(/(?:^- .+$\n?)+/gm, (listMatch) => {
+      const items = listMatch.trim().split('\n');
+      let listHtml = '<ul>';
+      items.forEach(item => {
+        const content = item.replace(/^- /, '').trim();
+        if (content) listHtml += `<li>${content}</li>`;
+      });
+      listHtml += '</ul>';
+      return listHtml;
+    });
+    html = html.replace(/(?:^\d+\. .+$\n?)+/gm, (listMatch) => {
+      const items = listMatch.trim().split('\n');
+      let listHtml = '<ol>';
+      items.forEach(item => {
+        const content = item.replace(/^\d+\. /, '').trim();
+        if (content) listHtml += `<li>${content}</li>`;
+      });
+      listHtml += '</ol>';
+      return listHtml;
+    });
+    html = html.replace(/^---$/gm, '<hr/>');
+    html = html.replace(/\n\n+/g, '</p><p>');
+    html = html.replace(/\n/g, ' ');
+    html = `<p>${html}</p>`;
+    html = html.replace(/<p>\s*<\/p>/g, '');
+    html = html.replace(/<p>\s*(<h[123]>)/g, '$1');
+    html = html.replace(/<p>\s*(<ul>|<ol>|<\/ol>|<\/table>|<hr\/>)\s*<\/p>/g, '$1');
+    return html;
+  };
+
   const generatePDF = useCallback(async () => {
     if (!id || !meeting) return;
     setPdfLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("generate-ata", {
-        body: { meetingId: id, template: selectedTemplate },
-      });
+      let summaryContent = meeting.summary || '';
+      const metaMatch = summaryContent.match(/^<!-- depth:\w+ -->\n/);
+      if (metaMatch) summaryContent = summaryContent.slice(metaMatch[0].length);
 
-      if (error) throw error;
+      const html = convertMarkdownToHtml(summaryContent);
+      const date = meeting.meetingDate
+        ? new Date(meeting.meetingDate).toLocaleDateString('pt-BR')
+        : new Date(meeting.createdAt).toLocaleDateString('pt-BR');
 
-      let htmlContent: string;
-      if (typeof data === "object" && data.html) {
-        htmlContent = data.html;
-      } else if (typeof data === "string") {
-        htmlContent = data;
-      } else {
-        throw new Error("Formato de resposta inválido");
-      }
+      const templateLabel = {
+        geral: 'Ata Geral', juridico_audiencia: 'Ata de Audiência', juridico_entrevista: 'Ata Jurídica',
+        rh_entrevista: 'Ata RH - Entrevista', rh_pdi: 'Ata RH - PDI', marketing_estrategia: 'Ata Marketing',
+        marketing_planejamento: 'Ata Marketing - Plan.', engenharia_projetos: 'Ata Eng. Projetos',
+        engenharia_obra: 'Ata Eng. Obra', ti_sprint: 'Ata TI Sprint', financeiro: 'Ata Financeiro',
+        comercial: 'Ata Comercial',
+      }[selectedTemplate] || 'Ata Geral';
+
+      const infoRows = [
+        `<tr><td>Título:</td><td>${meeting.title}</td></tr>`,
+        `<tr><td>Tipo:</td><td>${templateLabel}</td></tr>`,
+        `<tr><td>Data:</td><td>${date}${meeting.meetingTime ? ' · ' + meeting.meetingTime : ''}</td></tr>`,
+        meeting.location ? `<tr><td>Local:</td><td>${meeting.location}</td></tr>` : '',
+        meeting.responsible ? `<tr><td>Responsável:</td><td>${meeting.responsible}</td></tr>` : '',
+        meeting.participants?.length ? `<tr><td>Participantes:</td><td>${meeting.participants.join(', ')}</td></tr>` : '',
+      ].filter(Boolean).join('');
+
+      const fullHtml = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>${templateLabel} — ${meeting.title}</title>
+  <style>
+    @page { margin: 1.5cm 2cm 2cm 2cm; }
+    body { font-family: 'Segoe UI', Aptos, Arial, sans-serif; font-size: 10pt; line-height: 1.4; color: #333; margin: 0; padding: 20px; }
+    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+    .logo-text { font-size: 14pt; font-weight: 600; color: #065F46; }
+    .main-title { font-size: 16pt; font-weight: bold; color: #065F46; margin: 0; }
+    .header-line { border-top: 3px solid #10B981; margin: 10px 0 15px 0; }
+    .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 10pt; }
+    .info-table td { padding: 6px 10px; border: 1px solid #10B981; }
+    .info-table td:first-child { background: #D1FAE5; font-weight: bold; color: #065F46; width: 140px; }
+    .section-title { color: #10B981; font-size: 12pt; margin: 20px 0 10px 0; border-bottom: 2px solid #10B981; padding-bottom: 4px; }
+    h2 { color: #10B981; font-size: 11pt; margin: 18px 0 8px 0; border-bottom: 1px solid #10B981; padding-bottom: 3px; }
+    h3 { color: #065F46; font-size: 10pt; margin: 12px 0 6px 0; }
+    p { margin: 6px 0; }
+    ul, ol { margin: 6px 0; padding-left: 20px; }
+    li { margin: 3px 0; }
+    strong { color: #065F46; }
+    .ata-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 9pt; }
+    .ata-table th, .ata-table td { border: 1px solid #10B981; padding: 6px 8px; text-align: left; }
+    .ata-table th { background: #D1FAE5; color: #065F46; font-weight: bold; }
+    .ata-table tr:nth-child(even) td { background: #F0FDF4; }
+    hr { border: none; border-top: 1px solid #ccc; margin: 15px 0; }
+    .footer { margin-top: 30px; padding-top: 10px; border-top: 1px solid #ccc; text-align: center; color: #888; font-size: 8pt; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo-text">Ágata Transcription</div>
+  </div>
+  <div>
+    <div class="main-title">${templateLabel.toUpperCase()}</div>
+    <div style="font-size:12pt;color:#333;margin-top:2px;">${meeting.title}</div>
+  </div>
+  <div class="header-line"></div>
+  <table class="info-table">
+    ${infoRows}
+  </table>
+  ${html}
+  <div class="footer">
+    Documento gerado automaticamente por Ágata Transcription | agatatranscription.com
+  </div>
+</body>
+</html>`;
 
       const printWindow = window.open("", "_blank");
       if (printWindow) {
         printWindow.document.open();
-        printWindow.document.write(htmlContent);
+        printWindow.document.write(fullHtml);
         printWindow.document.close();
-
-        const images = printWindow.document.images;
-        if (images.length === 0) {
-          setTimeout(() => printWindow.print(), 800);
-        } else {
-          let loaded = 0;
-          const tryPrint = () => {
-            loaded++;
-            if (loaded >= images.length) {
-              setTimeout(() => printWindow.print(), 300);
-            }
-          };
-          Array.from(images).forEach((img) => {
-            if (img.complete) {
-              tryPrint();
-            } else {
-              img.onload = tryPrint;
-              img.onerror = tryPrint;
-            }
-          });
-        }
+        printWindow.onload = () => setTimeout(() => printWindow.print(), 500);
       }
       toast.success("ATA gerada! Use Ctrl+P para salvar como PDF.");
     } catch (err: any) {
