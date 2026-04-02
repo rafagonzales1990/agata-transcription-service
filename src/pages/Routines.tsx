@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,7 @@ interface Routine {
   icon: string | null;
   createdAt: string;
   meetingCount?: number;
+  consolidatedSummary?: string | null;
 }
 
 export default function RoutinesPage() {
@@ -50,7 +51,7 @@ export default function RoutinesPage() {
 
     const { data, error } = await supabase
       .from('Routine')
-      .select('id, name, description, color, icon, createdAt')
+      .select('id, name, description, color, icon, createdAt, consolidatedSummary')
       .eq('userId', user.id)
       .order('createdAt', { ascending: false });
 
@@ -149,14 +150,14 @@ export default function RoutinesPage() {
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {routines.map((routine) => (
-              <Card key={routine.id} className="hover:shadow-md transition-shadow">
+              <Card key={routine.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => window.location.href = `/routines/${routine.id}`}>
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: routine.color }} />
                       <h3 className="font-semibold text-foreground">{routine.name}</h3>
                     </div>
-                    <div className="flex gap-1">
+                    <div className="flex gap-1" onClick={e => e.stopPropagation()}>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(routine)}>
                         <Pencil className="h-3 w-3" />
                       </Button>
@@ -168,17 +169,17 @@ export default function RoutinesPage() {
                   {routine.description && (
                     <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{routine.description}</p>
                   )}
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
                     <span className="flex items-center gap-1">
                       <FileText className="h-3 w-3" /> {routine.meetingCount} reuniões
                     </span>
                     <span>{new Date(routine.createdAt).toLocaleDateString('pt-BR')}</span>
                   </div>
-                  <Link to={`/upload?routineId=${routine.id}`} className="block mt-3">
-                    <Button variant="outline" size="sm" className="w-full text-xs">
-                      + Adicionar Reunião
-                    </Button>
-                  </Link>
+                  {routine.consolidatedSummary && (
+                    <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                      ✓ Resumo disponível
+                    </span>
+                  )}
                 </CardContent>
               </Card>
             ))}

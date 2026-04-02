@@ -1,0 +1,1 @@
+ALTER TABLE public."Routine" ADD COLUMN IF NOT EXISTS "consolidatedSummary" TEXT;

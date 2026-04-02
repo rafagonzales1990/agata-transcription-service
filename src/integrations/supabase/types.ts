@@ -365,6 +365,7 @@ export type Database = {
       Routine: {
         Row: {
           color: string
+          consolidatedSummary: string | null
           createdAt: string
           description: string | null
           icon: string | null
@@ -375,6 +376,7 @@ export type Database = {
         }
         Insert: {
           color?: string
+          consolidatedSummary?: string | null
           createdAt?: string
           description?: string | null
           icon?: string | null
@@ -385,6 +387,7 @@ export type Database = {
         }
         Update: {
           color?: string
+          consolidatedSummary?: string | null
           createdAt?: string
           description?: string | null
           icon?: string | null
