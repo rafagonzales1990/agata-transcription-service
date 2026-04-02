@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { TrialBanner } from '@/components/TrialBanner';
 import { LogoIcon } from '@/components/LogoIcon';
+import { PWAInstallButton } from '@/components/PWAInstallButton';
 import { supabase } from '@/integrations/supabase/client';
 
 const menuItems = [
@@ -168,6 +169,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <div className="hidden md:block" />
 
         <div className="flex items-center gap-3">
+          <PWAInstallButton />
           {isEnterprise && (
             <span className="hidden sm:inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
               ENTERPRISE
