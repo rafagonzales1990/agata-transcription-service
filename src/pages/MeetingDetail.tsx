@@ -146,17 +146,38 @@ export default function MeetingDetail() {
   const convertMarkdownToHtml = (md: string): string => {
     let html = md;
     html = html.replace(/(?:^\|.+\|$\n?)+/gm, (tableMatch) => {
-      const rows = tableMatch.trim().split('\n').filter(row => row.trim());
+      const rows = tableMatch.trim().split('\n').map((row) => row.trim()).filter(Boolean);
       if (rows.length < 2) return tableMatch;
-      let tableHtml = '<table class="ata-table">';
-      rows.forEach((row, idx) => {
-        if (/^\|[\s\-:]+\|$/.test(row.trim())) return;
-        const cells = row.split('|').filter(c => c.trim() !== '');
-        const tag = idx === 0 ? 'th' : 'td';
-        tableHtml += '<tr>';
-        cells.forEach(cell => { tableHtml += `<${tag}>${cell.trim()}</${tag}>`; });
-        tableHtml += '</tr>';
+
+      const parsedRows = rows
+        .map((row) => row.split('|').slice(1, -1).map((cell) => cell.trim()))
+        .filter((cells) => cells.length > 0);
+
+      const contentRows = parsedRows.filter(
+        (cells) => !cells.every((cell) => /^:?-{3,}:?$/.test(cell)),
+      );
+
+      if (contentRows.length === 0) return tableMatch;
+
+      const [headerCells, ...bodyRows] = contentRows;
+      let tableHtml = '<table class="ata-table"><thead><tr>';
+      headerCells.forEach((cell) => {
+        tableHtml += `<th>${cell}</th>`;
       });
+      tableHtml += '</tr></thead>';
+
+      if (bodyRows.length > 0) {
+        tableHtml += '<tbody>';
+        bodyRows.forEach((cells) => {
+          tableHtml += '<tr>';
+          cells.forEach((cell) => {
+            tableHtml += `<td>${cell}</td>`;
+          });
+          tableHtml += '</tr>';
+        });
+        tableHtml += '</tbody>';
+      }
+
       tableHtml += '</table>';
       return tableHtml;
     });
@@ -191,7 +212,7 @@ export default function MeetingDetail() {
     html = `<p>${html}</p>`;
     html = html.replace(/<p>\s*<\/p>/g, '');
     html = html.replace(/<p>\s*(<h[123]>)/g, '$1');
-    html = html.replace(/<p>\s*(<ul>|<ol>|<\/ol>|<\/table>|<hr\/>)\s*<\/p>/g, '$1');
+    html = html.replace(/<p>\s*(<table[^>]*>.*?<\/table>|<ul>|<ol>|<\/ol>|<hr\/>)\s*<\/p>/gs, '$1');
     return html;
   };
 
