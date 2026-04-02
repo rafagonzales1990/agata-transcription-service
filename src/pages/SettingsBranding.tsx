@@ -199,8 +199,38 @@ export default function SettingsBranding() {
               </div>
             </div>
 
-            <div className="p-3 rounded-lg bg-muted text-sm text-muted-foreground">
-              📸 Upload de logo — em breve
+            <div>
+              <label className="text-xs text-muted-foreground mb-2 block">Logo da Empresa</label>
+              {logoUrl ? (
+                <div className="flex items-center gap-4">
+                  <img src={logoUrl} alt="Logo" className="h-16 w-16 object-contain rounded-lg border bg-white p-1" />
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                      {uploadingLogo ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Trocar'}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleRemoveLogo}>
+                      <X className="h-4 w-4 mr-1" /> Remover
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingLogo}
+                  className="w-full border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer"
+                >
+                  {uploadingLogo ? (
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                  ) : (
+                    <>
+                      <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">Clique para enviar seu logo</p>
+                      <p className="text-xs text-muted-foreground mt-1">PNG, JPG ou SVG · Máx 2MB</p>
+                    </>
+                  )}
+                </button>
+              )}
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
             </div>
 
             <Button onClick={handleSave} disabled={saving} className="bg-primary text-primary-foreground w-full">
