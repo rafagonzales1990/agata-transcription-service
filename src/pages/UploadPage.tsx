@@ -113,7 +113,7 @@ export default function UploadPage() {
     setUploading(true); setUploadProgress(0); setStatusMessage('Enviando arquivo...');
 
     try {
-      const storagePath = `uploads/${Date.now()}-${file!.name}`;
+      const storagePath = `${user.id}/${Date.now()}-${file!.name}`;
       setUploadProgress(10);
       const { error: uploadError } = await supabase.storage.from('meetings').upload(storagePath, file!, { cacheControl: '3600', upsert: false });
       if (uploadError) throw new Error(`Erro no upload: ${uploadError.message}`);
