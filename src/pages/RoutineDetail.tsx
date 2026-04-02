@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   ChevronLeft, Plus, Loader2, FileText, CheckCircle, Clock, AlertCircle,
-  X, Search, Sparkles, Download, RefreshCw, Hourglass,
+  X, Search, Sparkles, Download, RefreshCw, Hourglass, FileDown,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
