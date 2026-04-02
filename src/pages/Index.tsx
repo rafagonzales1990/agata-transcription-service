@@ -86,6 +86,7 @@ export default function LandingPage() {
               <a href="#como-funciona" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Como Funciona</a>
               <a href="#precos" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Preços</a>
               <a href="#faq" className="text-sm text-muted-foreground hover:text-foreground transition-colors">FAQ</a>
+              <Link to="/blog" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Blog</Link>
             </nav>
 
             <div className="hidden md:flex items-center gap-3">
