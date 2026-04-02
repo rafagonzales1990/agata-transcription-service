@@ -24,7 +24,10 @@ export default function SettingsBranding() {
   const [companyName, setCompanyName] = useState('');
   const [primaryColor, setPrimaryColor] = useState('#059669');
   const [secondaryColor, setSecondaryColor] = useState('#34d399');
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (profile && profile.plan_id !== 'enterprise') {
