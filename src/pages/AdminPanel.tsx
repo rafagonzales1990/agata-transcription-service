@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { AppLayout } from '@/components/AppLayout';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -476,6 +477,7 @@ export default function AdminPanel() {
   };
 
   return (
+    <AppLayout>
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-white border-b px-6 py-3 flex items-center justify-between">
@@ -845,5 +847,6 @@ export default function AdminPanel() {
         </DialogContent>
       </Dialog>
     </div>
+    </AppLayout>
   );
 }
