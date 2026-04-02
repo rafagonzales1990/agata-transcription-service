@@ -9,6 +9,7 @@ import {
   Play, Upload, Brain, ChevronDown, ChevronUp, Menu, X, Star, Users,
   Timer, TrendingUp, Gift, BadgeCheck, Lock,
 } from 'lucide-react';
+import { LogoIcon } from '@/components/LogoIcon';
 
 const features = [
   { icon: <Mic className="h-6 w-6" />, title: 'Transcrição Automática', description: 'Envie áudios em MP3, WAV, M4A, AAC, CAF e mais. Nossa IA transcreve em segundos.' },
