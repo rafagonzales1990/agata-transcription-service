@@ -237,6 +237,8 @@ export default function Blog() {
             <div className="flex items-center gap-6 text-sm">
               <Link to="/" className="hover:text-white transition-colors">Home</Link>
               <Link to="/blog" className="hover:text-white transition-colors">Blog</Link>
+              <Link to="/legal/terms" className="hover:text-white transition-colors">Termos</Link>
+              <Link to="/legal/lgpd" className="hover:text-white transition-colors">Privacidade</Link>
             </div>
           </div>
           <div className="border-t border-gray-800 mt-6 pt-6 text-center text-sm">

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard, FileText, Upload, FolderOpen, Settings,
   Repeat, Sparkles, LogOut, Menu, X, User, CreditCard,
-  ChevronDown, Shield,
+  ChevronDown, Shield, Users,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -23,6 +23,7 @@ const menuItems = [
   { label: 'Rotinas', href: '/routines', icon: Repeat },
   { label: 'Documentos', href: '/documents', icon: FolderOpen },
   { label: 'Planos', href: '/plans', icon: CreditCard },
+  { label: 'Equipe', href: '/teams', icon: Users, enterpriseOnly: true },
 ];
 
 interface AppLayoutProps {
@@ -83,7 +84,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   const SidebarNav = ({ onNavigate }: { onNavigate?: () => void }) => (
     <>
       <nav className="flex-1 p-3 space-y-1">
-        {menuItems.map((item) => (
+        {menuItems
+          .filter(item => !('enterpriseOnly' in item && item.enterpriseOnly) || isEnterprise)
+          .map((item) => (
           <Link
             key={item.href}
             to={item.href}
