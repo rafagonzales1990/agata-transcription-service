@@ -203,7 +203,7 @@ export default function MeetingDetail() {
     setWordLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("generate-ata-word", {
+      const { data, error } = await supabase.functions.invoke("generate-ata", {
         body: { meetingId: id, template: selectedTemplate },
       });
 
