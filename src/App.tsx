@@ -34,14 +34,28 @@ import LegalLgpd from "./pages/LegalLgpd";
 
 const queryClient = new QueryClient();
 
+const SentryErrorFallback = () => (
+  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: '16px', fontFamily: 'sans-serif' }}>
+    <h1 style={{ fontSize: '24px', fontWeight: 'bold' }}>Algo deu errado</h1>
+    <p style={{ color: '#6b7280' }}>Nossa equipe foi notificada automaticamente.</p>
+    <button
+      onClick={() => window.location.href = '/dashboard'}
+      style={{ background: '#10B981', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer' }}
+    >
+      Voltar ao Dashboard
+    </button>
+  </div>
+);
+
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
+  <Sentry.ErrorBoundary fallback={<SentryErrorFallback />}>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth/login" element={<Login />} />
             <Route path="/auth/signup" element={<Signup />} />
