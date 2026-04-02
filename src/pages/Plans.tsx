@@ -41,6 +41,7 @@ export default function PlansPage() {
       const planName = searchParams.get('plan') || 'unknown';
       const planValue = parseFloat(searchParams.get('value') || '0');
       conversionPurchase(planName, planValue);
+      trackPurchase(planName, planValue);
     }
     if (searchParams.get('canceled') === 'true') toast.error('Pagamento cancelado');
   }, [searchParams]);
