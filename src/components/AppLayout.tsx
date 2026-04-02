@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard, FileText, Upload, FolderOpen, Settings,
   Repeat, Sparkles, LogOut, Menu, X, User, CreditCard,
-  ChevronDown, Shield,
+  ChevronDown, Shield, Users,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
