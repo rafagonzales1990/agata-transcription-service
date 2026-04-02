@@ -14,7 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   RefreshCw, Plus, Pencil, Trash2, Shield, X, Copy,
-  DollarSign, Users, Clock, Zap, TrendingUp, BarChart3, FileAudio, Loader2, FolderOpen, Gift,
+  DollarSign, Users, Clock, Zap, TrendingUp, BarChart3, FileAudio, Loader2, FolderOpen, Gift, Database,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -556,6 +556,31 @@ export default function AdminPanel() {
                     </div>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white">
+              <CardHeader>
+                <CardTitle className="text-base">Ações</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={async () => {
+                    toast.info('Iniciando backup...');
+                    const { data, error } = await supabase.functions.invoke('backup-database');
+                    if (error) {
+                      toast.error('Erro ao fazer backup');
+                    } else {
+                      toast.success(`Backup criado: ${data.file} (${data.stats.length} tabelas)`);
+                    }
+                  }}
+                >
+                  <Database className="h-4 w-4" />
+                  Backup Manual
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
