@@ -8,12 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  RefreshCw, Plus, Pencil, Trash2, ShieldCheck, Shield, X, Copy,
+  RefreshCw, Plus, Pencil, Trash2, Shield, X, Copy,
   DollarSign, Users, Clock, Zap, TrendingUp, BarChart3, FileAudio, Loader2, FolderOpen, Gift,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,61 +20,217 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { LogoIcon } from '@/components/LogoIcon';
 
+// ── Constants ──────────────────────────────────────────────
 const PLAN_COLORS: Record<string, string> = {
   basic: 'bg-gray-100 text-gray-700',
   inteligente: 'bg-emerald-100 text-emerald-700',
   automacao: 'bg-blue-100 text-blue-700',
   enterprise: 'bg-purple-100 text-purple-700',
 };
-
 const PLAN_LABELS: Record<string, string> = {
-  basic: 'Gratuito',
-  inteligente: 'Inteligente',
-  automacao: 'Automação',
-  enterprise: 'Enterprise',
+  basic: 'Gratuito', inteligente: 'Inteligente', automacao: 'Automação', enterprise: 'Enterprise',
 };
-
-const PLAN_PRICES: Record<string, number> = {
-  basic: 0,
-  inteligente: 49,
-  automacao: 99,
-  enterprise: 199,
-};
-
 const COLOR_PRESETS = ['#10B981', '#3B82F6', '#EF4444', '#F59E0B', '#8B5CF6', '#06B6D4', '#EC4899', '#64748B'];
 
+// ── Helpers ────────────────────────────────────────────────
 function formatCPF(cpf: string | null): string {
   if (!cpf) return '—';
-  const clean = cpf.replace(/\D/g, '');
-  if (clean.length !== 11) return cpf;
-  return `${clean.slice(0, 3)}.${clean.slice(3, 6)}.${clean.slice(6, 9)}-${clean.slice(9)}`;
+  const c = cpf.replace(/\D/g, '');
+  if (c.length !== 11) return cpf;
+  return `${c.slice(0,3)}.${c.slice(3,6)}.${c.slice(6,9)}-${c.slice(9)}`;
 }
-
 function formatPhone(phone: string | null): string {
   if (!phone) return '—';
-  const clean = phone.replace(/\D/g, '');
-  if (clean.length === 11) {
-    return `(${clean.slice(0, 2)}) ${clean.slice(2, 7)}-${clean.slice(7)}`;
-  }
+  const c = phone.replace(/\D/g, '');
+  if (c.length === 11) return `(${c.slice(0,2)}) ${c.slice(2,7)}-${c.slice(7)}`;
+  if (c.length === 10) return `(${c.slice(0,2)}) ${c.slice(2,6)}-${c.slice(6)}`;
   return phone;
 }
+function getDaysRemaining(trialEndsAt: string | null): number {
+  if (!trialEndsAt) return 0;
+  return Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / 86400000));
+}
 
+// ── Types ──────────────────────────────────────────────────
 interface AdminUser {
   id: string; name: string | null; email: string; cpf: string | null; phone: string | null;
   planId: string | null; billingCycle: string | null; isAdmin: boolean; createdAt: string;
   trialEndsAt: string | null; stripeCustomerId: string | null;
   stripeSubscriptionId: string | null; stripePriceId: string | null;
   adminGroupId: string | null; meetingCount: number;
-  hasCompletedOnboarding: boolean;
-  usage: { transcriptionsUsed: number; totalMinutesTranscribed: number } | null;
-  group: { id: string; name: string; color: string } | null;
 }
-
 interface AdminGroup {
   id: string; name: string; description: string | null; color: string;
   createdAt: string; memberCount: number;
 }
 
+// ── EditUserDialog ─────────────────────────────────────────
+function EditUserDialog({ open, onOpenChange, user, groups, onSubmit }: {
+  open: boolean; onOpenChange: (o: boolean) => void; user: AdminUser | null;
+  groups: AdminGroup[]; onSubmit: (userId: string, data: any) => Promise<void>;
+}) {
+  const [form, setForm] = useState({ name: '', email: '', planId: 'basic', billingCycle: 'monthly', isAdmin: false, adminGroupId: '' });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open && user) {
+      setForm({
+        name: user.name || '', email: user.email || '',
+        planId: user.planId || 'basic', billingCycle: user.billingCycle || 'monthly',
+        isAdmin: user.isAdmin || false, adminGroupId: user.adminGroupId || '',
+      });
+    }
+  }, [open, user]);
+
+  const handleSubmit = async () => {
+    if (!user) return;
+    setLoading(true);
+    try { await onSubmit(user.id, form); onOpenChange(false); } finally { setLoading(false); }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="font-mono">Editar Usuário</DialogTitle>
+          <DialogDescription className="font-mono text-xs">
+            ID: {user?.id} | Stripe: {user?.stripeCustomerId || 'N/A'}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label className="text-xs">Nome</Label>
+              <Input className="h-9 text-sm mt-1" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
+            <div><Label className="text-xs">Email</Label>
+              <Input className="h-9 text-sm mt-1 font-mono" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div><Label className="text-xs">Plano</Label>
+              <Select value={form.planId} onValueChange={v => setForm({ ...form, planId: v })}>
+                <SelectTrigger className="h-9 text-sm mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(PLAN_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label className="text-xs">Ciclo</Label>
+              <Select value={form.billingCycle} onValueChange={v => setForm({ ...form, billingCycle: v })}>
+                <SelectTrigger className="h-9 text-sm mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly">Mensal</SelectItem>
+                  <SelectItem value="yearly">Anual</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label className="text-xs">Grupo</Label>
+              <Select value={form.adminGroupId || 'none'} onValueChange={v => setForm({ ...form, adminGroupId: v === 'none' ? '' : v })}>
+                <SelectTrigger className="h-9 text-sm mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  {groups.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex items-center justify-between py-1">
+            <Label className="text-xs">Administrador</Label>
+            <Switch checked={form.isAdmin} onCheckedChange={v => setForm({ ...form, isAdmin: v })} />
+          </div>
+          {user?.stripeSubscriptionId && (
+            <div className="p-3 bg-gray-50 rounded border text-xs font-mono space-y-1">
+              <p><span className="text-gray-500">Stripe Customer:</span> {user.stripeCustomerId}</p>
+              <p><span className="text-gray-500">Subscription:</span> {user.stripeSubscriptionId}</p>
+              <p><span className="text-gray-500">Price ID:</span> {user.stripePriceId || 'N/A'}</p>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button size="sm" onClick={handleSubmit} disabled={loading}>
+            {loading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Salvar Alterações
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── GiftEnterpriseDialog ───────────────────────────────────
+function GiftEnterpriseDialog({ open, onOpenChange, user, onConfirm }: {
+  open: boolean; onOpenChange: (o: boolean) => void; user: AdminUser | null;
+  onConfirm: (userId: string) => Promise<void>;
+}) {
+  const [loading, setLoading] = useState(false);
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="font-mono text-sm flex items-center gap-2">
+            <Gift className="h-4 w-4 text-purple-500" />Conceder Enterprise
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            Dar acesso Enterprise gratuito por 30 dias para:
+            <span className="font-mono font-medium block mt-1">{user?.email}</span>
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button size="sm" className="bg-purple-600 hover:bg-purple-700" disabled={loading}
+            onClick={async () => {
+              if (!user) return;
+              setLoading(true);
+              try { await onConfirm(user.id); onOpenChange(false); } finally { setLoading(false); }
+            }}>
+            {loading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Confirmar Gift
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── AssignGroupDialog ──────────────────────────────────────
+function AssignGroupDialog({ open, onOpenChange, user, groups, onSubmit }: {
+  open: boolean; onOpenChange: (o: boolean) => void; user: AdminUser | null;
+  groups: AdminGroup[]; onSubmit: (userId: string, groupId: string | null) => Promise<void>;
+}) {
+  const [groupId, setGroupId] = useState('none');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open && user) setGroupId(user.adminGroupId || 'none');
+  }, [open, user]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Atribuir Grupo</DialogTitle>
+          <DialogDescription className="text-xs">{user?.name || user?.email}</DialogDescription>
+        </DialogHeader>
+        <Select value={groupId} onValueChange={setGroupId}>
+          <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Nenhum</SelectItem>
+            {groups.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <DialogFooter>
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button size="sm" disabled={loading} onClick={async () => {
+            if (!user) return;
+            setLoading(true);
+            try { await onSubmit(user.id, groupId === 'none' ? null : groupId); onOpenChange(false); } finally { setLoading(false); }
+          }}>
+            {loading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Main AdminPanel ────────────────────────────────────────
 export default function AdminPanel() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -87,25 +242,23 @@ export default function AdminPanel() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [showNewUser, setShowNewUser] = useState(false);
-  const [editUser, setEditUser] = useState<AdminUser | null>(null);
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [showEditGroup, setShowEditGroup] = useState<AdminGroup | null>(null);
   const [costsData, setCostsData] = useState<any>(null);
   const [costsLoading, setCostsLoading] = useState(false);
-  const [giftConfirm, setGiftConfirm] = useState<AdminUser | null>(null);
-  const [assignGroupUser, setAssignGroupUser] = useState<AdminUser | null>(null);
-  const [assignGroupId, setAssignGroupId] = useState('');
 
-  // Form states
+  // Dialog states
+  const [editOpen, setEditOpen] = useState(false);
+  const [assignGroupOpen, setAssignGroupOpen] = useState(false);
+  const [giftOpen, setGiftOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+
+  // New user form
   const [formName, setFormName] = useState('');
   const [formEmail, setFormEmail] = useState('');
   const [formPassword, setFormPassword] = useState('');
   const [formPlan, setFormPlan] = useState('basic');
-  const [formCycle, setFormCycle] = useState('monthly');
   const [formAdmin, setFormAdmin] = useState(false);
-  const [formGroupId, setFormGroupId] = useState('');
-  const [formCpf, setFormCpf] = useState('');
-  const [formPhone, setFormPhone] = useState('');
 
   // Group form
   const [gName, setGName] = useState('');
@@ -114,67 +267,45 @@ export default function AdminPanel() {
 
   // Bulk
   const [bulkPlan, setBulkPlan] = useState('');
-  const [bulkGroup, setBulkGroup] = useState('');
 
-  useEffect(() => {
-    checkAdmin();
-  }, [user]);
+  useEffect(() => { checkAdmin(); }, [user]);
 
   const checkAdmin = async () => {
     if (!user) return;
     const { data } = await supabase.from('User').select('isAdmin').eq('id', user.id).maybeSingle();
-    if (!data?.isAdmin) {
-      navigate('/dashboard');
-      return;
-    }
+    if (!data?.isAdmin) { navigate('/dashboard'); return; }
     setIsAdmin(true);
-    fetchData();
+    refreshUsers();
   };
 
-  const fetchData = useCallback(async () => {
+  const refreshUsers = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch users directly from Supabase (admin can read all via RLS)
-      const { data: usersData, error: usersError } = await supabase
+      const { data: usersData, error } = await supabase
         .from('User')
-        .select('id, name, email, cpf, phone, planId, isAdmin, billingCycle, trialEndsAt, stripeCustomerId, stripeSubscriptionId, stripePriceId, adminGroupId, hasCompletedOnboarding, createdAt, updatedAt')
+        .select('id, name, email, cpf, phone, planId, isAdmin, billingCycle, trialEndsAt, stripeCustomerId, stripeSubscriptionId, stripePriceId, adminGroupId, createdAt')
         .order('createdAt', { ascending: false });
-      if (usersError) throw usersError;
+      if (error) throw error;
 
-      // Fetch meeting counts (admin can read all meetings via RLS)
       const { data: meetings } = await supabase.from('Meeting').select('userId');
       const countMap: Record<string, number> = {};
       meetings?.forEach(m => { countMap[m.userId] = (countMap[m.userId] || 0) + 1; });
 
-      // Fetch groups
       const { data: groupsData } = await supabase.from('AdminGroup').select('*');
-
       const groupMap: Record<string, { id: string; name: string; color: string }> = {};
       groupsData?.forEach(g => { groupMap[g.id] = { id: g.id, name: g.name, color: g.color }; });
 
-      const mappedUsers: AdminUser[] = (usersData || []).map(u => ({
-        ...u,
-        meetingCount: countMap[u.id] || 0,
-        usage: null,
-        group: u.adminGroupId ? groupMap[u.adminGroupId] || null : null,
-      }));
-
-      setUsers(mappedUsers);
-      setGroups((groupsData || []).map(g => ({ ...g, memberCount: (usersData || []).filter(u => u.adminGroupId === g.id).length })));
-    } catch (e: any) {
-      toast.error('Erro ao carregar dados: ' + e.message);
-    }
+      setUsers((usersData || []).map(u => ({ ...u, meetingCount: countMap[u.id] || 0 })));
+      setGroups((groupsData || []).map(g => ({
+        ...g, memberCount: (usersData || []).filter(u => u.adminGroupId === g.id).length,
+      })));
+    } catch (e: any) { toast.error('Erro: ' + e.message); }
     setLoading(false);
   }, []);
 
   const fetchGroups = useCallback(async () => {
     const { data } = await supabase.from('AdminGroup').select('*');
-    if (data) {
-      setGroups(data.map(g => ({
-        ...g,
-        memberCount: users.filter(u => u.adminGroupId === g.id).length,
-      })));
-    }
+    if (data) setGroups(data.map(g => ({ ...g, memberCount: users.filter(u => u.adminGroupId === g.id).length })));
   }, [users]);
 
   const fetchCosts = useCallback(async () => {
@@ -184,108 +315,76 @@ export default function AdminPanel() {
     setCostsLoading(false);
   }, []);
 
+  // ── Handlers ──────────────────────────────────────────────
+  const handleEditSubmit = async (userId: string, data: any) => {
+    const { error } = await supabase.from('User').update({
+      name: data.name, email: data.email, planId: data.planId,
+      billingCycle: data.billingCycle, isAdmin: data.isAdmin,
+      adminGroupId: data.adminGroupId || null, updatedAt: new Date().toISOString(),
+    }).eq('id', userId);
+    if (error) { toast.error('Erro ao salvar alterações'); throw error; }
+    toast.success('Usuário atualizado!');
+    refreshUsers();
+  };
+
+  const handleGiftEnterprise = async (userId: string) => {
+    const trialEndsAt = new Date();
+    trialEndsAt.setDate(trialEndsAt.getDate() + 30);
+    const { error } = await supabase.from('User').update({
+      planId: 'enterprise', trialEndsAt: trialEndsAt.toISOString(), updatedAt: new Date().toISOString(),
+    }).eq('id', userId);
+    if (error) { toast.error('Erro ao conceder Enterprise'); return; }
+    toast.success('Enterprise concedido por 30 dias!');
+    refreshUsers();
+  };
+
+  const handleToggleAdmin = async (u: AdminUser) => {
+    const newValue = !u.isAdmin;
+    const { error } = await supabase.from('User').update({ isAdmin: newValue, updatedAt: new Date().toISOString() }).eq('id', u.id);
+    if (error) { toast.error('Erro ao alterar admin'); return; }
+    toast.success(newValue ? 'Usuário agora é admin' : 'Admin removido');
+    refreshUsers();
+  };
+
+  const handleAssignGroup = async (userId: string, groupId: string | null) => {
+    const { error } = await supabase.from('User').update({ adminGroupId: groupId, updatedAt: new Date().toISOString() }).eq('id', userId);
+    if (error) { toast.error('Erro ao atribuir grupo'); throw error; }
+    toast.success('Grupo atribuído!');
+    refreshUsers();
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
+    const { error } = await supabase.from('User').delete().eq('id', userId);
+    if (error) { toast.error('Erro ao excluir'); return; }
+    toast.success('Usuário excluído');
+    refreshUsers();
+  };
+
   const createUser = async () => {
     try {
       const { error } = await supabase.functions.invoke('admin-users', {
         method: 'POST',
-        body: { name: formName, email: formEmail, password: formPassword, planId: formPlan, billingCycle: formCycle, isAdmin: formAdmin },
+        body: { name: formName, email: formEmail, password: formPassword, planId: formPlan, isAdmin: formAdmin },
       });
       if (error) throw error;
       toast.success('Usuário criado!');
       setShowNewUser(false);
-      resetForm();
-      fetchData();
-    } catch (e: any) { toast.error(e.message); }
-  };
-
-  const saveEditUser = async () => {
-    if (!editUser) return;
-    try {
-      const { error } = await supabase
-        .from('User')
-        .update({
-          name: formName,
-          planId: formPlan,
-          billingCycle: formCycle,
-          isAdmin: formAdmin,
-          adminGroupId: formGroupId || null,
-          cpf: formCpf || null,
-          phone: formPhone || null,
-        })
-        .eq('id', editUser.id);
-      if (error) throw error;
-      toast.success('Usuário atualizado!');
-      setEditUser(null);
-      fetchData();
-    } catch (e: any) { toast.error(e.message); }
-  };
-
-  const deleteUser = async (userId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
-    try {
-      const { error } = await supabase.from('User').delete().eq('id', userId);
-      if (error) throw error;
-      toast.success('Usuário excluído');
-      fetchData();
-    } catch (e: any) { toast.error(e.message); }
-  };
-
-  const toggleAdmin = async (u: AdminUser) => {
-    try {
-      const { error } = await supabase.from('User').update({ isAdmin: !u.isAdmin }).eq('id', u.id);
-      if (error) throw error;
-      toast.success(u.isAdmin ? 'Admin removido' : 'Usuário agora é admin');
-      fetchData();
-    } catch (e: any) { toast.error(e.message); }
-  };
-
-  const grantEnterprise = async (u: AdminUser) => {
-    try {
-      const trialEnd = new Date();
-      trialEnd.setDate(trialEnd.getDate() + 30);
-      const { error } = await supabase.from('User').update({
-        planId: 'enterprise',
-        trialEndsAt: trialEnd.toISOString(),
-      }).eq('id', u.id);
-      if (error) throw error;
-      toast.success(`Enterprise concedido para ${u.name || u.email} por 30 dias`);
-      setGiftConfirm(null);
-      fetchData();
-    } catch (e: any) { toast.error(e.message); }
-  };
-
-  const assignGroup = async () => {
-    if (!assignGroupUser) return;
-    try {
-      const { error } = await supabase.from('User').update({
-        adminGroupId: assignGroupId || null,
-      }).eq('id', assignGroupUser.id);
-      if (error) throw error;
-      toast.success('Grupo atribuído');
-      setAssignGroupUser(null);
-      fetchData();
+      setFormName(''); setFormEmail(''); setFormPassword(''); setFormPlan('basic'); setFormAdmin(false);
+      refreshUsers();
     } catch (e: any) { toast.error(e.message); }
   };
 
   const bulkAction = async (action: string) => {
-    const ids = Array.from(selected);
-    for (const id of ids) {
+    for (const id of Array.from(selected)) {
       try {
-        if (action === 'delete') {
-          await supabase.from('User').delete().eq('id', id);
-        } else {
-          const body: any = {};
-          if (action === 'plan' && bulkPlan) body.planId = bulkPlan;
-          if (action === 'group' && bulkGroup) body.adminGroupId = bulkGroup;
-          if (action === 'addAdmin') body.isAdmin = true;
-          if (action === 'removeAdmin') body.isAdmin = false;
-          await supabase.from('User').update(body).eq('id', id);
-        }
+        if (action === 'delete') await supabase.from('User').delete().eq('id', id);
+        else if (action === 'plan' && bulkPlan) await supabase.from('User').update({ planId: bulkPlan }).eq('id', id);
       } catch (_) {}
     }
     toast.success('Ação aplicada');
     setSelected(new Set());
-    fetchData();
+    refreshUsers();
   };
 
   const createGroup = async () => {
@@ -326,38 +425,19 @@ export default function AdminPanel() {
     } catch (e: any) { toast.error(e.message); }
   };
 
-  const resetForm = () => {
-    setFormName(''); setFormEmail(''); setFormPassword('');
-    setFormPlan('basic'); setFormCycle('monthly'); setFormAdmin(false); setFormGroupId('');
-    setFormCpf(''); setFormPhone('');
-  };
-
-  const openEditUser = (u: AdminUser) => {
-    setFormName(u.name || '');
-    setFormEmail(u.email);
-    setFormPlan(u.planId || 'basic');
-    setFormCycle(u.billingCycle || 'monthly');
-    setFormAdmin(u.isAdmin);
-    setFormGroupId(u.adminGroupId || '');
-    setFormCpf(u.cpf || '');
-    setFormPhone(u.phone || '');
-    setEditUser(u);
-  };
-
   const openEditGroup = (g: AdminGroup) => {
     setGName(g.name); setGDesc(g.description || ''); setGColor(g.color);
     setShowEditGroup(g);
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success('Copiado!');
-  };
+  const copyToClipboard = (text: string) => { navigator.clipboard.writeText(text); toast.success('Copiado!'); };
 
+  // ── Loading ───────────────────────────────────────────────
   if (isAdmin === null) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-50"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
+  // ── Derived data ──────────────────────────────────────────
   const now = new Date();
   const filteredUsers = users.filter(u => {
     const matchSearch = !search || u.name?.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase());
@@ -365,10 +445,9 @@ export default function AdminPanel() {
     if (statusFilter === 'all') return true;
     const trialActive = u.trialEndsAt && new Date(u.trialEndsAt) > now;
     const trialExpired = u.trialEndsAt && new Date(u.trialEndsAt) <= now;
-    const paid = !!u.stripeSubscriptionId;
     if (statusFilter === 'trial') return trialActive;
     if (statusFilter === 'expired') return trialExpired;
-    if (statusFilter === 'paid') return paid;
+    if (statusFilter === 'paid') return !!u.stripeSubscriptionId;
     if (statusFilter === 'free') return (u.planId || 'basic') === 'basic' && !trialActive;
     return true;
   });
@@ -385,25 +464,15 @@ export default function AdminPanel() {
     const count = users.filter(u => (u.planId || 'basic') === id).length;
     return { id, label, count, pct: totalUsers > 0 ? Math.round((count / totalUsers) * 100) : 0 };
   });
-
   const dotColors: Record<string, string> = { basic: 'bg-gray-400', inteligente: 'bg-emerald-500', automacao: 'bg-blue-500', enterprise: 'bg-purple-500' };
 
   const getUserStatus = (u: AdminUser) => {
     if (u.stripeSubscriptionId) return { label: 'Ativo', cls: 'bg-green-100 text-green-700' };
     if (u.trialEndsAt && new Date(u.trialEndsAt) > now) {
-      const days = Math.ceil((new Date(u.trialEndsAt).getTime() - now.getTime()) / 86400000);
-      return { label: `Trial ${days}d`, cls: 'bg-amber-100 text-amber-700' };
+      return { label: `Trial ${getDaysRemaining(u.trialEndsAt)}d`, cls: 'bg-amber-100 text-amber-700' };
     }
-    if (u.trialEndsAt && new Date(u.trialEndsAt) <= now) return { label: 'Trial expirado', cls: 'bg-red-100 text-red-700' };
+    if (u.trialEndsAt && new Date(u.trialEndsAt) <= now) return { label: 'Trial exp.', cls: 'bg-red-100 text-red-700' };
     return { label: 'Gratuito', cls: 'bg-gray-100 text-gray-700' };
-  };
-
-  const getMonthlyValue = (u: AdminUser) => {
-    if (!u.stripeSubscriptionId && (u.planId || 'basic') === 'basic') return '—';
-    const price = PLAN_PRICES[u.planId || 'basic'] || 0;
-    if (price === 0) return '—';
-    if (u.billingCycle === 'yearly') return `R$ ${Math.round(price * 0.8)}`;
-    return `R$ ${price}`;
   };
 
   return (
@@ -415,10 +484,10 @@ export default function AdminPanel() {
           <h1 className="text-lg font-bold text-foreground">Admin Console</h1>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => fetchData()}>
+          <Button variant="outline" size="sm" onClick={() => refreshUsers()}>
             <RefreshCw className="h-4 w-4 mr-1" /> Refresh
           </Button>
-          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => { resetForm(); setShowNewUser(true); }}>
+          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => { setFormName(''); setFormEmail(''); setFormPassword(''); setFormPlan('basic'); setFormAdmin(false); setShowNewUser(true); }}>
             <Plus className="h-4 w-4 mr-1" /> Novo Usuário
           </Button>
         </div>
@@ -433,7 +502,7 @@ export default function AdminPanel() {
             <TabsTrigger value="costs" onClick={fetchCosts}>Custos</TabsTrigger>
           </TabsList>
 
-          {/* TAB: Dashboard */}
+          {/* ── Dashboard Tab ──────────────────────────────── */}
           <TabsContent value="dashboard" className="space-y-6">
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
@@ -454,13 +523,12 @@ export default function AdminPanel() {
                 </Card>
               ))}
             </div>
-
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
                 { label: 'Total Usuários', value: String(totalUsers), sub: `${newLast7} novos (7d)`, color: 'border-l-indigo-500', icon: Users },
-                { label: 'Novos (30d)', value: String(newLast30), sub: '', color: 'border-l-violet-500', icon: Zap },
-                { label: 'Reuniões', value: String(totalMeetings), sub: '', color: 'border-l-cyan-500', icon: FileAudio },
-                { label: 'Grupos', value: String(groups.length), sub: '', color: 'border-l-pink-500', icon: Clock },
+                { label: 'Novos (30d)', value: String(newLast30), color: 'border-l-violet-500', icon: Zap },
+                { label: 'Reuniões', value: String(totalMeetings), color: 'border-l-cyan-500', icon: FileAudio },
+                { label: 'Grupos', value: String(groups.length), color: 'border-l-pink-500', icon: Clock },
               ].map((c, i) => (
                 <Card key={i} className={`border-l-4 ${c.color} bg-white`}>
                   <CardContent className="p-5">
@@ -469,12 +537,11 @@ export default function AdminPanel() {
                       <c.icon className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <p className="text-2xl font-bold font-mono text-foreground">{c.value}</p>
-                    {c.sub && <p className="text-xs text-muted-foreground mt-1">{c.sub}</p>}
+                    {'sub' in c && c.sub && <p className="text-xs text-muted-foreground mt-1">{c.sub}</p>}
                   </CardContent>
                 </Card>
               ))}
             </div>
-
             <Card className="bg-white">
               <CardHeader><CardTitle className="text-base">Distribuição por Plano</CardTitle></CardHeader>
               <CardContent>
@@ -491,7 +558,7 @@ export default function AdminPanel() {
             </Card>
           </TabsContent>
 
-          {/* TAB: Usuários */}
+          {/* ── Users Tab ──────────────────────────────────── */}
           <TabsContent value="users" className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-3">
               <Input placeholder="Buscar por nome ou email..." value={search} onChange={e => setSearch(e.target.value)} className="max-w-sm" />
@@ -512,9 +579,7 @@ export default function AdminPanel() {
                 <span className="text-sm font-medium text-blue-800">{selected.size} selecionado(s)</span>
                 <Select value={bulkPlan} onValueChange={setBulkPlan}>
                   <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Plano" /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(PLAN_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                  </SelectContent>
+                  <SelectContent>{Object.entries(PLAN_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
                 </Select>
                 <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => bulkAction('plan')} disabled={!bulkPlan}>Aplicar</Button>
                 <Button size="sm" variant="destructive" className="h-8 text-xs" onClick={() => bulkAction('delete')}><Trash2 className="h-3 w-3 mr-1" />Excluir</Button>
@@ -530,10 +595,8 @@ export default function AdminPanel() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-10">
-                        <Checkbox
-                          checked={selected.size === filteredUsers.length && filteredUsers.length > 0}
-                          onCheckedChange={(c) => setSelected(c ? new Set(filteredUsers.map(u => u.id)) : new Set())}
-                        />
+                        <Checkbox checked={selected.size === filteredUsers.length && filteredUsers.length > 0}
+                          onCheckedChange={(c) => setSelected(c ? new Set(filteredUsers.map(u => u.id)) : new Set())} />
                       </TableHead>
                       <TableHead>Nome</TableHead>
                       <TableHead>E-mail</TableHead>
@@ -541,10 +604,9 @@ export default function AdminPanel() {
                       <TableHead>Telefone</TableHead>
                       <TableHead>Plano</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Valor/mês</TableHead>
                       <TableHead className="text-center">Reuniões</TableHead>
                       <TableHead>Cadastro</TableHead>
-                      <TableHead className="w-40">Ações</TableHead>
+                      <TableHead className="w-44">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -555,53 +617,39 @@ export default function AdminPanel() {
                       return (
                         <TableRow key={u.id}>
                           <TableCell>
-                            <Checkbox
-                              checked={selected.has(u.id)}
-                              onCheckedChange={(c) => {
-                                const next = new Set(selected);
-                                c ? next.add(u.id) : next.delete(u.id);
-                                setSelected(next);
-                              }}
-                            />
+                            <Checkbox checked={selected.has(u.id)}
+                              onCheckedChange={(c) => { const n = new Set(selected); c ? n.add(u.id) : n.delete(u.id); setSelected(n); }} />
                           </TableCell>
                           <TableCell>
-                            <div>
-                              <p className="text-sm font-bold">{u.name || '—'} {u.isAdmin && <Badge variant="destructive" className="text-[9px] ml-1">ADMIN</Badge>}</p>
-                              <p className="text-xs text-muted-foreground font-mono">{u.email}</p>
-                            </div>
+                            <p className="text-sm font-bold">{u.name || '—'} {u.isAdmin && <Badge variant="destructive" className="text-[9px] ml-1">ADMIN</Badge>}</p>
+                            <p className="text-xs text-gray-500 font-mono">{u.email}</p>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
                               <span className="text-xs font-mono truncate max-w-[140px]">{u.email}</span>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => copyToClipboard(u.email)}>
-                                <Copy className="h-3 w-3" />
-                              </Button>
+                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(u.email)}><Copy className="h-3 w-3" /></Button>
                             </div>
                           </TableCell>
                           <TableCell className="text-xs font-mono">{formatCPF(u.cpf)}</TableCell>
                           <TableCell className="text-xs">{formatPhone(u.phone)}</TableCell>
                           <TableCell><Badge className={`${PLAN_COLORS[u.planId || 'basic']} text-[10px]`}>{PLAN_LABELS[u.planId || 'basic']}</Badge></TableCell>
                           <TableCell><span className={`px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap ${status.cls}`}>{status.label}</span></TableCell>
-                          <TableCell className="text-sm font-mono">{getMonthlyValue(u)}</TableCell>
                           <TableCell className="text-center font-mono text-sm">{u.meetingCount}</TableCell>
                           <TableCell className="text-xs text-muted-foreground">{dateStr}</TableCell>
                           <TableCell>
-                            <div className="flex gap-0.5">
-                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Editar" onClick={() => openEditUser(u)}>
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Atribuir grupo" onClick={() => { setAssignGroupUser(u); setAssignGroupId(u.adminGroupId || ''); }}>
-                                <FolderOpen className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-amber-600" title="Conceder Enterprise" onClick={() => setGiftConfirm(u)}>
-                                <Gift className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title={u.isAdmin ? 'Remover admin' : 'Tornar admin'} onClick={() => toggleAdmin(u)}>
-                                {u.isAdmin ? <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> : <Shield className="h-3.5 w-3.5" />}
-                              </Button>
-                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" title="Excluir" onClick={() => deleteUser(u.id)}>
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
+                            <div className="flex items-center gap-1">
+                              <Button variant="ghost" size="icon" className="h-7 w-7" title="Editar usuário"
+                                onClick={() => { setSelectedUser(u); setEditOpen(true); }}><Pencil className="h-3.5 w-3.5" /></Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7" title="Atribuir grupo"
+                                onClick={() => { setSelectedUser(u); setAssignGroupOpen(true); }}><FolderOpen className="h-3.5 w-3.5" /></Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-purple-500 hover:text-purple-700 hover:bg-purple-50" title="Conceder Enterprise"
+                                onClick={() => { setSelectedUser(u); setGiftOpen(true); }}><Gift className="h-3.5 w-3.5" /></Button>
+                              <Button variant="ghost" size="icon"
+                                className={`h-7 w-7 ${u.isAdmin ? 'text-amber-500 hover:bg-amber-50' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50'}`}
+                                title={u.isAdmin ? 'Remover admin' : 'Tornar admin'}
+                                onClick={() => handleToggleAdmin(u)}><Shield className="h-3.5 w-3.5" /></Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-600 hover:bg-red-50" title="Excluir usuário"
+                                onClick={() => handleDeleteUser(u.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -613,7 +661,7 @@ export default function AdminPanel() {
             )}
           </TabsContent>
 
-          {/* TAB: Grupos */}
+          {/* ── Groups Tab ─────────────────────────────────── */}
           <TabsContent value="groups" className="space-y-4">
             <div className="flex justify-end">
               <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => { setGName(''); setGDesc(''); setGColor('#10B981'); setShowNewGroup(true); }}>
@@ -643,7 +691,7 @@ export default function AdminPanel() {
             </div>
           </TabsContent>
 
-          {/* TAB: Custos */}
+          {/* ── Costs Tab ──────────────────────────────────── */}
           <TabsContent value="costs" className="space-y-6">
             {costsLoading ? (
               <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
@@ -665,15 +713,14 @@ export default function AdminPanel() {
                     </Card>
                   ))}
                 </div>
-
                 <Card className="bg-white">
                   <CardHeader><CardTitle className="text-base">Uso por Provedor — Mês Atual</CardTitle></CardHeader>
                   <CardContent>
                     <div className="grid sm:grid-cols-2 gap-4">
                       {Object.entries(costsData.currentMonthProviders || {}).map(([provider, stats]: [string, any]) => (
                         <div key={provider} className="border rounded-lg p-4">
-                          <Badge className={provider === 'gemini' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}>
-                            {provider === 'gemini' ? 'Gemini (Free Tier)' : provider}
+                          <Badge className={['groq', 'gemini'].includes(provider) ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}>
+                            {provider === 'gemini' || provider === 'groq' ? 'Gemini (Free Tier)' : provider}
                           </Badge>
                           <div className="mt-3 space-y-1">
                             <p className="text-sm"><span className="text-muted-foreground">Minutos:</span> <span className="font-mono font-medium">{stats.minutes}</span></p>
@@ -688,7 +735,6 @@ export default function AdminPanel() {
                     </div>
                   </CardContent>
                 </Card>
-
                 <Card className="bg-white">
                   <CardHeader><CardTitle className="text-base">Logs Recentes</CardTitle></CardHeader>
                   <CardContent>
@@ -708,8 +754,8 @@ export default function AdminPanel() {
                           <TableRow key={log.id}>
                             <TableCell className="text-xs font-mono">{new Date(log.createdAt).toLocaleDateString('pt-BR')}</TableCell>
                             <TableCell>
-                              <Badge className={log.provider === 'gemini' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}>
-                                {log.provider === 'gemini' ? 'Gemini (Free Tier)' : log.provider}
+                              <Badge className={['groq', 'gemini'].includes(log.provider) ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}>
+                                {log.provider === 'gemini' || log.provider === 'groq' ? 'Gemini (Free Tier)' : log.provider}
                               </Badge>
                             </TableCell>
                             <TableCell className="font-mono text-sm">{Math.round(log.durationSecs / 60)}min</TableCell>
@@ -734,7 +780,7 @@ export default function AdminPanel() {
         </Tabs>
       </div>
 
-      {/* New User Dialog */}
+      {/* ── Dialogs ──────────────────────────────────────── */}
       <Dialog open={showNewUser} onOpenChange={setShowNewUser}>
         <DialogContent>
           <DialogHeader>
@@ -757,101 +803,17 @@ export default function AdminPanel() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit User Dialog */}
-      <Dialog open={!!editUser} onOpenChange={(open) => { if (!open) setEditUser(null); }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Usuário</DialogTitle>
-            <DialogDescription>{editUser?.email}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div><Label>Nome</Label><Input value={formName} onChange={e => setFormName(e.target.value)} /></div>
-            <div><Label>Email</Label><Input value={formEmail} disabled className="bg-muted" /></div>
-            <div><Label>CPF</Label><Input value={formCpf} onChange={e => setFormCpf(e.target.value)} placeholder="000.000.000-00" /></div>
-            <div><Label>Telefone</Label><Input value={formPhone} onChange={e => setFormPhone(e.target.value)} placeholder="(00) 00000-0000" /></div>
-            <div><Label>Plano</Label>
-              <Select value={formPlan} onValueChange={setFormPlan}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{Object.entries(PLAN_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div><Label>Ciclo</Label>
-              <Select value={formCycle} onValueChange={setFormCycle}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="monthly">Mensal</SelectItem>
-                  <SelectItem value="yearly">Anual</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div><Label>Grupo</Label>
-              <Select value={formGroupId} onValueChange={setFormGroupId}>
-                <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Nenhum</SelectItem>
-                  {groups.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            {editUser?.stripeSubscriptionId && (
-              <div className="border rounded-lg p-3 bg-muted/50 space-y-1">
-                <p className="text-xs font-medium text-muted-foreground">Stripe Info</p>
-                <p className="text-xs font-mono">Customer: {editUser.stripeCustomerId}</p>
-                <p className="text-xs font-mono">Subscription: {editUser.stripeSubscriptionId}</p>
-              </div>
-            )}
-            <div className="flex items-center gap-2"><Switch checked={formAdmin} onCheckedChange={setFormAdmin} /><Label>Admin</Label></div>
-          </div>
-          <DialogFooter><Button onClick={saveEditUser}>Salvar</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <EditUserDialog open={editOpen} onOpenChange={setEditOpen} user={selectedUser} groups={groups} onSubmit={handleEditSubmit} />
+      <AssignGroupDialog open={assignGroupOpen} onOpenChange={setAssignGroupOpen} user={selectedUser} groups={groups} onSubmit={handleAssignGroup} />
+      <GiftEnterpriseDialog open={giftOpen} onOpenChange={setGiftOpen} user={selectedUser} onConfirm={handleGiftEnterprise} />
 
-      {/* Grant Enterprise Dialog */}
-      <AlertDialog open={!!giftConfirm} onOpenChange={(open) => { if (!open) setGiftConfirm(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Conceder Enterprise</AlertDialogTitle>
-            <AlertDialogDescription>
-              Conceder acesso Enterprise gratuito por 30 dias para <strong>{giftConfirm?.name || giftConfirm?.email}</strong>?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => giftConfirm && grantEnterprise(giftConfirm)}>Confirmar</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Assign Group Dialog */}
-      <Dialog open={!!assignGroupUser} onOpenChange={(open) => { if (!open) setAssignGroupUser(null); }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Atribuir Grupo</DialogTitle>
-            <DialogDescription>Selecione o grupo para {assignGroupUser?.name || assignGroupUser?.email}</DialogDescription>
-          </DialogHeader>
-          <Select value={assignGroupId} onValueChange={setAssignGroupId}>
-            <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">Nenhum</SelectItem>
-              {groups.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <DialogFooter><Button onClick={assignGroup}>Salvar</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* New Group Dialog */}
       <Dialog open={showNewGroup} onOpenChange={setShowNewGroup}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Novo Grupo</DialogTitle>
-            <DialogDescription>Crie um grupo para organizar usuários.</DialogDescription>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Novo Grupo</DialogTitle><DialogDescription>Crie um grupo para organizar usuários.</DialogDescription></DialogHeader>
           <div className="space-y-4">
             <div><Label>Nome</Label><Input value={gName} onChange={e => setGName(e.target.value)} /></div>
             <div><Label>Descrição</Label><Input value={gDesc} onChange={e => setGDesc(e.target.value)} /></div>
-            <div>
-              <Label>Cor</Label>
+            <div><Label>Cor</Label>
               <div className="flex gap-2 mt-2">
                 {COLOR_PRESETS.map(c => (
                   <button key={c} className={`w-8 h-8 rounded-full border-2 ${gColor === c ? 'border-foreground scale-110' : 'border-transparent'}`}
@@ -864,18 +826,13 @@ export default function AdminPanel() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Group Dialog */}
       <Dialog open={!!showEditGroup} onOpenChange={() => setShowEditGroup(null)}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Grupo</DialogTitle>
-            <DialogDescription>Atualize as informações do grupo.</DialogDescription>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Editar Grupo</DialogTitle><DialogDescription>Atualize as informações do grupo.</DialogDescription></DialogHeader>
           <div className="space-y-4">
             <div><Label>Nome</Label><Input value={gName} onChange={e => setGName(e.target.value)} /></div>
             <div><Label>Descrição</Label><Input value={gDesc} onChange={e => setGDesc(e.target.value)} /></div>
-            <div>
-              <Label>Cor</Label>
+            <div><Label>Cor</Label>
               <div className="flex gap-2 mt-2">
                 {COLOR_PRESETS.map(c => (
                   <button key={c} className={`w-8 h-8 rounded-full border-2 ${gColor === c ? 'border-foreground scale-110' : 'border-transparent'}`}
