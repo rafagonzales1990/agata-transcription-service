@@ -276,6 +276,25 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Log transcription to TranscriptionLog
+    if (meetingData?.userId) {
+      try {
+        await supabase.from('TranscriptionLog').insert({
+          meetingId,
+          userId: meetingData.userId,
+          provider: 'gemini',
+          durationSecs: arrayBuffer?.byteLength ? Math.round(arrayBuffer.byteLength / 16000) : 0,
+          fileSizeBytes: arrayBuffer?.byteLength || 0,
+          chunks: totalChunks || 1,
+          costCents: 0,
+          success: true,
+          createdAt: new Date().toISOString(),
+        })
+      } catch (logErr) {
+        console.error('Failed to insert TranscriptionLog:', logErr)
+      }
+    }
+
     console.log(`Transcription completed for meeting ${meetingId}`)
 
     return new Response(JSON.stringify({ success: true, meetingId }), {
