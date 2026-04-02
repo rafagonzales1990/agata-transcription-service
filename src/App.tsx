@@ -23,6 +23,7 @@ import SettingsBranding from "./pages/SettingsBranding";
 import SettingsPlaceholder from "./pages/SettingsPlaceholder";
 import Profile from "./pages/Profile";
 import Plans from "./pages/Plans";
+import AdminPanel from "./pages/AdminPanel";
 
 const queryClient = new QueryClient();
 
