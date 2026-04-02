@@ -218,7 +218,12 @@ function parseMarkdownToDocx(md: string): (Paragraph | Table)[] {
       i += 2
       const tableRows: string[][] = []
       while (i < lines.length && /^\|.+\|$/.test(lines[i])) {
-        tableRows.push(lines[i].split('|').map(c => c.trim()).filter(Boolean))
+        const cells = lines[i].split('|').map(c => c.trim()).filter(Boolean)
+        // Skip separator-like rows (all cells are just dashes)
+        const isSeparator = cells.every(c => /^[-:]+$/.test(c))
+        if (!isSeparator) {
+          tableRows.push(cells)
+        }
         i++
       }
       children.push(makeActionsTable(headers, tableRows))
