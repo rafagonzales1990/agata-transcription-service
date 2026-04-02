@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Sparkles, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { conversionSignup } from '@/lib/gtag';
 
 export default function SignupPage() {
   const [name, setName] = useState('');
@@ -42,6 +43,7 @@ export default function SignupPage() {
       } catch (emailErr) {
         console.error('Failed to send welcome email:', emailErr);
       }
+      conversionSignup();
       toast.success('Conta criada! Verifique seu email para confirmar.');
       navigate('/auth/login');
     }

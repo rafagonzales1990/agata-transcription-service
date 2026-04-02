@@ -1,11 +1,13 @@
 import * as Sentry from '@sentry/react';
+import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { pageview } from "@/lib/gtag";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
@@ -48,6 +50,14 @@ const SentryErrorFallback = () => (
   </div>
 );
 
+const RouteTracker = () => {
+  const location = useLocation();
+  useEffect(() => {
+    pageview(location.pathname);
+  }, [location]);
+  return null;
+};
+
 const App = () => (
   <Sentry.ErrorBoundary fallback={<SentryErrorFallback />}>
     <QueryClientProvider client={queryClient}>
@@ -55,6 +65,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <RouteTracker />
           <AuthProvider>
             <Routes>
             <Route path="/" element={<Index />} />
