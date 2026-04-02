@@ -13,6 +13,7 @@ import UploadPage from "./pages/UploadPage";
 import Meetings from "./pages/Meetings";
 import MeetingDetail from "./pages/MeetingDetail";
 import Routines from "./pages/Routines";
+import RoutineDetail from "./pages/RoutineDetail";
 import Documents from "./pages/Documents";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
