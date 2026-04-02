@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Check plan
+    // Check plan + branding
     const { data: profile } = await supabase
       .from('profiles')
       .select('plan_id')
@@ -125,8 +125,29 @@ Deno.serve(async (req) => {
     const planId = profile?.plan_id || 'basic'
     const showWatermark = !PAID_PLANS.includes(planId)
 
-    if (!PAID_PLANS.includes(planId)) {
-      // Allow but with watermark for basic
+    let brandName = 'Ágata Transcription'
+    let brandColor = '#10B981'
+    let brandSecondaryColor = '#065F46'
+
+    // Enterprise branding
+    const { data: userData } = await supabase
+      .from('User')
+      .select('planId, teamId')
+      .eq('id', user.id)
+      .single()
+
+    if (userData?.planId === 'enterprise' && userData?.teamId) {
+      const { data: team } = await supabase
+        .from('Team')
+        .select('name, companyName, primaryColor, secondaryColor')
+        .eq('id', userData.teamId)
+        .single()
+
+      if (team) {
+        brandName = team.companyName || team.name || 'Ágata Transcription'
+        brandColor = team.primaryColor || '#10B981'
+        brandSecondaryColor = team.secondaryColor || '#065F46'
+      }
     }
 
     // Fetch meeting
