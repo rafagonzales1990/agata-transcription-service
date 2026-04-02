@@ -137,7 +137,7 @@ export default function DocumentsPage() {
                       onClick={() => handleDownload(doc)}
                       disabled={downloadingId === doc.id}
                     >
-                      {downloadingId === doc.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Printer className="h-3.5 w-3.5 mr-1" />}
+                      {downloadingId === doc.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5 mr-1" />}
                       Baixar ATA
                     </Button>
                   </CardContent>
