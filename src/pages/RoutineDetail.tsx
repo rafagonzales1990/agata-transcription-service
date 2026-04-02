@@ -9,8 +9,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   ChevronLeft, Plus, Loader2, FileText, CheckCircle, Clock, AlertCircle,
-  X, Search, Sparkles, Download, RefreshCw, Hourglass, FileDown,
+  X, Search, Sparkles, Download, RefreshCw, FileDown, Calendar, TrendingUp, BarChart3,
 } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
