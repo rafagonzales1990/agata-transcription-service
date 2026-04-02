@@ -68,9 +68,36 @@ Deno.serve(async (req) => {
               planId,
               billingCycle: billingCycle || 'monthly',
               stripeSubscriptionId: session.subscription as string,
-              stripePriceId: null, // will be set by subscription.updated
+              stripePriceId: null,
               trialEndsAt: null,
             }).eq('email', profile.email)
+
+            // Send payment confirmed email
+            const planNames: Record<string, string> = {
+              inteligente: 'Inteligente',
+              automacao: 'Automação',
+              enterprise: 'Enterprise',
+            }
+            const { data: nameData } = await supabase
+              .from('User')
+              .select('name')
+              .eq('email', profile.email)
+              .maybeSingle()
+
+            try {
+              await supabase.functions.invoke('send-email', {
+                body: {
+                  type: 'payment_confirmed',
+                  to: profile.email,
+                  data: {
+                    name: nameData?.name || 'Usuário',
+                    planName: planNames[planId || ''] || planId,
+                  }
+                }
+              })
+            } catch (emailErr) {
+              console.error('Failed to send payment email:', emailErr)
+            }
           }
         }
         break

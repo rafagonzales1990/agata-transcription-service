@@ -83,6 +83,30 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
+    // Rate limiting: max 10 transcription attempts per user per hour
+    const { data: meetingOwner } = await supabase
+      .from('Meeting')
+      .select('userId')
+      .eq('id', meetingId)
+      .maybeSingle()
+
+    if (meetingOwner?.userId) {
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+      const { count } = await supabase
+        .from('Meeting')
+        .select('*', { count: 'exact', head: true })
+        .eq('userId', meetingOwner.userId)
+        .in('status', ['processing', 'completed', 'failed'])
+        .gte('createdAt', oneHourAgo)
+
+      if ((count || 0) >= 10) {
+        return new Response(
+          JSON.stringify({ error: 'Limite de transcrições por hora atingido. Tente novamente em 1 hora.' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
+
     // Download file from storage
     const { data: fileData, error: downloadError } = await supabase.storage
       .from('meetings')
@@ -292,6 +316,39 @@ Deno.serve(async (req) => {
         })
       } catch (logErr) {
         console.error('Failed to insert TranscriptionLog:', logErr)
+      }
+    }
+
+    // Send transcription done email
+    if (meetingData?.userId) {
+      try {
+        const { data: userData } = await supabase
+          .from('User')
+          .select('email, name')
+          .eq('id', meetingData.userId)
+          .maybeSingle()
+
+        if (userData) {
+          const { data: meetingInfo } = await supabase
+            .from('Meeting')
+            .select('title')
+            .eq('id', meetingId)
+            .maybeSingle()
+
+          await supabase.functions.invoke('send-email', {
+            body: {
+              type: 'transcription_done',
+              to: userData.email,
+              data: {
+                name: userData.name || 'Usuário',
+                meetingTitle: meetingInfo?.title || 'Reunião',
+                meetingId,
+              }
+            }
+          })
+        }
+      } catch (emailErr) {
+        console.error('Failed to send transcription email:', emailErr)
       }
     }
 
