@@ -14,7 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   RefreshCw, Plus, Pencil, Trash2, Shield, X, Copy,
-  DollarSign, Users, Clock, Zap, TrendingUp, BarChart3, FileAudio, Loader2, FolderOpen, Gift,
+  DollarSign, Users, Clock, Zap, TrendingUp, BarChart3, FileAudio, Loader2, FolderOpen, Gift, Database,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
