@@ -24,6 +24,8 @@ import SettingsPlaceholder from "./pages/SettingsPlaceholder";
 import Profile from "./pages/Profile";
 import Plans from "./pages/Plans";
 import AdminPanel from "./pages/AdminPanel";
+import Blog from "./pages/Blog";
+import BlogPostPage from "./pages/BlogPost";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +56,8 @@ const App = () => (
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPostPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
