@@ -3,114 +3,122 @@ import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { FileAudio, Upload, TrendingUp, Clock, Zap, FolderOpen, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { FileAudio, Upload, TrendingUp, Clock, Zap, FolderOpen } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: typeof CheckCircle }> = {
-  completed: { label: 'Concluída', variant: 'default', icon: CheckCircle },
-  processing: { label: 'Processando', variant: 'secondary', icon: Clock },
-  pending: { label: 'Pendente', variant: 'outline', icon: Clock },
-  failed: { label: 'Falhou', variant: 'destructive', icon: AlertCircle },
-};
-
-const borderColors = ['border-l-purple-500', 'border-l-blue-500', 'border-l-green-500', 'border-l-orange-500'];
-
 export default function DashboardPage() {
   const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [meetingCount, setMeetingCount] = useState(0);
+  const [totalMeetings, setTotalMeetings] = useState(0);
   const [transcriptionsUsed, setTranscriptionsUsed] = useState(0);
   const [maxTranscriptions, setMaxTranscriptions] = useState(5);
   const [totalMinutes, setTotalMinutes] = useState(0);
-  const [planName, setPlanName] = useState('Teste Grátis');
-  const [recentMeetings, setRecentMeetings] = useState<any[]>([]);
+  const [planName, setPlanName] = useState('Gratuito');
 
   useEffect(() => {
     async function fetchDashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      const currentMonth = now.toISOString().slice(0, 7);
+      const currentMonth = new Date().toISOString().slice(0, 7);
 
-      const [meetingsRes, usageRes, planRes, recentRes] = await Promise.all([
+      const [meetingsRes, usageRes, userRes] = await Promise.all([
         supabase.from('Meeting')
-          .select('id', { count: 'exact', head: true })
-          .eq('userId', user.id)
-          .gte('createdAt', startOfMonth),
+          .select('*', { count: 'exact', head: true })
+          .eq('userId', user.id),
         supabase.from('Usage')
-          .select('transcriptionsUsed, totalMinutesTranscribed')
+          .select('transcriptionsUsed, totalMinutesTranscribed, currentMonth')
           .eq('userId', user.id)
-          .eq('currentMonth', currentMonth)
-          .maybeSingle(),
-        supabase.from('Plan')
-          .select('name, maxTranscriptions')
-          .eq('id', profile?.plan_id || 'basic')
           .single(),
-        supabase.from('Meeting')
-          .select('id, title, status, createdAt, meetingDate')
-          .eq('userId', user.id)
-          .order('createdAt', { ascending: false })
-          .limit(5),
+        supabase.from('profiles')
+          .select('plan_id')
+          .eq('user_id', user.id)
+          .single(),
       ]);
 
-      setMeetingCount(meetingsRes.count || 0);
-      setTranscriptionsUsed(usageRes.data?.transcriptionsUsed || 0);
+      setTotalMeetings(meetingsRes.count || 0);
       setTotalMinutes(usageRes.data?.totalMinutesTranscribed || 0);
-      if (planRes.data) {
-        setPlanName(planRes.data.name);
-        setMaxTranscriptions(planRes.data.maxTranscriptions);
+      setTranscriptionsUsed(
+        usageRes.data?.currentMonth === currentMonth
+          ? usageRes.data.transcriptionsUsed
+          : 0
+      );
+
+      const planId = userRes.data?.plan_id || 'basic';
+      const { data: plan } = await supabase
+        .from('Plan')
+        .select('name, maxTranscriptions')
+        .eq('id', planId)
+        .single();
+
+      if (plan) {
+        setPlanName(plan.name);
+        setMaxTranscriptions(plan.maxTranscriptions);
       }
-      setRecentMeetings(recentRes.data || []);
       setLoading(false);
     }
     fetchDashboard();
   }, [profile]);
 
   const usagePercent = maxTranscriptions > 0 ? Math.min(100, (transcriptionsUsed / maxTranscriptions) * 100) : 0;
+  const userName = profile?.name || 'Usuário';
 
   const stats = [
-    { label: 'Reuniões (mês)', value: loading ? null : String(meetingCount), icon: FileAudio },
-    { label: 'Minutos Transcritos', value: loading ? null : String(totalMinutes), icon: Clock },
-    { label: 'Uso Mensal', value: loading ? null : `${transcriptionsUsed}/${maxTranscriptions}`, icon: TrendingUp, showProgress: true },
-    { label: 'Plano Atual', value: loading ? null : planName, icon: Zap },
+    {
+      label: 'Total de Reuniões', value: loading ? null : String(totalMeetings),
+      icon: FileAudio, iconColor: 'text-purple-500', border: 'border-l-purple-500',
+      subtext: 'Transcrições realizadas',
+    },
+    {
+      label: 'Minutos Transcritos', value: loading ? null : String(totalMinutes),
+      icon: Clock, iconColor: 'text-blue-500', border: 'border-l-blue-500',
+      subtext: 'Total de minutos processados',
+    },
+    {
+      label: 'Uso Mensal', value: loading ? null : `${transcriptionsUsed}/${maxTranscriptions}`,
+      icon: TrendingUp, iconColor: 'text-green-500', border: 'border-l-green-500',
+      subtext: `${Math.round(usagePercent)}% utilizado`, showProgress: true,
+    },
+    {
+      label: 'Plano Atual', value: loading ? null : planName,
+      icon: Zap, iconColor: 'text-orange-500', border: 'border-l-orange-500',
+      subtext: 'plans',
+    },
   ];
 
   return (
     <AppLayout>
       <div className="space-y-8">
+        {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">Bem-vindo ao Ágata Transcription</p>
+          <h1 className="text-3xl font-bold text-gray-900">Bem-vindo, {userName}!</h1>
+          <p className="text-muted-foreground mt-1">Gerencie suas transcrições de reuniões com inteligência artificial</p>
         </div>
 
+        {/* Stats */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-            >
-              <Card className={`border-l-4 ${borderColors[i]} shadow-lg hover:shadow-xl transition-shadow`}>
+            <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
+              <Card className={`border-l-4 ${stat.border} shadow-lg hover:shadow-xl transition-shadow`}>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-sm text-muted-foreground">{stat.label}</p>
-                    <stat.icon className="h-4 w-4 text-primary" />
+                    <stat.icon className={`h-4 w-4 ${stat.iconColor}`} />
                   </div>
                   {stat.value === null ? (
                     <Skeleton className="h-8 w-20" />
                   ) : (
                     <>
                       <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                      {stat.showProgress && (
-                        <Progress value={usagePercent} className="h-1.5 mt-2" />
+                      {stat.showProgress && <Progress value={usagePercent} className="h-1.5 mt-2" />}
+                      {stat.subtext === 'plans' ? (
+                        <Link to="/plans" className="text-xs text-primary hover:underline mt-1 inline-block">Ver outros planos</Link>
+                      ) : (
+                        <p className="text-xs text-muted-foreground mt-1">{stat.subtext}</p>
                       )}
                     </>
                   )}
@@ -120,60 +128,50 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card className="shadow-lg">
+        {/* Quick Access */}
+        <div className="grid md:grid-cols-3 gap-6">
+          <Card className="shadow-lg hover:shadow-xl transition-shadow">
             <CardHeader>
-              <CardTitle className="text-lg">Começar Nova Transcrição</CardTitle>
-              <CardDescription>Envie um áudio ou grave diretamente</CardDescription>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-purple-100"><Upload className="h-5 w-5 text-purple-600" /></div>
+                <CardTitle className="text-lg">Nova Transcrição</CardTitle>
+              </div>
+              <CardDescription>Envie um arquivo de áudio ou vídeo</CardDescription>
             </CardHeader>
             <CardContent>
-              <Link to="/upload">
-                <Button className="bg-primary hover:bg-emerald-600 text-primary-foreground">
-                  <Upload className="h-4 w-4 mr-2" /> Nova Transcrição
-                </Button>
+              <Link to="/upload" className="block">
+                <Button className="w-full bg-primary hover:bg-emerald-600 text-primary-foreground">Fazer Upload →</Button>
               </Link>
             </CardContent>
           </Card>
 
-          <Card className="shadow-lg">
+          <Card className="shadow-lg hover:shadow-xl transition-shadow">
             <CardHeader>
-              <CardTitle className="text-lg">Reuniões Recentes</CardTitle>
-              <CardDescription>Suas últimas transcrições</CardDescription>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-blue-100"><FileAudio className="h-5 w-5 text-blue-600" /></div>
+                <CardTitle className="text-lg">Minhas Reuniões</CardTitle>
+              </div>
+              <CardDescription>Veja transcrições e ATAs geradas</CardDescription>
             </CardHeader>
             <CardContent>
-              {loading ? (
-                <div className="space-y-3">
-                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-10 w-full" />)}
-                </div>
-              ) : recentMeetings.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <FolderOpen className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Nenhuma reunião ainda</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {recentMeetings.map((m) => {
-                    const cfg = statusConfig[m.status] || statusConfig.pending;
-                    const StatusIcon = cfg.icon;
-                    const date = m.meetingDate
-                      ? new Date(m.meetingDate).toLocaleDateString('pt-BR')
-                      : new Date(m.createdAt).toLocaleDateString('pt-BR');
-                    return (
-                      <Link key={m.id} to={`/meetings/${m.id}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors">
-                        <FileText className="h-4 w-4 text-primary shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{m.title}</p>
-                          <p className="text-xs text-muted-foreground">{date}</p>
-                        </div>
-                        <Badge variant={cfg.variant} className="text-[10px] shrink-0">
-                          <StatusIcon className="h-2.5 w-2.5 mr-1" />
-                          {cfg.label}
-                        </Badge>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
+              <Link to="/meetings" className="block">
+                <Button variant="outline" className="w-full">Ver Reuniões →</Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-lg hover:shadow-xl transition-shadow">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-green-100"><FolderOpen className="h-5 w-5 text-green-600" /></div>
+                <CardTitle className="text-lg">Documentos</CardTitle>
+              </div>
+              <CardDescription>Repositório de documentos gerados</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link to="/documents" className="block">
+                <Button variant="outline" className="w-full">Ver Documentos →</Button>
+              </Link>
             </CardContent>
           </Card>
         </div>
