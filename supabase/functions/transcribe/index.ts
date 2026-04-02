@@ -158,7 +158,6 @@ Deno.serve(async (req) => {
     let fullTranscriptionText = ''
 
     if (totalBytes <= MAX_CHUNK_BYTES) {
-      // Small file: use inline_data
       console.log(`Small file (${totalBytes} bytes), using inline_data`)
       const base64Data = btoa(
         new Uint8Array(arrayBuffer)
@@ -168,7 +167,6 @@ Deno.serve(async (req) => {
         base64Data, mimeType, geminiApiKey, 0, 1
       )
     } else {
-      // Large file: upload via Gemini Files API
       console.log(`Large file (${totalBytes} bytes), using Gemini Files API`)
 
       const uploadResponse = await fetch(
@@ -197,7 +195,6 @@ Deno.serve(async (req) => {
 
       console.log(`File uploaded to Gemini: ${fileUri}`)
 
-      // Wait for file to be processed
       await new Promise(resolve => setTimeout(resolve, 3000))
 
       const prompt = `Transcreva este áudio completamente em português brasileiro.
@@ -266,12 +263,14 @@ Deno.serve(async (req) => {
       updatedAt: new Date().toISOString(),
     }).eq('id', meetingId)
 
-    // Update usage counter
+    // Update usage counter (single source of truth)
     if (meetingData?.userId) {
       const currentMonth = new Date().toISOString().slice(0, 7)
+      const estimatedMinutes = Math.max(1, Math.round(totalBytes / 16000 / 60))
+
       const { data: existingUsage } = await supabase
         .from('Usage')
-        .select('id, transcriptionsUsed, currentMonth')
+        .select('id, transcriptionsUsed, totalMinutesTranscribed, currentMonth')
         .eq('userId', meetingData.userId)
         .single()
 
@@ -279,11 +278,13 @@ Deno.serve(async (req) => {
         if (existingUsage.currentMonth === currentMonth) {
           await supabase.from('Usage').update({
             transcriptionsUsed: (existingUsage.transcriptionsUsed || 0) + 1,
+            totalMinutesTranscribed: (existingUsage.totalMinutesTranscribed || 0) + estimatedMinutes,
             updatedAt: new Date().toISOString(),
           }).eq('id', existingUsage.id)
         } else {
           await supabase.from('Usage').update({
             transcriptionsUsed: 1,
+            totalMinutesTranscribed: estimatedMinutes,
             currentMonth: currentMonth,
             updatedAt: new Date().toISOString(),
           }).eq('id', existingUsage.id)
@@ -293,7 +294,7 @@ Deno.serve(async (req) => {
           userId: meetingData.userId,
           transcriptionsUsed: 1,
           currentMonth: currentMonth,
-          totalMinutesTranscribed: 0,
+          totalMinutesTranscribed: estimatedMinutes,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
@@ -307,9 +308,9 @@ Deno.serve(async (req) => {
           meetingId,
           userId: meetingData.userId,
           provider: 'gemini',
-          durationSecs: arrayBuffer?.byteLength ? Math.round(arrayBuffer.byteLength / 16000) : 0,
-          fileSizeBytes: arrayBuffer?.byteLength || 0,
-          chunks: totalChunks || 1,
+          durationSecs: Math.round(totalBytes / 16000),
+          fileSizeBytes: totalBytes,
+          chunks: 1,
           costCents: 0,
           success: true,
           createdAt: new Date().toISOString(),

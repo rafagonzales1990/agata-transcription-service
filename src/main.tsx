@@ -16,12 +16,32 @@ Sentry.init({
   },
 });
 
+// PWA Service Worker registration — only in production and outside iframes/preview
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch((error) => {
-      console.error("Service worker registration failed:", error);
+  const isInIframe = (() => {
+    try {
+      return window.self !== window.top;
+    } catch {
+      return true;
+    }
+  })();
+
+  const isPreviewHost =
+    window.location.hostname.includes("id-preview--") ||
+    window.location.hostname.includes("lovableproject.com");
+
+  if (isPreviewHost || isInIframe) {
+    // Unregister any existing service workers in preview/iframe contexts
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      registrations.forEach((r) => r.unregister());
     });
-  });
+  } else {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch((error) => {
+        console.error("Service worker registration failed:", error);
+      });
+    });
+  }
 }
 
 createRoot(document.getElementById("root")!).render(<App />);
