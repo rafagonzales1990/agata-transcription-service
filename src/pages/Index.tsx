@@ -86,6 +86,7 @@ export default function LandingPage() {
               <a href="#como-funciona" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Como Funciona</a>
               <a href="#precos" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Preços</a>
               <a href="#faq" className="text-sm text-muted-foreground hover:text-foreground transition-colors">FAQ</a>
+              <Link to="/blog" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Blog</Link>
             </nav>
 
             <div className="hidden md:flex items-center gap-3">
@@ -118,6 +119,7 @@ export default function LandingPage() {
                 <a href="#como-funciona" className="block text-sm text-muted-foreground" onClick={() => setMobileMenuOpen(false)}>Como Funciona</a>
                 <a href="#precos" className="block text-sm text-muted-foreground" onClick={() => setMobileMenuOpen(false)}>Preços</a>
                 <a href="#faq" className="block text-sm text-muted-foreground" onClick={() => setMobileMenuOpen(false)}>FAQ</a>
+                <Link to="/blog" className="block text-sm text-muted-foreground" onClick={() => setMobileMenuOpen(false)}>Blog</Link>
                 <div className="pt-3 border-t border-border flex gap-2">
                   <Link to="/auth/login" className="flex-1"><Button variant="outline" className="w-full" size="sm">Entrar</Button></Link>
                   <Link to="/auth/signup" className="flex-1"><Button className="w-full bg-primary text-primary-foreground" size="sm">Começar Grátis</Button></Link>
