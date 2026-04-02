@@ -68,6 +68,7 @@ export default function PlansPage() {
     if (plan) {
       const price = yearly ? plan.priceYearly : plan.priceMonthly;
       conversionBeginCheckout(plan.name, price / 100);
+      trackBeginCheckout(plan.name, price / 100);
     }
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
