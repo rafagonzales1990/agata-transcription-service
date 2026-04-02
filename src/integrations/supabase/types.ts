@@ -766,6 +766,7 @@ export type Database = {
     }
     Functions: {
       get_old_user_id: { Args: { _auth_uid: string }; Returns: string }
+      is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
