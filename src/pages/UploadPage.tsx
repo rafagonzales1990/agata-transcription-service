@@ -77,6 +77,7 @@ export default function UploadPage() {
 
   const handleSubmit = async () => {
     if (limitReached) return;
+    trackUploadStarted();
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error('Você precisa estar logado'); return; }
