@@ -51,7 +51,7 @@ export default function RoutinesPage() {
 
     const { data, error } = await supabase
       .from('Routine')
-      .select('id, name, description, color, icon, createdAt')
+      .select('id, name, description, color, icon, createdAt, consolidatedSummary')
       .eq('userId', user.id)
       .order('createdAt', { ascending: false });
 
