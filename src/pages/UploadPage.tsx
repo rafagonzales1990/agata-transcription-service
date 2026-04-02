@@ -130,6 +130,7 @@ export default function UploadPage() {
         meetingTime: meetingTime || null, location: location || null,
         responsible: responsible || null, participants: participantsList,
         routineId: routineId || null, createdAt: now, updatedAt: now,
+        fileExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       });
       if (insertError) throw new Error(`Erro ao criar reunião: ${insertError.message}`);
       setUploadProgress(70); setStatusMessage('Processando transcrição...');
