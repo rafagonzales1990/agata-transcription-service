@@ -847,5 +847,6 @@ export default function AdminPanel() {
         </DialogContent>
       </Dialog>
     </div>
+    </AppLayout>
   );
 }
