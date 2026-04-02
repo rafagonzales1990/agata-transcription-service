@@ -35,20 +35,15 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { signOut, profile } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [userPlanId, setUserPlanId] = useState<string>('basic');
 
   useEffect(() => {
     async function fetchAdminStatus() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase
-        .from('User')
-        .select('isAdmin, planId')
-        .eq('id', user.id)
-        .single();
-      if (data) {
-        setIsAdmin(data.isAdmin || false);
-        setUserPlanId(data.planId || 'basic');
+      const { data, error } = await supabase.functions.invoke('admin-users', {
+        method: 'GET',
+      });
+      // If the function returns users, the user is admin
+      if (!error && data?.users) {
+        setIsAdmin(true);
       }
     }
     fetchAdminStatus();
@@ -149,7 +144,6 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="min-h-screen bg-muted/30 flex">
-      {/* Sidebar - Desktop */}
       <aside className="hidden md:flex w-64 bg-white border-r border-border flex-col fixed inset-y-0 left-0 z-30">
         <div className="p-4 border-b border-border">
           <LogoBrand />
@@ -157,7 +151,6 @@ export function AppLayout({ children }: AppLayoutProps) {
         <SidebarNav />
       </aside>
 
-      {/* Topbar */}
       <div className="fixed top-0 left-0 right-0 md:left-64 z-40 h-14 lg:h-16 bg-white/95 backdrop-blur-sm border-b border-border flex items-center justify-between px-4">
         <div className="flex items-center gap-3 md:hidden">
           <button onClick={() => setSidebarOpen(true)}>
@@ -210,7 +203,6 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
       </div>
 
-      {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div className="md:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-foreground/50" onClick={() => setSidebarOpen(false)} />
@@ -226,7 +218,6 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
       )}
 
-      {/* Main Content */}
       <main className="flex-1 md:ml-64 pt-14 lg:pt-16">
         <TrialBanner />
         <div className="p-4 md:p-8">
