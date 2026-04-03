@@ -1,30 +1,36 @@
 
+## LinkedIn Demo Funnel — Plano de Implementação
 
-## Review: Redirect URLs Configuration
+### Fase 1 — Database + GA4 helpers
+- Criar tabela `Lead` com todos os campos, indexes, RLS e trigger de `updatedAt`
+- Adicionar eventos GA4 no helper `src/lib/gtag.ts`
 
-The application code is correct — all redirect URLs use `window.location.origin` dynamically, so they adapt to whatever domain the app runs on. No code changes are needed.
+### Fase 2 — Landing Page `/demo`
+- Página pública com hero, ICP chips, benefícios, FAQ, social proof
+- Captura de UTMs da URL
+- Persona dinâmica no copy
+- Sticky CTA mobile
+- Formulário de lead capture inline
 
-### What you need to verify in the Supabase Dashboard
+### Fase 3 — Demo Experience
+- Tabs: upload áudio / colar texto
+- Limite de 5min áudio / 5000 chars texto
+- Chamada ao generate-summary existente
+- Exibição de resumo + CTA de conversão
 
-Go to **Authentication → URL Configuration** at:
-https://supabase.com/dashboard/project/hblczvmpyaznbxvdcaze/auth/url-configuration
+### Fase 4 — Signup Attribution + Checkout Attribution
+- Conectar Lead ao user no signup (match por email)
+- Atualizar Lead no checkout/pagamento via stripe-webhook
 
-1. **Site URL** — must be your published domain:
-   `https://agatatranscription.lovable.app`
+### Fase 5 — Email Templates + Follow-up
+- Templates: demo-ready, demo-followup-24h, demo-followup-72h
+- Edge function `followup-demo-leads` com lógica de cron
+- Campos `demoFollowup24hSent` e `demoFollowup72hSent` na tabela Lead
 
-2. **Redirect URLs** — must include these entries:
-   - `https://agatatranscription.lovable.app/**`
-   - `https://id-preview--fecdc2ef-e597-4fee-a785-8f8d4d787833.lovable.app/**`
+### Fase 6 — Admin Leads View
+- Página `/admin/leads` com tabela, filtros, busca, ações básicas
 
-   The wildcard `/**` pattern allows all sub-paths (like `/auth/reset-password`) to work.
-
-3. **Remove** any old entries pointing to `localhost:3000` or old Next.js domains.
-
-### Why this matters
-
-Supabase validates the redirect URL against the allowlist. If `agatatranscription.lovable.app` isn't listed, the password reset link will either fail or redirect to the wrong place.
-
-### No code changes required
-
-All three files (`Login.tsx`, `ForgotPassword.tsx`, `Signup.tsx`) already use `window.location.origin` correctly.
-
+### Notas
+- Não altera páginas existentes além de signup attribution
+- Reutiliza generate-summary e send-email existentes
+- MVP funcional, com comentários para futuras melhorias
