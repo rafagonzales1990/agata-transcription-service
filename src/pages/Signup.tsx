@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Sparkles, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { conversionSignup, trackSignup } from '@/lib/gtag';
+import { conversionSignup, trackSignup, trialStartedFromDemo } from '@/lib/gtag';
 
 export default function SignupPage() {
   const [name, setName] = useState('');
