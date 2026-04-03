@@ -132,11 +132,6 @@ function demoFollowup72hTemplate(name: string, persona: string | null): string {
 <p style="color:#4b5563;line-height:1.6;margin:0 0 20px;text-align:center">Comece seu teste grátis de 30 dias e veja a diferença na produtividade.</p>
 <div style="text-align:center">${btn('Começar teste grátis →', BASE_URL + '/auth/signup')}</div>`)
 }
-  return baseLayout(`
-<h1 style="margin:0 0 16px;font-size:22px;color:#111827;text-align:center">Você está aproveitando bem a Ágata, ${name}! 📈</h1>
-<p style="color:#4b5563;line-height:1.6;margin:0 0 20px;text-align:center">Você já usou <strong>${used}</strong> de <strong>${max}</strong> transcrições este mês. Que tal fazer upgrade para o <strong>${nextPlan}</strong> e ter mais recursos?</p>
-<div style="text-align:center">${btn('Conhecer o ' + nextPlan + ' →', BASE_URL + '/plans')}</div>`)
-}
 
 async function sendEmail(to: string, subject: string, html: string) {
   const res = await fetch('https://api.resend.com/emails', {
