@@ -95,6 +95,8 @@ const App = () => (
             <Route path="/blog/:slug" element={<BlogPostPage />} />
             <Route path="/legal/terms" element={<LegalTerms />} />
             <Route path="/legal/lgpd" element={<LegalLgpd />} />
+            <Route path="/demo" element={<Demo />} />
+            <Route path="/admin/leads" element={<ProtectedRoute><AdminLeads /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>
