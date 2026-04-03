@@ -15,6 +15,8 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const leadId = searchParams.get('leadId');
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
