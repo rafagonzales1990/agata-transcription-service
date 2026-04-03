@@ -34,6 +34,8 @@ import BlogPostPage from "./pages/BlogPost";
 import Teams from "./pages/Teams";
 import LegalTerms from "./pages/LegalTerms";
 import LegalLgpd from "./pages/LegalLgpd";
+import Demo from "./pages/Demo";
+import AdminLeads from "./pages/AdminLeads";
 
 const queryClient = new QueryClient();
 
