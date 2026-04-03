@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Sparkles, Eye, EyeOff, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { conversionSignup, trackSignup } from '@/lib/gtag';
+import { conversionSignup, trackSignup, trialStartedFromDemo } from '@/lib/gtag';
 
 export default function SignupPage() {
   const [name, setName] = useState('');
@@ -15,6 +15,8 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const leadId = searchParams.get('leadId');
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +45,40 @@ export default function SignupPage() {
       } catch (emailErr) {
         console.error('Failed to send welcome email:', emailErr);
       }
+
+      // Lead attribution: link lead to new user
+      if (leadId) {
+        try {
+          const { data: { user: newUser } } = await supabase.auth.getUser();
+          if (newUser) {
+            await supabase.from('Lead' as any).update({
+              userId: newUser.id,
+              status: 'trial_started',
+              lastStep: 'signup_completed',
+              trialStartedAt: new Date().toISOString(),
+            } as any).eq('id', leadId);
+            trialStartedFromDemo({ leadId });
+          }
+        } catch (e) {
+          console.error('Lead attribution error:', e);
+        }
+      } else {
+        // Try to match by email
+        try {
+          const { data: { user: newUser } } = await supabase.auth.getUser();
+          if (newUser) {
+            await supabase.from('Lead' as any).update({
+              userId: newUser.id,
+              status: 'trial_started',
+              lastStep: 'signup_completed',
+              trialStartedAt: new Date().toISOString(),
+            } as any).eq('email', email).is('userId', null);
+          }
+        } catch (e) {
+          console.error('Lead email match error:', e);
+        }
+      }
+
       conversionSignup();
       trackSignup();
       toast.success('Conta criada! Verifique seu email para confirmar.');

@@ -485,14 +485,17 @@ export default function AdminPanel() {
           <LogoIcon size={32} />
           <h1 className="text-lg font-bold text-foreground">Admin Console</h1>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => refreshUsers()}>
-            <RefreshCw className="h-4 w-4 mr-1" /> Refresh
-          </Button>
-          <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => { setFormName(''); setFormEmail(''); setFormPassword(''); setFormPlan('basic'); setFormAdmin(false); setShowNewUser(true); }}>
-            <Plus className="h-4 w-4 mr-1" /> Novo Usuário
-          </Button>
-        </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate('/admin/leads')}>
+              Leads Demo
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => refreshUsers()}>
+              <RefreshCw className="h-4 w-4 mr-1" /> Refresh
+            </Button>
+            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => { setFormName(''); setFormEmail(''); setFormPassword(''); setFormPlan('basic'); setFormAdmin(false); setShowNewUser(true); }}>
+              <Plus className="h-4 w-4 mr-1" /> Novo Usuário
+            </Button>
+          </div>
       </div>
 
       <div className="p-6">

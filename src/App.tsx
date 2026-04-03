@@ -34,6 +34,8 @@ import BlogPostPage from "./pages/BlogPost";
 import Teams from "./pages/Teams";
 import LegalTerms from "./pages/LegalTerms";
 import LegalLgpd from "./pages/LegalLgpd";
+import Demo from "./pages/Demo";
+import AdminLeads from "./pages/AdminLeads";
 
 const queryClient = new QueryClient();
 
@@ -93,6 +95,8 @@ const App = () => (
             <Route path="/blog/:slug" element={<BlogPostPage />} />
             <Route path="/legal/terms" element={<LegalTerms />} />
             <Route path="/legal/lgpd" element={<LegalLgpd />} />
+            <Route path="/demo" element={<Demo />} />
+            <Route path="/admin/leads" element={<ProtectedRoute><AdminLeads /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>

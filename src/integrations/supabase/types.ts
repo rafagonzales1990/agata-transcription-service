@@ -145,6 +145,87 @@ export type Database = {
         }
         Relationships: []
       }
+      Lead: {
+        Row: {
+          campaign: string | null
+          company: string | null
+          content: string | null
+          convertedAt: string | null
+          createdAt: string
+          demoCompletedAt: string | null
+          demoFollowup24hSent: boolean
+          demoFollowup72hSent: boolean
+          email: string | null
+          id: string
+          lastStep: string
+          linkedinUrl: string | null
+          medium: string | null
+          meetingId: string | null
+          name: string | null
+          notes: string | null
+          persona: string | null
+          phone: string | null
+          role: string | null
+          source: string
+          status: string
+          trialStartedAt: string | null
+          updatedAt: string
+          userId: string | null
+        }
+        Insert: {
+          campaign?: string | null
+          company?: string | null
+          content?: string | null
+          convertedAt?: string | null
+          createdAt?: string
+          demoCompletedAt?: string | null
+          demoFollowup24hSent?: boolean
+          demoFollowup72hSent?: boolean
+          email?: string | null
+          id?: string
+          lastStep?: string
+          linkedinUrl?: string | null
+          medium?: string | null
+          meetingId?: string | null
+          name?: string | null
+          notes?: string | null
+          persona?: string | null
+          phone?: string | null
+          role?: string | null
+          source?: string
+          status?: string
+          trialStartedAt?: string | null
+          updatedAt?: string
+          userId?: string | null
+        }
+        Update: {
+          campaign?: string | null
+          company?: string | null
+          content?: string | null
+          convertedAt?: string | null
+          createdAt?: string
+          demoCompletedAt?: string | null
+          demoFollowup24hSent?: boolean
+          demoFollowup72hSent?: boolean
+          email?: string | null
+          id?: string
+          lastStep?: string
+          linkedinUrl?: string | null
+          medium?: string | null
+          meetingId?: string | null
+          name?: string | null
+          notes?: string | null
+          persona?: string | null
+          phone?: string | null
+          role?: string | null
+          source?: string
+          status?: string
+          trialStartedAt?: string | null
+          updatedAt?: string
+          userId?: string | null
+        }
+        Relationships: []
+      }
       Meeting: {
         Row: {
           actionItems: string[]

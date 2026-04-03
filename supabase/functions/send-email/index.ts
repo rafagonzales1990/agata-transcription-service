@@ -94,6 +94,45 @@ function upgradeSuggestionTemplate(name: string, used: number, max: number, next
 <div style="text-align:center">${btn('Conhecer o ' + nextPlan + ' →', BASE_URL + '/plans')}</div>`)
 }
 
+function demoReadyTemplate(name: string, summaryPreview: string): string {
+  return baseLayout(`
+<h1 style="margin:0 0 16px;font-size:22px;color:#111827;text-align:center">Sua reunião já virou resumo com a Ágata ✅</h1>
+<p style="color:#4b5563;line-height:1.6;margin:0 0 16px;text-align:center">Olá, ${name}! O resumo da sua reunião foi gerado com sucesso.</p>
+<div style="background:#f3f4f6;border-radius:8px;padding:16px;margin:0 0 20px">
+<p style="margin:0;color:#374151;font-size:13px;line-height:1.5"><em>"${summaryPreview}..."</em></p>
+</div>
+<p style="color:#4b5563;line-height:1.6;margin:0 0 20px;text-align:center">Crie sua conta grátis para salvar suas transcrições, gerar ATAs em PDF/Word e aproveitar todos os recursos.</p>
+<div style="text-align:center">${btn('Começar teste grátis →', BASE_URL + '/auth/signup')}</div>
+<p style="text-align:center;color:#9ca3af;font-size:13px;margin-top:16px">30 dias grátis · Sem cartão de crédito</p>`)
+}
+
+function demoFollowup24hTemplate(name: string, persona: string | null): string {
+  const personaText = persona === 'juridico' ? ' para equipes jurídicas'
+    : persona === 'rh' ? ' para times de RH'
+    : persona === 'marketing' ? ' para equipes de marketing'
+    : ''
+  return baseLayout(`
+<h1 style="margin:0 0 16px;font-size:22px;color:#111827;text-align:center">Seu resumo está esperando, ${name}</h1>
+<p style="color:#4b5563;line-height:1.6;margin:0 0 20px;text-align:center">Você testou a Ágata e viu como funciona${personaText}. Agora crie sua conta para salvar reuniões, gerar ATAs em PDF e acompanhar o histórico do seu time.</p>
+<div style="text-align:center">${btn('Criar conta grátis →', BASE_URL + '/auth/signup')}</div>
+<p style="text-align:center;color:#9ca3af;font-size:13px;margin-top:16px">30 dias grátis · 5 transcrições incluídas · Sem cartão</p>`)
+}
+
+function demoFollowup72hTemplate(name: string, persona: string | null): string {
+  let useCases = ''
+  if (persona === 'juridico') useCases = '<li>Transcrição de audiências e alinhamentos</li><li>ATAs formais para processos</li>'
+  else if (persona === 'rh') useCases = '<li>Registro de entrevistas e feedbacks</li><li>Documentação de reuniões de desenvolvimento</li>'
+  else if (persona === 'marketing') useCases = '<li>Atas de reuniões de campanha</li><li>Registro de brainstormings e alinhamentos</li>'
+  else useCases = '<li>Documentação automática de reuniões</li><li>Resumos com IA e ATA em PDF</li>'
+
+  return baseLayout(`
+<h1 style="margin:0 0 16px;font-size:22px;color:#111827;text-align:center">Última chamada, ${name} 🔔</h1>
+<p style="color:#4b5563;line-height:1.6;margin:0 0 16px;text-align:center">Times como o seu estão usando a Ágata para:</p>
+<ul style="color:#4b5563;line-height:2;padding-left:20px;margin:0 0 20px">${useCases}</ul>
+<p style="color:#4b5563;line-height:1.6;margin:0 0 20px;text-align:center">Comece seu teste grátis de 30 dias e veja a diferença na produtividade.</p>
+<div style="text-align:center">${btn('Começar teste grátis →', BASE_URL + '/auth/signup')}</div>`)
+}
+
 async function sendEmail(to: string, subject: string, html: string) {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -145,6 +184,18 @@ Deno.serve(async (req) => {
       case 'upgrade_suggestion':
         subject = 'Você está quase no limite — conheça o próximo plano'
         html = upgradeSuggestionTemplate(data.name, data.used, data.max, data.nextPlan)
+        break
+      case 'demo-ready':
+        subject = 'Sua reunião já virou resumo com a Ágata ✅'
+        html = demoReadyTemplate(data.name, data.summaryPreview || '')
+        break
+      case 'demo-followup-24h':
+        subject = 'Seu resumo está esperando — crie sua conta grátis'
+        html = demoFollowup24hTemplate(data.name, data.persona)
+        break
+      case 'demo-followup-72h':
+        subject = 'Última chamada — comece seu teste grátis na Ágata'
+        html = demoFollowup72hTemplate(data.name, data.persona)
         break
       default:
         return new Response(
