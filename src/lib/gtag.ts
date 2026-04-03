@@ -71,3 +71,53 @@ export const trackFirstTranscription = () =>
 
 export const trackUploadStarted = () =>
   pushEvent('upload_started')
+
+// --- Demo Funnel events ---
+interface DemoEventParams {
+  source?: string
+  campaign?: string
+  medium?: string
+  persona?: string
+  leadId?: string
+  meetingId?: string
+}
+
+export const demoLandingView = (params?: DemoEventParams) => {
+  gtag('event', 'demo_landing_view', params)
+  pushEvent('demo_landing_view', params)
+}
+
+export const demoLeadCreated = (params?: DemoEventParams) => {
+  gtag('event', 'demo_lead_created', params)
+  pushEvent('demo_lead_created', params)
+}
+
+export const demoStarted = (params?: DemoEventParams) => {
+  gtag('event', 'demo_started', params)
+  pushEvent('demo_started', params)
+}
+
+export const demoCompleted = (params?: DemoEventParams) => {
+  gtag('event', 'demo_completed', params)
+  pushEvent('demo_completed', params)
+}
+
+export const demoSignupClick = (params?: DemoEventParams) => {
+  gtag('event', 'demo_signup_click', params)
+  pushEvent('demo_signup_click', params)
+}
+
+export const trialStartedFromDemo = (params?: DemoEventParams) => {
+  gtag('event', 'trial_started_from_demo', params)
+  pushEvent('trial_started_from_demo', params)
+}
+
+export const demoBeginCheckout = (params?: DemoEventParams) => {
+  gtag('event', 'demo_begin_checkout', params)
+  pushEvent('demo_begin_checkout', params)
+}
+
+export const paidFromDemo = (params?: DemoEventParams) => {
+  gtag('event', 'paid_from_demo', params)
+  pushEvent('paid_from_demo', params)
+}
