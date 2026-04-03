@@ -45,6 +45,40 @@ export default function SignupPage() {
       } catch (emailErr) {
         console.error('Failed to send welcome email:', emailErr);
       }
+
+      // Lead attribution: link lead to new user
+      if (leadId) {
+        try {
+          const { data: { user: newUser } } = await supabase.auth.getUser();
+          if (newUser) {
+            await supabase.from('Lead' as any).update({
+              userId: newUser.id,
+              status: 'trial_started',
+              lastStep: 'signup_completed',
+              trialStartedAt: new Date().toISOString(),
+            } as any).eq('id', leadId);
+            trialStartedFromDemo({ leadId });
+          }
+        } catch (e) {
+          console.error('Lead attribution error:', e);
+        }
+      } else {
+        // Try to match by email
+        try {
+          const { data: { user: newUser } } = await supabase.auth.getUser();
+          if (newUser) {
+            await supabase.from('Lead' as any).update({
+              userId: newUser.id,
+              status: 'trial_started',
+              lastStep: 'signup_completed',
+              trialStartedAt: new Date().toISOString(),
+            } as any).eq('email', email).is('userId', null);
+          }
+        } catch (e) {
+          console.error('Lead email match error:', e);
+        }
+      }
+
       conversionSignup();
       trackSignup();
       toast.success('Conta criada! Verifique seu email para confirmar.');
