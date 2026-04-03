@@ -98,6 +98,17 @@ Deno.serve(async (req) => {
             } catch (emailErr) {
               console.error('Failed to send payment email:', emailErr)
             }
+
+            // Lead attribution: mark lead as paid
+            try {
+              await supabase.from('Lead').update({
+                status: 'paid',
+                lastStep: 'paid',
+                convertedAt: new Date().toISOString(),
+              }).eq('userId', userId)
+            } catch (leadErr) {
+              console.error('Lead attribution error:', leadErr)
+            }
           }
         }
         break
