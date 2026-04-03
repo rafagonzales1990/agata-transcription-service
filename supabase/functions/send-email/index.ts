@@ -190,6 +190,18 @@ Deno.serve(async (req) => {
         subject = 'Você está quase no limite — conheça o próximo plano'
         html = upgradeSuggestionTemplate(data.name, data.used, data.max, data.nextPlan)
         break
+      case 'demo-ready':
+        subject = 'Sua reunião já virou resumo com a Ágata ✅'
+        html = demoReadyTemplate(data.name, data.summaryPreview || '')
+        break
+      case 'demo-followup-24h':
+        subject = 'Seu resumo está esperando — crie sua conta grátis'
+        html = demoFollowup24hTemplate(data.name, data.persona)
+        break
+      case 'demo-followup-72h':
+        subject = 'Última chamada — comece seu teste grátis na Ágata'
+        html = demoFollowup72hTemplate(data.name, data.persona)
+        break
       default:
         return new Response(
           JSON.stringify({ error: 'Invalid email type' }),
