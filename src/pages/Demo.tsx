@@ -283,10 +283,13 @@ export default function DemoPage() {
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
             <Button size="lg" className="bg-primary hover:bg-emerald-600 text-primary-foreground gap-2"
-              onClick={() => {
-                const target = formSubmitted ? demoRef : document.getElementById('lead-form');
-                target?.scrollIntoView({ behavior: 'smooth' });
-              }}>
+            onClick={() => {
+              if (formSubmitted) {
+                demoRef.current?.scrollIntoView({ behavior: 'smooth' });
+              } else {
+                document.getElementById('lead-form')?.scrollIntoView({ behavior: 'smooth' });
+              }
+            }}>
               <Play className="h-4 w-4" /> Testar com uma reunião
             </Button>
             {summaryResult && (
