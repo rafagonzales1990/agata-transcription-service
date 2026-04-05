@@ -476,6 +476,7 @@ export default function AdminPanel() {
         <div className="flex items-center gap-3">
           <LogoIcon size={32} />
           <h1 className="text-lg font-bold text-foreground">Admin Console</h1>
+          <VersionBadge showChangelog={false} className="ml-2" />
         </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => navigate('/admin/leads')}>
