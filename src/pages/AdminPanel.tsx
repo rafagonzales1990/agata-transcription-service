@@ -78,7 +78,7 @@ function EditUserDialog({ open, onOpenChange, user, groups, onSubmit }: {
       setForm({
         name: user.name || '', email: user.email || '',
         planId: user.planId || 'basic', billingCycle: user.billingCycle || 'monthly',
-        isAdmin: user.isAdmin || false, adminGroupId: user.adminGroupId || '',
+        adminGroupId: user.adminGroupId || '',
       });
     }
   }, [open, user]);
