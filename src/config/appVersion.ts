@@ -26,8 +26,8 @@
  */
 
 export const appVersion = {
-  version: 'v0.9.0',
-  releaseDate: '2026-04-03',
+  version: 'v0.9.1',
+  releaseDate: '2026-04-05',
   environmentLabel: (import.meta.env.MODE === 'production' ? 'production' : 'dev') as string,
   changelog: [
     'Fixed upload/transcription flow',
