@@ -70,7 +70,7 @@ function EditUserDialog({ open, onOpenChange, user, groups, onSubmit }: {
   open: boolean; onOpenChange: (o: boolean) => void; user: AdminUser | null;
   groups: AdminGroup[]; onSubmit: (userId: string, data: any) => Promise<void>;
 }) {
-  const [form, setForm] = useState({ name: '', email: '', planId: 'basic', billingCycle: 'monthly', isAdmin: false, adminGroupId: '' });
+  const [form, setForm] = useState({ name: '', email: '', planId: 'basic', billingCycle: 'monthly', adminGroupId: '' });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
