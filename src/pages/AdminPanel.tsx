@@ -70,7 +70,7 @@ function EditUserDialog({ open, onOpenChange, user, groups, onSubmit }: {
   open: boolean; onOpenChange: (o: boolean) => void; user: AdminUser | null;
   groups: AdminGroup[]; onSubmit: (userId: string, data: any) => Promise<void>;
 }) {
-  const [form, setForm] = useState({ name: '', email: '', planId: 'basic', billingCycle: 'monthly', isAdmin: false, adminGroupId: '' });
+  const [form, setForm] = useState({ name: '', email: '', planId: 'basic', billingCycle: 'monthly', adminGroupId: '' });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -78,7 +78,7 @@ function EditUserDialog({ open, onOpenChange, user, groups, onSubmit }: {
       setForm({
         name: user.name || '', email: user.email || '',
         planId: user.planId || 'basic', billingCycle: user.billingCycle || 'monthly',
-        isAdmin: user.isAdmin || false, adminGroupId: user.adminGroupId || '',
+        adminGroupId: user.adminGroupId || '',
       });
     }
   }, [open, user]);
@@ -132,10 +132,6 @@ function EditUserDialog({ open, onOpenChange, user, groups, onSubmit }: {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-          <div className="flex items-center justify-between py-1">
-            <Label className="text-xs">Administrador</Label>
-            <Switch checked={form.isAdmin} onCheckedChange={v => setForm({ ...form, isAdmin: v })} />
           </div>
           {user?.stripeSubscriptionId && (
             <div className="p-3 bg-gray-50 rounded border text-xs font-mono space-y-1">
@@ -259,7 +255,7 @@ export default function AdminPanel() {
   const [formEmail, setFormEmail] = useState('');
   const [formPassword, setFormPassword] = useState('');
   const [formPlan, setFormPlan] = useState('basic');
-  const [formAdmin, setFormAdmin] = useState(false);
+  
 
   // Group form
   const [gName, setGName] = useState('');
@@ -320,7 +316,7 @@ export default function AdminPanel() {
   const handleEditSubmit = async (userId: string, data: any) => {
     const { error } = await supabase.from('User').update({
       name: data.name, email: data.email, planId: data.planId,
-      billingCycle: data.billingCycle, isAdmin: data.isAdmin,
+      billingCycle: data.billingCycle,
       adminGroupId: data.adminGroupId || null, updatedAt: new Date().toISOString(),
     }).eq('id', userId);
     if (error) { toast.error('Erro ao salvar alterações'); throw error; }
@@ -339,13 +335,6 @@ export default function AdminPanel() {
     refreshUsers();
   };
 
-  const handleToggleAdmin = async (u: AdminUser) => {
-    const newValue = !u.isAdmin;
-    const { error } = await supabase.from('User').update({ isAdmin: newValue, updatedAt: new Date().toISOString() }).eq('id', u.id);
-    if (error) { toast.error('Erro ao alterar admin'); return; }
-    toast.success(newValue ? 'Usuário agora é admin' : 'Admin removido');
-    refreshUsers();
-  };
 
   const handleAssignGroup = async (userId: string, groupId: string | null) => {
     const { error } = await supabase.from('User').update({ adminGroupId: groupId, updatedAt: new Date().toISOString() }).eq('id', userId);
@@ -366,12 +355,12 @@ export default function AdminPanel() {
     try {
       const { error } = await supabase.functions.invoke('admin-users', {
         method: 'POST',
-        body: { name: formName, email: formEmail, password: formPassword, planId: formPlan, isAdmin: formAdmin },
+        body: { name: formName, email: formEmail, password: formPassword, planId: formPlan, isAdmin: false },
       });
       if (error) throw error;
       toast.success('Usuário criado!');
       setShowNewUser(false);
-      setFormName(''); setFormEmail(''); setFormPassword(''); setFormPlan('basic'); setFormAdmin(false);
+      setFormName(''); setFormEmail(''); setFormPassword(''); setFormPlan('basic');
       refreshUsers();
     } catch (e: any) { toast.error(e.message); }
   };
@@ -492,7 +481,7 @@ export default function AdminPanel() {
             <Button variant="outline" size="sm" onClick={() => refreshUsers()}>
               <RefreshCw className="h-4 w-4 mr-1" /> Refresh
             </Button>
-            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => { setFormName(''); setFormEmail(''); setFormPassword(''); setFormPlan('basic'); setFormAdmin(false); setShowNewUser(true); }}>
+            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => { setFormName(''); setFormEmail(''); setFormPassword(''); setFormPlan('basic'); setShowNewUser(true); }}>
               <Plus className="h-4 w-4 mr-1" /> Novo Usuário
             </Button>
           </div>
@@ -674,10 +663,6 @@ export default function AdminPanel() {
                                 onClick={() => { setSelectedUser(u); setAssignGroupOpen(true); }}><FolderOpen className="h-3.5 w-3.5" /></Button>
                               <Button variant="ghost" size="icon" className={`h-7 w-7 ${u.planId === 'enterprise' ? 'text-purple-500 hover:text-purple-700 hover:bg-purple-50' : 'text-gray-300 hover:text-purple-500 hover:bg-purple-50'}`} title="Conceder Enterprise gratuito"
                                 onClick={() => { setSelectedUser(u); setGiftOpen(true); }}><Gift className="h-3.5 w-3.5" /></Button>
-                              <Button variant="ghost" size="icon"
-                                className={`h-7 w-7 ${u.isAdmin ? 'text-amber-500 hover:bg-amber-50' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50'}`}
-                                title={u.isAdmin ? 'Remover admin' : 'Tornar admin'}
-                                onClick={() => handleToggleAdmin(u)}><Shield className="h-3.5 w-3.5" /></Button>
                               <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-600 hover:bg-red-50" title="Excluir usuário"
                                 onClick={() => handleDeleteUser(u.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                             </div>
@@ -827,7 +812,7 @@ export default function AdminPanel() {
                 <SelectContent>{Object.entries(PLAN_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="flex items-center gap-2"><Switch checked={formAdmin} onCheckedChange={setFormAdmin} /><Label>Admin</Label></div>
+            
           </div>
           <DialogFooter><Button onClick={createUser}>Criar Usuário</Button></DialogFooter>
         </DialogContent>
