@@ -20,7 +20,7 @@ export function VersionBadge({ showChangelog = true, className = '' }: VersionBa
     </span>
   );
 
-  if (!showChangelog || appVersion.changelog.length === 0) return badge;
+  if (!showChangelog || !appVersion.changelog.length) return badge;
 
   return (
     <TooltipProvider delayDuration={300}>
