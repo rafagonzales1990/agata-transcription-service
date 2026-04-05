@@ -16,6 +16,7 @@ import { TrialBanner } from '@/components/TrialBanner';
 import { LogoIcon } from '@/components/LogoIcon';
 import { PWAInstallButton } from '@/components/PWAInstallButton';
 import { VersionBadge } from '@/components/VersionBadge';
+import { TrialAds } from '@/components/TrialAds';
 import { supabase } from '@/integrations/supabase/client';
 
 const menuItems = [
@@ -237,6 +238,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <div className="p-4 md:p-8">
           {children}
         </div>
+        <TrialAds />
       </main>
     </div>
   );
