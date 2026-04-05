@@ -13,13 +13,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  RefreshCw, Plus, Pencil, Trash2, Shield, X, Copy,
+  RefreshCw, Plus, Pencil, Trash2, Shield, X, Copy, ChevronDown,
   DollarSign, Users, Clock, Zap, TrendingUp, BarChart3, FileAudio, Loader2, FolderOpen, Gift, Database,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { LogoIcon } from '@/components/LogoIcon';
+import { VersionBadge } from '@/components/VersionBadge';
+import { appVersion } from '@/config/appVersion';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 // ── Constants ──────────────────────────────────────────────
 const PLAN_COLORS: Record<string, string> = {
@@ -473,6 +476,7 @@ export default function AdminPanel() {
         <div className="flex items-center gap-3">
           <LogoIcon size={32} />
           <h1 className="text-lg font-bold text-foreground">Admin Console</h1>
+          <VersionBadge showChangelog={false} className="ml-2" />
         </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => navigate('/admin/leads')}>
@@ -550,6 +554,46 @@ export default function AdminPanel() {
                 </div>
               </CardContent>
             </Card>
+
+            <Collapsible>
+              <Card className="bg-white">
+                <CardHeader className="pb-2">
+                  <CollapsibleTrigger className="flex items-center justify-between w-full">
+                    <CardTitle className="text-base">Versão Atual</CardTitle>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  </CollapsibleTrigger>
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground font-mono mt-1">
+                    <span>{appVersion.version}</span>
+                    <span className="opacity-40">•</span>
+                    <span>{appVersion.releaseDate}</span>
+                    <span className="opacity-40">•</span>
+                    <span>{appVersion.environmentLabel}</span>
+                  </div>
+                </CardHeader>
+                <CollapsibleContent>
+                  <CardContent className="pt-2 space-y-3">
+                    <ul className="text-sm space-y-1 list-disc pl-5 text-muted-foreground">
+                      {appVersion.changelog.map((item, i) => (
+                        <li key={i}>{item}</li>
+                      ))}
+                    </ul>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => {
+                        const info = `Ágata ${appVersion.version}\nRelease: ${appVersion.releaseDate}\nEnv: ${appVersion.environmentLabel}\n\nChangelog:\n${appVersion.changelog.map(c => `- ${c}`).join('\n')}`;
+                        navigator.clipboard.writeText(info);
+                        toast.success('Informações de versão copiadas!');
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                      Copiar informações
+                    </Button>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
 
             <Card className="bg-white">
               <CardHeader>

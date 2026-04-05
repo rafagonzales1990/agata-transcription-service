@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Sparkles, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { VersionBadge } from '@/components/VersionBadge';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -149,9 +150,12 @@ export default function LoginPage() {
               Não tem conta?{' '}
               <Link to="/auth/signup" className="text-primary hover:underline font-medium">Criar conta grátis</Link>
             </p>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+           </CardContent>
+         </Card>
+         <div className="text-center mt-6">
+           <VersionBadge showChangelog={false} />
+         </div>
+       </div>
+     </div>
   );
 }
