@@ -555,7 +555,46 @@ export default function AdminPanel() {
               </CardContent>
             </Card>
 
-            <Card className="bg-white">
+            <Collapsible>
+              <Card className="bg-white">
+                <CardHeader className="pb-2">
+                  <CollapsibleTrigger className="flex items-center justify-between w-full">
+                    <CardTitle className="text-base">Versão Atual</CardTitle>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  </CollapsibleTrigger>
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground font-mono mt-1">
+                    <span>{appVersion.version}</span>
+                    <span className="opacity-40">•</span>
+                    <span>{appVersion.releaseDate}</span>
+                    <span className="opacity-40">•</span>
+                    <span>{appVersion.environmentLabel}</span>
+                  </div>
+                </CardHeader>
+                <CollapsibleContent>
+                  <CardContent className="pt-2 space-y-3">
+                    <ul className="text-sm space-y-1 list-disc pl-5 text-muted-foreground">
+                      {appVersion.changelog.map((item, i) => (
+                        <li key={i}>{item}</li>
+                      ))}
+                    </ul>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => {
+                        const info = `Ágata ${appVersion.version}\nRelease: ${appVersion.releaseDate}\nEnv: ${appVersion.environmentLabel}\n\nChangelog:\n${appVersion.changelog.map(c => `- ${c}`).join('\n')}`;
+                        navigator.clipboard.writeText(info);
+                        toast.success('Informações de versão copiadas!');
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                      Copiar informações
+                    </Button>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+
               <CardHeader>
                 <CardTitle className="text-base">Ações</CardTitle>
               </CardHeader>
