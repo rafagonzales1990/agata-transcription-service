@@ -316,7 +316,7 @@ export default function AdminPanel() {
   const handleEditSubmit = async (userId: string, data: any) => {
     const { error } = await supabase.from('User').update({
       name: data.name, email: data.email, planId: data.planId,
-      billingCycle: data.billingCycle, isAdmin: data.isAdmin,
+      billingCycle: data.billingCycle,
       adminGroupId: data.adminGroupId || null, updatedAt: new Date().toISOString(),
     }).eq('id', userId);
     if (error) { toast.error('Erro ao salvar alterações'); throw error; }
