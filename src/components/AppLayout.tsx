@@ -238,6 +238,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <div className="p-4 md:p-8">
           {children}
         </div>
+        <TrialAds />
       </main>
     </div>
   );
