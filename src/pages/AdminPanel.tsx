@@ -670,10 +670,6 @@ export default function AdminPanel() {
                                 onClick={() => { setSelectedUser(u); setAssignGroupOpen(true); }}><FolderOpen className="h-3.5 w-3.5" /></Button>
                               <Button variant="ghost" size="icon" className={`h-7 w-7 ${u.planId === 'enterprise' ? 'text-purple-500 hover:text-purple-700 hover:bg-purple-50' : 'text-gray-300 hover:text-purple-500 hover:bg-purple-50'}`} title="Conceder Enterprise gratuito"
                                 onClick={() => { setSelectedUser(u); setGiftOpen(true); }}><Gift className="h-3.5 w-3.5" /></Button>
-                              <Button variant="ghost" size="icon"
-                                className={`h-7 w-7 ${u.isAdmin ? 'text-amber-500 hover:bg-amber-50' : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50'}`}
-                                title={u.isAdmin ? 'Remover admin' : 'Tornar admin'}
-                                onClick={() => handleToggleAdmin(u)}><Shield className="h-3.5 w-3.5" /></Button>
                               <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-600 hover:bg-red-50" title="Excluir usuário"
                                 onClick={() => handleDeleteUser(u.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                             </div>
