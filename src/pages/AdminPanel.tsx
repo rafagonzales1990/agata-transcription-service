@@ -360,7 +360,7 @@ export default function AdminPanel() {
       if (error) throw error;
       toast.success('Usuário criado!');
       setShowNewUser(false);
-      setFormName(''); setFormEmail(''); setFormPassword(''); setFormPlan('basic'); setFormAdmin(false);
+      setFormName(''); setFormEmail(''); setFormPassword(''); setFormPlan('basic');
       refreshUsers();
     } catch (e: any) { toast.error(e.message); }
   };
