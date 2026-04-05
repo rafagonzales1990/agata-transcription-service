@@ -595,6 +595,7 @@ export default function AdminPanel() {
               </Card>
             </Collapsible>
 
+            <Card className="bg-white">
               <CardHeader>
                 <CardTitle className="text-base">Ações</CardTitle>
               </CardHeader>
