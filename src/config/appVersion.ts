@@ -26,14 +26,12 @@
  */
 
 export const appVersion = {
-  version: 'v0.9.0',
-  releaseDate: '2026-04-03',
+  version: 'v0.9.1',
+  releaseDate: '2026-04-05',
   environmentLabel: (import.meta.env.MODE === 'production' ? 'production' : 'dev') as string,
   changelog: [
-    'Fixed upload/transcription flow',
-    'Added admin panel refinements',
-    'Improved Stripe checkout',
-    'Enhanced PDF/Word generation',
-    'Security hardening (RLS, column-level grants)',
+    'Versionamento frontend com SemVer',
+    'Badge de versão no sidebar, login e settings',
+    'Correções de segurança RLS e column-level grants',
   ],
 } as const;

@@ -170,7 +170,9 @@ export function AppLayout({ children }: AppLayoutProps) {
           <LogoBrand logoSize={28} />
         </div>
 
-        <div className="hidden md:block" />
+        <div className="hidden md:flex items-center">
+          <VersionBadge showChangelog={false} className="opacity-70" />
+        </div>
 
         <div className="flex items-center gap-3">
           <PWAInstallButton />
