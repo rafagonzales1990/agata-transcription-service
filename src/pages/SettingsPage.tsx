@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Bell, Shield, Palette, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { VersionBadge } from '@/components/VersionBadge';
 
 const settingsCards = [
   { title: 'Notificações', description: 'Gerencie alertas e emails', icon: Bell, href: '/settings/notifications', badge: 'em breve' },
