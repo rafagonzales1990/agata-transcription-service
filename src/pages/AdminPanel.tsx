@@ -335,13 +335,6 @@ export default function AdminPanel() {
     refreshUsers();
   };
 
-  const handleToggleAdmin = async (u: AdminUser) => {
-    const newValue = !u.isAdmin;
-    const { error } = await supabase.from('User').update({ isAdmin: newValue, updatedAt: new Date().toISOString() }).eq('id', u.id);
-    if (error) { toast.error('Erro ao alterar admin'); return; }
-    toast.success(newValue ? 'Usuário agora é admin' : 'Admin removido');
-    refreshUsers();
-  };
 
   const handleAssignGroup = async (userId: string, groupId: string | null) => {
     const { error } = await supabase.from('User').update({ adminGroupId: groupId, updatedAt: new Date().toISOString() }).eq('id', userId);
