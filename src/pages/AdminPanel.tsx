@@ -133,10 +133,6 @@ function EditUserDialog({ open, onOpenChange, user, groups, onSubmit }: {
               </Select>
             </div>
           </div>
-          <div className="flex items-center justify-between py-1">
-            <Label className="text-xs">Administrador</Label>
-            <Switch checked={form.isAdmin} onCheckedChange={v => setForm({ ...form, isAdmin: v })} />
-          </div>
           {user?.stripeSubscriptionId && (
             <div className="p-3 bg-gray-50 rounded border text-xs font-mono space-y-1">
               <p><span className="text-gray-500">Stripe Customer:</span> {user.stripeCustomerId}</p>
