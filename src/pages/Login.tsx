@@ -150,9 +150,12 @@ export default function LoginPage() {
               Não tem conta?{' '}
               <Link to="/auth/signup" className="text-primary hover:underline font-medium">Criar conta grátis</Link>
             </p>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+           </CardContent>
+         </Card>
+         <div className="text-center mt-6">
+           <VersionBadge showChangelog={false} />
+         </div>
+       </div>
+     </div>
   );
 }

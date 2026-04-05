@@ -146,6 +146,9 @@ export function AppLayout({ children }: AppLayoutProps) {
           <LogOut className="h-4 w-4" />
           Sair
         </button>
+        <div className="px-3 pb-3 pt-1">
+          <VersionBadge />
+        </div>
       </div>
     </>
   );
