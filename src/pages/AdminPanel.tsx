@@ -20,6 +20,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { LogoIcon } from '@/components/LogoIcon';
+import { VersionBadge } from '@/components/VersionBadge';
+import { appVersion } from '@/config/appVersion';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 // ── Constants ──────────────────────────────────────────────
 const PLAN_COLORS: Record<string, string> = {
