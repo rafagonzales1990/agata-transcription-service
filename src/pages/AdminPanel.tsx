@@ -355,7 +355,7 @@ export default function AdminPanel() {
     try {
       const { error } = await supabase.functions.invoke('admin-users', {
         method: 'POST',
-        body: { name: formName, email: formEmail, password: formPassword, planId: formPlan, isAdmin: formAdmin },
+        body: { name: formName, email: formEmail, password: formPassword, planId: formPlan, isAdmin: false },
       });
       if (error) throw error;
       toast.success('Usuário criado!');
