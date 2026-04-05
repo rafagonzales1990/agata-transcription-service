@@ -15,6 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { TrialBanner } from '@/components/TrialBanner';
 import { LogoIcon } from '@/components/LogoIcon';
 import { PWAInstallButton } from '@/components/PWAInstallButton';
+import { VersionBadge } from '@/components/VersionBadge';
 import { supabase } from '@/integrations/supabase/client';
 
 const menuItems = [
