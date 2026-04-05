@@ -48,6 +48,9 @@ export default function SettingsPage() {
             </Link>
           ))}
         </div>
+        <div className="pt-4 border-t border-border">
+          <VersionBadge />
+        </div>
       </div>
     </AppLayout>
   );
