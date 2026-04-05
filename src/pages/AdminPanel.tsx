@@ -255,7 +255,7 @@ export default function AdminPanel() {
   const [formEmail, setFormEmail] = useState('');
   const [formPassword, setFormPassword] = useState('');
   const [formPlan, setFormPlan] = useState('basic');
-  const [formAdmin, setFormAdmin] = useState(false);
+  
 
   // Group form
   const [gName, setGName] = useState('');
