@@ -812,7 +812,7 @@ export default function AdminPanel() {
                 <SelectContent>{Object.entries(PLAN_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="flex items-center gap-2"><Switch checked={formAdmin} onCheckedChange={setFormAdmin} /><Label>Admin</Label></div>
+            
           </div>
           <DialogFooter><Button onClick={createUser}>Criar Usuário</Button></DialogFooter>
         </DialogContent>
