@@ -36,6 +36,7 @@ import LegalTerms from "./pages/LegalTerms";
 import LegalLgpd from "./pages/LegalLgpd";
 import Demo from "./pages/Demo";
 import AdminLeads from "./pages/AdminLeads";
+import SharedMeeting from "./pages/SharedMeeting";
 
 const queryClient = new QueryClient();
 
