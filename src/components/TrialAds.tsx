@@ -16,16 +16,6 @@ export function TrialAds() {
       (window as any).adsbygoogle.push({});
     } catch (e) {}
   }, []); // runs 1x
-
-  // Push ad once
-  useEffect(() => {
-    if (!showAds) return;
-    try {
-      (window as any).adsbygoogle = (window as any).adsbygoogle || [];
-      (window as any).adsbygoogle.push({});
-    } catch (e) {}
-  }, []); // runs 1x
-
   // Fallback 10s
   useEffect(() => {
     if (!showAds) return;
