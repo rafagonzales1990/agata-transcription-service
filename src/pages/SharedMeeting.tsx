@@ -92,7 +92,7 @@ export default function SharedMeeting() {
       {/* Header */}
       <header className="border-b bg-card px-4 py-4">
         <div className="max-w-3xl mx-auto flex items-center gap-3">
-          <LogoIcon className="h-8 w-8" />
+          <LogoIcon size={32} />
           <span className="font-semibold text-foreground">Ágata Transcription</span>
         </div>
       </header>

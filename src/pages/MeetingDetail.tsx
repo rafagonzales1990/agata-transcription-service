@@ -19,7 +19,9 @@ import {
   Download,
   Printer,
   FileDown,
+  Share2,
 } from "lucide-react";
+import { ShareMeetingModal } from "@/components/ShareMeetingModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
