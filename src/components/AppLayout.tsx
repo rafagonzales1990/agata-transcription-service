@@ -142,6 +142,12 @@ export function AppLayout({ children }: AppLayoutProps) {
           <Settings className="h-4 w-4" />
           Configurações
         </Link>
+        <HelpModal>
+          <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors w-full text-left">
+            <HelpCircle className="h-4 w-4" />
+            Como usar o Ágata
+          </button>
+        </HelpModal>
         <button
           onClick={() => { onNavigate?.(); handleLogout(); }}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-destructive/10 hover:text-destructive transition-colors w-full text-left"
