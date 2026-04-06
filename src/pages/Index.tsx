@@ -1,7 +1,4 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { useState, lazy, Suspense } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -11,13 +8,14 @@ import {
 
 import { LandingHeader } from '@/components/landing/LandingHeader';
 import { HeroSection } from '@/components/landing/HeroSection';
-import { FeaturesSection } from '@/components/landing/FeaturesSection';
-import { DifferentiationSection } from '@/components/landing/DifferentiationSection';
-import { ComparisonSection } from '@/components/landing/ComparisonSection';
-import { PlansSection } from '@/components/landing/PlansSection';
-import { UseCasesSection } from '@/components/landing/UseCasesSection';
-import { FinalCTASection } from '@/components/landing/FinalCTASection';
-import { LandingFooter } from '@/components/landing/LandingFooter';
+
+const FeaturesSection = lazy(() => import('@/components/landing/FeaturesSection').then(m => ({ default: m.FeaturesSection })));
+const DifferentiationSection = lazy(() => import('@/components/landing/DifferentiationSection').then(m => ({ default: m.DifferentiationSection })));
+const ComparisonSection = lazy(() => import('@/components/landing/ComparisonSection').then(m => ({ default: m.ComparisonSection })));
+const PlansSection = lazy(() => import('@/components/landing/PlansSection').then(m => ({ default: m.PlansSection })));
+const UseCasesSection = lazy(() => import('@/components/landing/UseCasesSection').then(m => ({ default: m.UseCasesSection })));
+const FinalCTASection = lazy(() => import('@/components/landing/FinalCTASection').then(m => ({ default: m.FinalCTASection })));
+const LandingFooter = lazy(() => import('@/components/landing/LandingFooter').then(m => ({ default: m.LandingFooter })));
 
 const metrics = [
   { number: '95%+', label: 'Precisão em PT-BR', icon: <BadgeCheck className="h-5 w-5" /> },
@@ -86,15 +84,13 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <FeaturesSection />
-
-      <DifferentiationSection />
-
-      <ComparisonSection />
-
-      <PlansSection />
-
-      <UseCasesSection />
+      <Suspense fallback={null}>
+        <FeaturesSection />
+        <DifferentiationSection />
+        <ComparisonSection />
+        <PlansSection />
+        <UseCasesSection />
+      </Suspense>
 
       {/* Testimonials */}
       <section className="py-20 px-4">
@@ -174,9 +170,10 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <FinalCTASection />
-
-      <LandingFooter />
+      <Suspense fallback={null}>
+        <FinalCTASection />
+        <LandingFooter />
+      </Suspense>
     </div>
   );
 }
