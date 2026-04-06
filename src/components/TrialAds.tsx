@@ -31,7 +31,7 @@ export function TrialAds() {
           className="adsbygoogle"
           style={{ display: 'block' }}
           data-ad-client="ca-pub-5098455114804419"
-          data-ad-slot=""
+          data-ad-slot="9769901238"
           data-ad-format="auto"
           data-full-width-responsive="true"
         />
