@@ -1,20 +1,6 @@
 <!doctype html>
 <html lang="pt-BR">
   <head>
-    <!-- Google Tag Manager -->
-    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','GT-NFDHFH99');</script>
-    <!-- End Google Tag Manager -->
-    <!-- Google Tag Manager (GTM-T63TT8CJ) -->
-    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','GTM-T63TT8CJ');</script>
-    <!-- End Google Tag Manager (GTM-T63TT8CJ) -->
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="/favicon.png" type="image/png" />
@@ -28,17 +14,31 @@
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#059669">
 
-    <!-- Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-894VH59E2B"></script>
+    <!-- Defer all tracking/ad scripts until after page load -->
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-894VH59E2B');
+      window.addEventListener('load', function() {
+        var w=window,d=document;
+        // GTM GT-NFDHFH99
+        (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+        new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+        })(w,d,'script','dataLayer','GT-NFDHFH99');
+        // GTM GTM-T63TT8CJ
+        (function(w,d,s,l,i){var f=d.getElementsByTagName(s)[0],
+        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+        })(w,d,'script','dataLayer','GTM-T63TT8CJ');
+        // Google Analytics
+        var ga=d.createElement('script');ga.async=true;ga.src='https://www.googletagmanager.com/gtag/js?id=G-894VH59E2B';d.head.appendChild(ga);
+        gtag('js', new Date());
+        gtag('config', 'G-894VH59E2B');
+        // Google AdSense
+        var ads=d.createElement('script');ads.async=true;ads.crossOrigin='anonymous';ads.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5098455114804419';d.head.appendChild(ads);
+      });
     </script>
-
-    <!-- Google AdSense - verificação obrigatória -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5098455114804419" crossorigin="anonymous"></script>
 
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/5afe7cc2-9ec2-4b5a-8cee-728ac18269ec/id-preview-716fe337--fecdc2ef-e597-4fee-a785-8f8d4d787833.lovable.app-1775053891223.png">
