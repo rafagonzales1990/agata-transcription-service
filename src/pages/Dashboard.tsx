@@ -9,6 +9,8 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { OnboardingWelcome } from '@/components/OnboardingWelcome';
+import { toast } from 'sonner';
 
 export default function DashboardPage() {
   const { profile } = useAuth();
