@@ -26,12 +26,12 @@
  */
 
 export const appVersion = {
-  version: 'v0.9.1',
-  releaseDate: '2026-04-05',
+  version: 'v0.9.2',
+  releaseDate: '2026-04-06',
   environmentLabel: (import.meta.env.MODE === 'production' ? 'production' : 'dev') as string,
   changelog: [
-    'Versionamento frontend com SemVer',
-    'Badge de versão no sidebar, login e settings',
-    'Correções de segurança RLS e column-level grants',
+    'Google AdSense para usuários trial/basic com fallback 10s',
+    'Banners de upgrade Pro (sidebar + footer)',
+    'GTM (GTM-T63TT8CJ) integrado no index.html',
   ],
 } as const;
