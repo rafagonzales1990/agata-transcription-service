@@ -170,9 +170,10 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <FinalCTASection />
-
-      <LandingFooter />
+      <Suspense fallback={null}>
+        <FinalCTASection />
+        <LandingFooter />
+      </Suspense>
     </div>
   );
 }
