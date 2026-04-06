@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { LimitReachedDialog } from '@/components/LimitReachedDialog';
+import { UsageBanner } from '@/components/UsageBanner';
+import { useUsage } from '@/hooks/useUsage';
 import { eventFirstTranscription, trackUploadStarted, trackFirstTranscription } from '@/lib/gtag';
 
 const tabs = [
