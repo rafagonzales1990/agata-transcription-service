@@ -341,6 +341,30 @@ export type Database = {
           },
         ]
       }
+      MeetingShare: {
+        Row: {
+          createdAt: string
+          expiresAt: string | null
+          id: string
+          meetingId: string
+          token: string
+        }
+        Insert: {
+          createdAt?: string
+          expiresAt?: string | null
+          id?: string
+          meetingId: string
+          token?: string
+        }
+        Update: {
+          createdAt?: string
+          expiresAt?: string | null
+          id?: string
+          meetingId?: string
+          token?: string
+        }
+        Relationships: []
+      }
       Plan: {
         Row: {
           allowAdvancedSummary: boolean
