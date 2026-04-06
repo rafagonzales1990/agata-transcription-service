@@ -84,15 +84,13 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <FeaturesSection />
-
-      <DifferentiationSection />
-
-      <ComparisonSection />
-
-      <PlansSection />
-
-      <UseCasesSection />
+      <Suspense fallback={null}>
+        <FeaturesSection />
+        <DifferentiationSection />
+        <ComparisonSection />
+        <PlansSection />
+        <UseCasesSection />
+      </Suspense>
 
       {/* Testimonials */}
       <section className="py-20 px-4">
