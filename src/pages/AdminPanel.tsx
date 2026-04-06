@@ -62,6 +62,7 @@ interface AdminUser {
   trialEndsAt: string | null; stripeCustomerId: string | null;
   stripeSubscriptionId: string | null; stripePriceId: string | null;
   adminGroupId: string | null; meetingCount: number;
+  usageTranscriptions: number; usageMinutes: number;
 }
 interface AdminGroup {
   id: string; name: string; description: string | null; color: string;
@@ -281,22 +282,35 @@ export default function AdminPanel() {
   const refreshUsers = useCallback(async () => {
     setLoading(true);
     try {
+      const currentMonth = new Date().toISOString().slice(0, 7);
       const { data: usersData, error } = await supabase
         .from('User')
         .select('id, name, email, cpf, phone, planId, isAdmin, billingCycle, trialEndsAt, stripeCustomerId, stripeSubscriptionId, stripePriceId, adminGroupId, createdAt')
         .order('createdAt', { ascending: false });
       if (error) throw error;
 
-      const { data: meetings } = await supabase.from('Meeting').select('userId');
+      const [meetingsRes, groupsRes, usageRes] = await Promise.all([
+        supabase.from('Meeting').select('userId'),
+        supabase.from('AdminGroup').select('*'),
+        supabase.from('Usage').select('userId, transcriptionsUsed, totalMinutesTranscribed, currentMonth'),
+      ]);
+
       const countMap: Record<string, number> = {};
-      meetings?.forEach(m => { countMap[m.userId] = (countMap[m.userId] || 0) + 1; });
+      meetingsRes.data?.forEach(m => { countMap[m.userId] = (countMap[m.userId] || 0) + 1; });
 
-      const { data: groupsData } = await supabase.from('AdminGroup').select('*');
-      const groupMap: Record<string, { id: string; name: string; color: string }> = {};
-      groupsData?.forEach(g => { groupMap[g.id] = { id: g.id, name: g.name, color: g.color }; });
+      const usageMap: Record<string, { t: number; m: number }> = {};
+      usageRes.data?.forEach(u => {
+        if (u.currentMonth === currentMonth) {
+          usageMap[u.userId] = { t: u.transcriptionsUsed || 0, m: u.totalMinutesTranscribed || 0 };
+        }
+      });
 
-      setUsers((usersData || []).map(u => ({ ...u, meetingCount: countMap[u.id] || 0 })));
-      setGroups((groupsData || []).map(g => ({
+      setUsers((usersData || []).map(u => ({
+        ...u, meetingCount: countMap[u.id] || 0,
+        usageTranscriptions: usageMap[u.id]?.t || 0,
+        usageMinutes: usageMap[u.id]?.m || 0,
+      })));
+      setGroups((groupsRes.data || []).map(g => ({
         ...g, memberCount: (usersData || []).filter(u => u.adminGroupId === g.id).length,
       })));
     } catch (e: any) { toast.error('Erro: ' + e.message); }
@@ -668,6 +682,9 @@ export default function AdminPanel() {
                       <TableHead>Plano</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-center">Reuniões</TableHead>
+                      <TableHead className="text-center">Uso Mês</TableHead>
+                      <TableHead className="text-center">Min Mês</TableHead>
+                      <TableHead className="text-center">% Limite</TableHead>
                       <TableHead>Cadastro</TableHead>
                       <TableHead className="w-44">Ações</TableHead>
                     </TableRow>
@@ -698,6 +715,17 @@ export default function AdminPanel() {
                           <TableCell><Badge className={`${PLAN_COLORS[u.planId || 'basic']} text-[10px]`}>{PLAN_LABELS[u.planId || 'basic']}</Badge></TableCell>
                           <TableCell><span className={`px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap ${status.cls}`}>{status.label}</span></TableCell>
                           <TableCell className="text-center font-mono text-sm">{u.meetingCount}</TableCell>
+                          <TableCell className="text-center font-mono text-xs">{u.usageTranscriptions}</TableCell>
+                          <TableCell className="text-center font-mono text-xs">{u.usageMinutes}</TableCell>
+                          <TableCell className="text-center">
+                            {(() => {
+                              const limits: Record<string, number> = { basic: 3, inteligente: 20, automacao: 60, enterprise: 999999 };
+                              const max = limits[u.planId || 'basic'] || 3;
+                              const pct = max > 0 ? Math.min(100, Math.round((u.usageTranscriptions / max) * 100)) : 0;
+                              const color = pct >= 100 ? 'text-red-600 font-bold' : pct >= 80 ? 'text-amber-600 font-medium' : 'text-muted-foreground';
+                              return <span className={`text-xs font-mono ${color}`}>{u.planId === 'enterprise' ? '—' : `${pct}%`}</span>;
+                            })()}
+                          </TableCell>
                           <TableCell className="text-xs text-muted-foreground">{dateStr}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">

@@ -26,10 +26,11 @@
  */
 
 export const appVersion = {
-  version: 'v0.9.5',
+  version: 'v0.9.6',
   releaseDate: '2026-04-06',
   environmentLabel: (import.meta.env.MODE === 'production' ? 'production' : 'dev') as string,
   changelog: [
+    'Usage e métricas por plano',
     'Compartilhamento público de reuniões',
     'Busca e filtros no histórico de reuniões',
     'Onboarding do primeiro uso',

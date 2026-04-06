@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { LimitReachedDialog } from '@/components/LimitReachedDialog';
+import { UsageBanner } from '@/components/UsageBanner';
+import { useUsage } from '@/hooks/useUsage';
 import { eventFirstTranscription, trackUploadStarted, trackFirstTranscription } from '@/lib/gtag';
 
 const tabs = [
@@ -23,6 +25,7 @@ export default function UploadPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const routineId = searchParams.get('routineId');
+  const usage = useUsage();
   const [activeTab, setActiveTab] = useState<'upload' | 'record' | 'paste'>('upload');
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
@@ -37,34 +40,8 @@ export default function UploadPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
-  const [limitReached, setLimitReached] = useState(false);
-  const [usageInfo, setUsageInfo] = useState({ planName: 'Gratuito', used: 0, max: 2 });
 
-  useEffect(() => {
-    async function checkUsage() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const currentMonth = new Date().toISOString().slice(0, 7);
-
-      const [usageRes, userRes] = await Promise.all([
-        supabase.from('Usage').select('transcriptionsUsed, currentMonth').eq('userId', user.id).single(),
-        supabase.from('User').select('planId').eq('id', user.id).single(),
-      ]);
-
-      const planId = userRes.data?.planId || 'basic';
-      const { data: plan } = await supabase.from('Plan').select('maxTranscriptions, name').eq('id', planId).single();
-
-      const used = usageRes.data?.currentMonth === currentMonth
-        ? (usageRes.data?.transcriptionsUsed || 0)
-        : 0;
-      const max = plan?.maxTranscriptions || 5;
-
-      setUsageInfo({ planName: plan?.name || 'Gratuito', used, max });
-      if (used >= max) setLimitReached(true);
-    }
-    checkUsage();
-  }, []);
+  const limitReached = usage.isAtLimit;
 
   const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); }, []);
   const handleDragLeave = useCallback(() => setIsDragging(false), []);
@@ -170,6 +147,8 @@ export default function UploadPage() {
           {routineId && <p className="text-sm text-primary mt-1">📌 Vinculada a uma rotina</p>}
         </div>
 
+        <UsageBanner isNearLimit={usage.isNearLimit} isAtLimit={usage.isAtLimit} planId={usage.limits.planId} />
+
         <div className="flex gap-2 p-1 bg-muted rounded-lg">
           {tabs.map((tab) => (
             <button key={tab.id} onClick={() => { setActiveTab(tab.id); setFile(null); }} disabled={uploading}
@@ -266,9 +245,9 @@ export default function UploadPage() {
       <LimitReachedDialog
         open={limitReached}
         onClose={() => navigate('/dashboard')}
-        planName={usageInfo.planName}
-        used={usageInfo.used}
-        max={usageInfo.max}
+        planName={usage.limits.planName}
+        used={usage.transcriptionsUsed}
+        max={usage.limits.maxTranscriptions}
       />
     </AppLayout>
   );

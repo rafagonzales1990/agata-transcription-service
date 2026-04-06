@@ -10,91 +10,61 @@ import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { OnboardingWelcome } from '@/components/OnboardingWelcome';
+import { UsageBanner } from '@/components/UsageBanner';
+import { useUsage } from '@/hooks/useUsage';
 import { toast } from 'sonner';
 
 export default function DashboardPage() {
   const { profile } = useAuth();
-  const [loading, setLoading] = useState(true);
   const [totalMeetings, setTotalMeetings] = useState(0);
-  const [transcriptionsUsed, setTranscriptionsUsed] = useState(0);
-  const [maxTranscriptions, setMaxTranscriptions] = useState(5);
-  const [totalMinutes, setTotalMinutes] = useState(0);
-  const [planName, setPlanName] = useState('Gratuito');
+  const [meetingsLoading, setMeetingsLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
+  const usage = useUsage();
 
   useEffect(() => {
-    async function fetchDashboard() {
+    async function fetchMeetings() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const currentMonth = new Date().toISOString().slice(0, 7);
+      const { count } = await supabase.from('Meeting')
+        .select('*', { count: 'exact', head: true })
+        .eq('userId', user.id);
 
-      const [meetingsRes, usageRes, userRes] = await Promise.all([
-        supabase.from('Meeting')
-          .select('*', { count: 'exact', head: true })
-          .eq('userId', user.id),
-        supabase.from('Usage')
-          .select('transcriptionsUsed, totalMinutesTranscribed, currentMonth')
-          .eq('userId', user.id)
-          .single(),
-        supabase.from('User')
-          .select('planId')
-          .eq('id', user.id)
-          .single(),
-      ]);
-
-      const meetingCount = meetingsRes.count || 0;
+      const meetingCount = count || 0;
       setTotalMeetings(meetingCount);
       if (meetingCount === 0) setShowOnboarding(true);
       if (meetingCount === 1 && !sessionStorage.getItem('first_transcription_toast')) {
         sessionStorage.setItem('first_transcription_toast', '1');
         toast.success('🎉 Primeira reunião transcrita! Explore o resumo e a ATA.');
       }
-      setTotalMinutes(usageRes.data?.totalMinutesTranscribed || 0);
-      setTranscriptionsUsed(
-        usageRes.data?.currentMonth === currentMonth
-          ? usageRes.data.transcriptionsUsed
-          : 0
-      );
-
-      const planId = userRes.data?.planId || 'basic';
-      const { data: plan } = await supabase
-        .from('Plan')
-        .select('name, maxTranscriptions')
-        .eq('id', planId)
-        .single();
-
-      if (plan) {
-        setPlanName(plan.name);
-        setMaxTranscriptions(plan.maxTranscriptions);
-      }
-      setLoading(false);
+      setMeetingsLoading(false);
     }
-    fetchDashboard();
+    fetchMeetings();
   }, [profile]);
 
-  const usagePercent = maxTranscriptions > 0 ? Math.min(100, (transcriptionsUsed / maxTranscriptions) * 100) : 0;
+  const loading = meetingsLoading || usage.loading;
   const userName = profile?.name || 'Usuário';
+  const isEnterprise = usage.limits.planId === 'enterprise';
 
   const stats = [
     {
-      label: 'Total de Reuniões', value: loading ? null : String(totalMeetings),
+      label: 'Reuniões este mês', value: loading ? null : `${usage.transcriptionsUsed}/${isEnterprise ? '∞' : usage.limits.maxTranscriptions}`,
       icon: FileAudio, iconColor: 'text-purple-500', border: 'border-l-purple-500',
+      subtext: `${Math.round(usage.transcriptionPercent)}% utilizado`, showProgress: true, progressValue: usage.transcriptionPercent,
+    },
+    {
+      label: 'Minutos este mês', value: loading ? null : `${usage.totalMinutesTranscribed}/${isEnterprise ? '∞' : usage.limits.maxDurationMinutes}`,
+      icon: Clock, iconColor: 'text-blue-500', border: 'border-l-blue-500',
+      subtext: `${Math.round(usage.minutesPercent)}% utilizado`, showProgress: true, progressValue: usage.minutesPercent,
+    },
+    {
+      label: 'Total de Reuniões', value: loading ? null : String(totalMeetings),
+      icon: TrendingUp, iconColor: 'text-green-500', border: 'border-l-green-500',
       subtext: 'Transcrições realizadas',
     },
     {
-      label: 'Minutos Transcritos', value: loading ? null : String(totalMinutes),
-      icon: Clock, iconColor: 'text-blue-500', border: 'border-l-blue-500',
-      subtext: 'Total de minutos processados',
-    },
-    {
-      label: 'Uso Mensal', value: loading ? null : `${transcriptionsUsed}/${maxTranscriptions}`,
-      icon: TrendingUp, iconColor: 'text-green-500', border: 'border-l-green-500',
-      subtext: `${Math.round(usagePercent)}% utilizado`, showProgress: true,
-    },
-    {
-      label: 'Plano Atual', value: loading ? null : planName,
+      label: 'Plano Atual', value: loading ? null : usage.limits.planName,
       icon: Zap, iconColor: 'text-orange-500', border: 'border-l-orange-500',
       subtext: 'plans',
     },
@@ -107,6 +77,8 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold text-gray-900">Bem-vindo, {userName}!</h1>
           <p className="text-muted-foreground mt-1">Gerencie suas transcrições de reuniões com inteligência artificial</p>
         </div>
+
+        <UsageBanner isNearLimit={usage.isNearLimit} isAtLimit={usage.isAtLimit} planId={usage.limits.planId} />
 
         {showOnboarding && !onboardingDismissed && (
           <OnboardingWelcome onDismiss={() => setOnboardingDismissed(true)} />
@@ -126,7 +98,7 @@ export default function DashboardPage() {
                   ) : (
                     <>
                       <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                      {stat.showProgress && <Progress value={usagePercent} className="h-1.5 mt-2" />}
+                      {stat.showProgress && <Progress value={stat.progressValue} className={`h-1.5 mt-2 ${(stat.progressValue ?? 0) >= 100 ? '[&>div]:bg-red-500' : (stat.progressValue ?? 0) >= 80 ? '[&>div]:bg-amber-500' : ''}`} />}
                       {stat.subtext === 'plans' ? (
                         <Link to="/plans" className="text-xs text-primary hover:underline mt-1 inline-block">Ver outros planos</Link>
                       ) : (
@@ -151,7 +123,9 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <Link to="/upload" className="block">
-                <Button className="w-full bg-primary hover:bg-emerald-600 text-primary-foreground">Fazer Upload →</Button>
+                <Button className="w-full bg-primary hover:bg-emerald-600 text-primary-foreground" disabled={usage.isAtLimit}>
+                  {usage.isAtLimit ? 'Limite atingido' : 'Fazer Upload →'}
+                </Button>
               </Link>
             </CardContent>
           </Card>
