@@ -5,7 +5,7 @@ import { Mic, FileText, Brain, Repeat, Layers, LayoutTemplate } from 'lucide-rea
 const features = [
   { icon: Mic, title: 'Transcrição Automática', description: 'Envie áudios em MP3, WAV, M4A e mais. IA transcreve com alta precisão em PT-BR.' },
   { icon: Brain, title: 'Resumo Executivo', description: 'Resumos estruturados com decisões, ações e próximos passos gerados automaticamente.' },
-  { icon: FileText, title: 'ATA em PDF + Word', description: 'Gere atas profissionais prontas para compartilhar, em PDF e Word, com um clique.' },
+  { icon: FileText, title: 'Ata em PDF + Word', description: 'Gere atas profissionais prontas para compartilhar, em PDF e Word, com um clique.' },
   { icon: Repeat, title: 'Rotinas de Reunião', description: 'Agrupe reuniões recorrentes e acompanhe a evolução de cada série automaticamente.' },
   { icon: Layers, title: 'Consolidação de Reuniões', description: 'Consolide múltiplas reuniões em um único resumo executivo para visão estratégica.' },
   { icon: LayoutTemplate, title: 'Templates Customizados', description: 'Use templates adaptados ao seu tipo de reunião: sprint, 1:1, board, comitê e mais.' },

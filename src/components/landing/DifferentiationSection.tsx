@@ -25,7 +25,8 @@ export function DifferentiationSection() {
             Por que escolher o Ágata?
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Construído do zero para o mercado brasileiro. Não é uma tradução — é uma solução nativa.
+            Construído do zero para o mercado brasileiro. <br />
+            Não é uma tradução — é uma solução nativa.
           </p>
         </div>
 

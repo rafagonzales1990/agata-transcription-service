@@ -42,7 +42,7 @@ export function HeroSection() {
 
             <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-primary" /> PT-BR nativo</span>
-              <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-primary" /> ATA pronta em PDF e Word</span>
+              <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-primary" /> Ata pronta em PDF e Word</span>
               <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-primary" /> Rotinas e consolidação</span>
             </div>
           </motion.div>
