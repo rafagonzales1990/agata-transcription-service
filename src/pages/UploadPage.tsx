@@ -245,9 +245,9 @@ export default function UploadPage() {
       <LimitReachedDialog
         open={limitReached}
         onClose={() => navigate('/dashboard')}
-        planName={usageInfo.planName}
-        used={usageInfo.used}
-        max={usageInfo.max}
+        planName={usage.limits.planName}
+        used={usage.transcriptionsUsed}
+        max={usage.limits.maxTranscriptions}
       />
     </AppLayout>
   );
