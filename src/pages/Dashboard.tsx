@@ -108,6 +108,10 @@ export default function DashboardPage() {
           <p className="text-muted-foreground mt-1">Gerencie suas transcrições de reuniões com inteligência artificial</p>
         </div>
 
+        {showOnboarding && !onboardingDismissed && (
+          <OnboardingWelcome onDismiss={() => setOnboardingDismissed(true)} />
+        )}
+
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
