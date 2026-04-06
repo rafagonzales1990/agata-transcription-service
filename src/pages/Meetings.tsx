@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +12,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
-import { FileText, FolderOpen, Loader2, CheckCircle, AlertCircle, Clock, Search, Trash2, Pencil } from 'lucide-react';
+import { FileText, FolderOpen, Loader2, CheckCircle, AlertCircle, Clock, Search, Trash2, Pencil, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -38,11 +38,16 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
   failed: { label: 'Falhou', variant: 'destructive', icon: AlertCircle },
 };
 
+type SortOption = 'newest' | 'oldest' | 'title_asc';
+type DateRange = 'all' | '7' | '30' | '90';
+
 export default function MeetingsPage() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [dateRange, setDateRange] = useState<DateRange>('all');
+  const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editMeeting, setEditMeeting] = useState<Meeting | null>(null);
   const [editForm, setEditForm] = useState({ title: '', meetingDate: '', meetingTime: '', location: '', responsible: '', participants: '' });
@@ -108,11 +113,46 @@ export default function MeetingsPage() {
     setEditMeeting(null);
   };
 
-  const filtered = meetings.filter(m => {
-    if (statusFilter !== 'all' && m.status !== statusFilter) return false;
-    if (search && !m.title.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
+  const hasActiveFilters = search || statusFilter !== 'all' || dateRange !== 'all' || sortBy !== 'newest';
+
+  const clearFilters = () => {
+    setSearch('');
+    setStatusFilter('all');
+    setDateRange('all');
+    setSortBy('newest');
+  };
+
+  const filtered = useMemo(() => {
+    const now = Date.now();
+    const q = search.toLowerCase();
+
+    let result = meetings.filter(m => {
+      if (statusFilter !== 'all' && m.status !== statusFilter) return false;
+
+      if (dateRange !== 'all') {
+        const days = Number(dateRange);
+        const created = new Date(m.createdAt).getTime();
+        if (now - created > days * 86400000) return false;
+      }
+
+      if (q) {
+        const titleMatch = m.title.toLowerCase().includes(q);
+        const summaryMatch = m.summary?.toLowerCase().includes(q);
+        const participantMatch = m.participants.some(p => p.toLowerCase().includes(q));
+        if (!titleMatch && !summaryMatch && !participantMatch) return false;
+      }
+
+      return true;
+    });
+
+    result.sort((a, b) => {
+      if (sortBy === 'oldest') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      if (sortBy === 'title_asc') return a.title.localeCompare(b.title, 'pt-BR');
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    return result;
+  }, [meetings, search, statusFilter, dateRange, sortBy]);
 
   return (
     <AppLayout>
@@ -129,29 +169,67 @@ export default function MeetingsPage() {
           </Link>
         </div>
 
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por título, resumo ou participante..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por título..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="pl-9"
-            />
-          </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-48">
-              <SelectValue placeholder="Filtrar por status" />
+            <SelectTrigger className="w-full sm:w-44">
+              <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
-              <SelectItem value="completed">Concluída</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="completed">Concluído</SelectItem>
               <SelectItem value="processing">Processando</SelectItem>
               <SelectItem value="failed">Falhou</SelectItem>
             </SelectContent>
           </Select>
+
+          <Select value={dateRange} onValueChange={(v) => setDateRange(v as DateRange)}>
+            <SelectTrigger className="w-full sm:w-44">
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="7">Últimos 7 dias</SelectItem>
+              <SelectItem value="30">Últimos 30 dias</SelectItem>
+              <SelectItem value="90">Últimos 90 dias</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+            <SelectTrigger className="w-full sm:w-44">
+              <SelectValue placeholder="Ordenar" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Mais recente</SelectItem>
+              <SelectItem value="oldest">Mais antigo</SelectItem>
+              <SelectItem value="title_asc">Título A-Z</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground hover:text-foreground self-center">
+              <XCircle className="h-4 w-4 mr-1" /> Limpar
+            </Button>
+          )}
         </div>
+
+        {/* Count */}
+        {!loading && (
+          <p className="text-sm text-muted-foreground">
+            {filtered.length} reunião{filtered.length !== 1 ? 'ões' : ''} encontrada{filtered.length !== 1 ? 's' : ''}
+          </p>
+        )}
 
         {loading ? (
           <div className="flex justify-center py-16">
@@ -162,11 +240,15 @@ export default function MeetingsPage() {
             <CardContent className="py-16">
               <div className="text-center">
                 <FolderOpen className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
-                <h3 className="font-medium text-foreground mb-1">Nenhuma reunião encontrada</h3>
+                <h3 className="font-medium text-foreground mb-1">
+                  {hasActiveFilters ? 'Nenhuma reunião encontrada para esses filtros.' : 'Nenhuma reunião encontrada'}
+                </h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  {search || statusFilter !== 'all' ? 'Tente ajustar os filtros' : 'Suas transcrições aparecerão aqui após o primeiro upload'}
+                  {hasActiveFilters ? 'Tente ajustar ou limpar os filtros acima.' : 'Suas transcrições aparecerão aqui após o primeiro upload'}
                 </p>
-                {!search && statusFilter === 'all' && (
+                {hasActiveFilters ? (
+                  <Button variant="outline" onClick={clearFilters}>Limpar filtros</Button>
+                ) : (
                   <Link to="/upload"><Button variant="outline">Fazer Upload</Button></Link>
                 )}
               </div>
