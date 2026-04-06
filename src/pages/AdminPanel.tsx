@@ -282,22 +282,35 @@ export default function AdminPanel() {
   const refreshUsers = useCallback(async () => {
     setLoading(true);
     try {
+      const currentMonth = new Date().toISOString().slice(0, 7);
       const { data: usersData, error } = await supabase
         .from('User')
         .select('id, name, email, cpf, phone, planId, isAdmin, billingCycle, trialEndsAt, stripeCustomerId, stripeSubscriptionId, stripePriceId, adminGroupId, createdAt')
         .order('createdAt', { ascending: false });
       if (error) throw error;
 
-      const { data: meetings } = await supabase.from('Meeting').select('userId');
+      const [meetingsRes, groupsRes, usageRes] = await Promise.all([
+        supabase.from('Meeting').select('userId'),
+        supabase.from('AdminGroup').select('*'),
+        supabase.from('Usage').select('userId, transcriptionsUsed, totalMinutesTranscribed, currentMonth'),
+      ]);
+
       const countMap: Record<string, number> = {};
-      meetings?.forEach(m => { countMap[m.userId] = (countMap[m.userId] || 0) + 1; });
+      meetingsRes.data?.forEach(m => { countMap[m.userId] = (countMap[m.userId] || 0) + 1; });
 
-      const { data: groupsData } = await supabase.from('AdminGroup').select('*');
-      const groupMap: Record<string, { id: string; name: string; color: string }> = {};
-      groupsData?.forEach(g => { groupMap[g.id] = { id: g.id, name: g.name, color: g.color }; });
+      const usageMap: Record<string, { t: number; m: number }> = {};
+      usageRes.data?.forEach(u => {
+        if (u.currentMonth === currentMonth) {
+          usageMap[u.userId] = { t: u.transcriptionsUsed || 0, m: u.totalMinutesTranscribed || 0 };
+        }
+      });
 
-      setUsers((usersData || []).map(u => ({ ...u, meetingCount: countMap[u.id] || 0 })));
-      setGroups((groupsData || []).map(g => ({
+      setUsers((usersData || []).map(u => ({
+        ...u, meetingCount: countMap[u.id] || 0,
+        usageTranscriptions: usageMap[u.id]?.t || 0,
+        usageMinutes: usageMap[u.id]?.m || 0,
+      })));
+      setGroups((groupsRes.data || []).map(g => ({
         ...g, memberCount: (usersData || []).filter(u => u.adminGroupId === g.id).length,
       })));
     } catch (e: any) { toast.error('Erro: ' + e.message); }
