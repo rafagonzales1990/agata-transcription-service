@@ -41,23 +41,15 @@ export function TrialUpgradeBanners() {
       </div>
 
       {/* Sidebar direita dashboard (160x600) */}
+      {/* Sidebar AdSense (160x600) */}
       <div className="hidden xl:flex fixed top-20 right-4 z-30 w-[160px] flex-col items-center rounded-xl border border-border bg-card shadow-lg p-4">
-        <p className="text-xs font-bold text-foreground mb-3 text-center">Upgrade agora</p>
-        <div className="flex flex-col items-center gap-2 mb-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-            <CreditCard className="h-5 w-5 text-white" />
-          </div>
-          <div className="text-center">
-            <p className="text-sm font-bold text-foreground">Pro</p>
-            <p className="text-[10px] text-muted-foreground">R$49/mês</p>
-          </div>
-        </div>
-        <Link
-          to="/plans"
-          className="w-full text-center text-[10px] font-semibold px-3 py-1.5 rounded-md bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:opacity-90 transition-opacity"
-        >
-          Escolher Pro
-        </Link>
+        <p className="text-[10px] text-muted-foreground mb-2">Patrocinado</p>
+        <ins
+          className="adsbygoogle"
+          style={{ display: 'inline-block', width: 160, height: 600 }}
+          data-ad-client="ca-pub-5098455114804419"
+          data-ad-slot="9446467602"
+        />
       </div>
     </>
   );
