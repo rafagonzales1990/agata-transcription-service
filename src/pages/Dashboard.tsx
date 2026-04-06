@@ -44,7 +44,13 @@ export default function DashboardPage() {
           .single(),
       ]);
 
-      setTotalMeetings(meetingsRes.count || 0);
+      const meetingCount = meetingsRes.count || 0;
+      setTotalMeetings(meetingCount);
+      if (meetingCount === 0) setShowOnboarding(true);
+      if (meetingCount === 1 && !sessionStorage.getItem('first_transcription_toast')) {
+        sessionStorage.setItem('first_transcription_toast', '1');
+        toast.success('🎉 Primeira reunião transcrita! Explore o resumo e a ATA.');
+      }
       setTotalMinutes(usageRes.data?.totalMinutesTranscribed || 0);
       setTranscriptionsUsed(
         usageRes.data?.currentMonth === currentMonth
