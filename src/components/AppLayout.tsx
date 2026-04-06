@@ -241,6 +241,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
         <TrialAds />
       </main>
+      <TrialUpgradeBanners />
     </div>
   );
 }
