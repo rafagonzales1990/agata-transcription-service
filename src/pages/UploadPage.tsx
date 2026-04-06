@@ -147,6 +147,8 @@ export default function UploadPage() {
           {routineId && <p className="text-sm text-primary mt-1">📌 Vinculada a uma rotina</p>}
         </div>
 
+        <UsageBanner isNearLimit={usage.isNearLimit} isAtLimit={usage.isAtLimit} planId={usage.limits.planId} />
+
         <div className="flex gap-2 p-1 bg-muted rounded-lg">
           {tabs.map((tab) => (
             <button key={tab.id} onClick={() => { setActiveTab(tab.id); setFile(null); }} disabled={uploading}
