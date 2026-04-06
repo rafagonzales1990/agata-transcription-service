@@ -8,34 +8,39 @@ export function TrialAds() {
   const plan = profile?.plan_id;
   const showAds = !plan || plan === 'basic' || plan === 'trial';
 
+  // Inject AdSense script once
   useEffect(() => {
     if (!showAds) return;
-
     if (!document.querySelector('script[src*="adsbygoogle"]')) {
       const script = document.createElement('script');
       script.async = true;
       script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5098455114804419';
       script.crossOrigin = 'anonymous';
-      script.onload = () => {
-        try {
-          ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
-        } catch (e) {}
-      };
       document.head.appendChild(script);
-    } else {
-      try {
-        ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
-      } catch (e) {}
     }
+  }, [showAds]);
 
-    // Fallback after 10s if ad didn't load
+  // Push ad once
+  useEffect(() => {
+    if (!showAds) return;
+    try {
+      (window as any).adsbygoogle = (window as any).adsbygoogle || [];
+      (window as any).adsbygoogle.push({});
+    } catch (e) {}
+  }, []); // runs 1x
+
+  // Fallback 10s
+  useEffect(() => {
+    if (!showAds) return;
     const timer = setTimeout(() => {
+      document.querySelectorAll('.adsbygoogle').forEach((slot) => {
+        if (!slot.innerHTML.trim() || slot.innerHTML.includes('Upgrade')) return;
+      });
       if (adRef.current && !adRef.current.innerHTML.trim()) {
         adRef.current.innerHTML =
-          '<a href="/plans" style="display:block;text-align:center;padding:24px;background:linear-gradient(135deg,#059669,#0d9488);color:white;border-radius:12px;font-weight:600;text-decoration:none;">🚀 Upgrade Pro — R$29/mês</a>';
+          '<a href="/plans" class="block text-center p-6 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl font-semibold no-underline">🚀 Upgrade Pro — R$29/mês</a>';
       }
     }, 10000);
-
     return () => clearTimeout(timer);
   }, [showAds]);
 
