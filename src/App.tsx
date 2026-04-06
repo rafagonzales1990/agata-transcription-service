@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -10,33 +10,34 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { pageview } from "@/lib/gtag";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import Dashboard from "./pages/Dashboard";
-import UploadPage from "./pages/UploadPage";
-import Meetings from "./pages/Meetings";
-import MeetingDetail from "./pages/MeetingDetail";
-import Routines from "./pages/Routines";
-import RoutineDetail from "./pages/RoutineDetail";
-import Documents from "./pages/Documents";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import SettingsPage from "./pages/SettingsPage";
-import SettingsSecurity from "./pages/SettingsSecurity";
-import SettingsBranding from "./pages/SettingsBranding";
-import SettingsPlaceholder from "./pages/SettingsPlaceholder";
-import SettingsGroups from "./pages/SettingsGroups";
-import Profile from "./pages/Profile";
-import Plans from "./pages/Plans";
-import AdminPanel from "./pages/AdminPanel";
-import Blog from "./pages/Blog";
-import BlogPostPage from "./pages/BlogPost";
-import Teams from "./pages/Teams";
-import LegalTerms from "./pages/LegalTerms";
-import LegalLgpd from "./pages/LegalLgpd";
-import Demo from "./pages/Demo";
-import AdminLeads from "./pages/AdminLeads";
-import SharedMeeting from "./pages/SharedMeeting";
+
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const UploadPage = lazy(() => import("./pages/UploadPage"));
+const Meetings = lazy(() => import("./pages/Meetings"));
+const MeetingDetail = lazy(() => import("./pages/MeetingDetail"));
+const Routines = lazy(() => import("./pages/Routines"));
+const RoutineDetail = lazy(() => import("./pages/RoutineDetail"));
+const Documents = lazy(() => import("./pages/Documents"));
+const Login = lazy(() => import("./pages/Login"));
+const Signup = lazy(() => import("./pages/Signup"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const SettingsSecurity = lazy(() => import("./pages/SettingsSecurity"));
+const SettingsBranding = lazy(() => import("./pages/SettingsBranding"));
+const SettingsPlaceholder = lazy(() => import("./pages/SettingsPlaceholder"));
+const SettingsGroups = lazy(() => import("./pages/SettingsGroups"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Plans = lazy(() => import("./pages/Plans"));
+const AdminPanel = lazy(() => import("./pages/AdminPanel"));
+const Blog = lazy(() => import("./pages/Blog"));
+const BlogPostPage = lazy(() => import("./pages/BlogPost"));
+const Teams = lazy(() => import("./pages/Teams"));
+const LegalTerms = lazy(() => import("./pages/LegalTerms"));
+const LegalLgpd = lazy(() => import("./pages/LegalLgpd"));
+const Demo = lazy(() => import("./pages/Demo"));
+const AdminLeads = lazy(() => import("./pages/AdminLeads"));
+const SharedMeeting = lazy(() => import("./pages/SharedMeeting"));
 
 const queryClient = new QueryClient();
 
@@ -70,37 +71,39 @@ const App = () => (
         <BrowserRouter>
           <RouteTracker />
           <AuthProvider>
-            <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth/login" element={<Login />} />
-            <Route path="/auth/signup" element={<Signup />} />
-            <Route path="/auth/forgot-password" element={<ForgotPassword />} />
-            <Route path="/auth/reset-password" element={<ResetPassword />} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/upload" element={<ProtectedRoute><UploadPage /></ProtectedRoute>} />
-            <Route path="/meetings" element={<ProtectedRoute><Meetings /></ProtectedRoute>} />
-            <Route path="/meetings/:id" element={<ProtectedRoute><MeetingDetail /></ProtectedRoute>} />
-            <Route path="/routines" element={<ProtectedRoute><Routines /></ProtectedRoute>} />
-            <Route path="/routines/:id" element={<ProtectedRoute><RoutineDetail /></ProtectedRoute>} />
-            <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-            <Route path="/settings/security" element={<ProtectedRoute><SettingsSecurity /></ProtectedRoute>} />
-            <Route path="/settings/branding" element={<ProtectedRoute><SettingsBranding /></ProtectedRoute>} />
-            <Route path="/settings/notifications" element={<ProtectedRoute><SettingsPlaceholder /></ProtectedRoute>} />
-            <Route path="/settings/groups" element={<ProtectedRoute><SettingsGroups /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
-            <Route path="/teams" element={<ProtectedRoute><Teams /></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
-            <Route path="/blog" element={<Blog />} />
-            <Route path="/blog/:slug" element={<BlogPostPage />} />
-            <Route path="/legal/terms" element={<LegalTerms />} />
-            <Route path="/legal/lgpd" element={<LegalLgpd />} />
-            <Route path="/demo" element={<Demo />} />
-            <Route path="/shared/:token" element={<SharedMeeting />} />
-            <Route path="/admin/leads" element={<ProtectedRoute><AdminLeads /></ProtectedRoute>} />
-            <Route path="*" element={<NotFound />} />
-            </Routes>
+            <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}>
+              <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth/login" element={<Login />} />
+              <Route path="/auth/signup" element={<Signup />} />
+              <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+              <Route path="/auth/reset-password" element={<ResetPassword />} />
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/upload" element={<ProtectedRoute><UploadPage /></ProtectedRoute>} />
+              <Route path="/meetings" element={<ProtectedRoute><Meetings /></ProtectedRoute>} />
+              <Route path="/meetings/:id" element={<ProtectedRoute><MeetingDetail /></ProtectedRoute>} />
+              <Route path="/routines" element={<ProtectedRoute><Routines /></ProtectedRoute>} />
+              <Route path="/routines/:id" element={<ProtectedRoute><RoutineDetail /></ProtectedRoute>} />
+              <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+              <Route path="/settings/security" element={<ProtectedRoute><SettingsSecurity /></ProtectedRoute>} />
+              <Route path="/settings/branding" element={<ProtectedRoute><SettingsBranding /></ProtectedRoute>} />
+              <Route path="/settings/notifications" element={<ProtectedRoute><SettingsPlaceholder /></ProtectedRoute>} />
+              <Route path="/settings/groups" element={<ProtectedRoute><SettingsGroups /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
+              <Route path="/teams" element={<ProtectedRoute><Teams /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:slug" element={<BlogPostPage />} />
+              <Route path="/legal/terms" element={<LegalTerms />} />
+              <Route path="/legal/lgpd" element={<LegalLgpd />} />
+              <Route path="/demo" element={<Demo />} />
+              <Route path="/shared/:token" element={<SharedMeeting />} />
+              <Route path="/admin/leads" element={<ProtectedRoute><AdminLeads /></ProtectedRoute>} />
+              <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
