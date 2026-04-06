@@ -6,9 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export function TrialUpgradeBanners() {
   const { profile } = useAuth();
 
-  if (!profile) return null;
-
-  const plan = profile.plan_id;
+  const plan = profile?.plan_id;
   const isTrial = !plan || plan === 'basic' || plan === 'trial';
 
   useEffect(() => {
@@ -18,7 +16,7 @@ export function TrialUpgradeBanners() {
     } catch (e) {}
   }, [isTrial]);
 
-  if (!isTrial) return null;
+  if (!profile || !isTrial) return null;
 
   return (
     <>
