@@ -18,6 +18,7 @@ import { PWAInstallButton } from '@/components/PWAInstallButton';
 import { VersionBadge } from '@/components/VersionBadge';
 import { TrialAds } from '@/components/TrialAds';
 import { TrialUpgradeBanners } from '@/components/TrialUpgradeBanners';
+import { HelpModal } from '@/components/HelpModal';
 import { supabase } from '@/integrations/supabase/client';
 
 const menuItems = [
