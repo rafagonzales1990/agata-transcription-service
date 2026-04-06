@@ -682,8 +682,6 @@ export type Database = {
           password: string | null
           phone: string | null
           planId: string | null
-          resetToken: string | null
-          resetTokenExpiry: string | null
           stripeCustomerId: string | null
           stripePriceId: string | null
           stripeSubscriptionId: string | null
@@ -710,8 +708,6 @@ export type Database = {
           password?: string | null
           phone?: string | null
           planId?: string | null
-          resetToken?: string | null
-          resetTokenExpiry?: string | null
           stripeCustomerId?: string | null
           stripePriceId?: string | null
           stripeSubscriptionId?: string | null
@@ -738,8 +734,6 @@ export type Database = {
           password?: string | null
           phone?: string | null
           planId?: string | null
-          resetToken?: string | null
-          resetTokenExpiry?: string | null
           stripeCustomerId?: string | null
           stripePriceId?: string | null
           stripeSubscriptionId?: string | null
