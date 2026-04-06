@@ -25,6 +25,7 @@ export default function UploadPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const routineId = searchParams.get('routineId');
+  const usage = useUsage();
   const [activeTab, setActiveTab] = useState<'upload' | 'record' | 'paste'>('upload');
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
@@ -39,34 +40,8 @@ export default function UploadPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
-  const [limitReached, setLimitReached] = useState(false);
-  const [usageInfo, setUsageInfo] = useState({ planName: 'Gratuito', used: 0, max: 2 });
 
-  useEffect(() => {
-    async function checkUsage() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const currentMonth = new Date().toISOString().slice(0, 7);
-
-      const [usageRes, userRes] = await Promise.all([
-        supabase.from('Usage').select('transcriptionsUsed, currentMonth').eq('userId', user.id).single(),
-        supabase.from('User').select('planId').eq('id', user.id).single(),
-      ]);
-
-      const planId = userRes.data?.planId || 'basic';
-      const { data: plan } = await supabase.from('Plan').select('maxTranscriptions, name').eq('id', planId).single();
-
-      const used = usageRes.data?.currentMonth === currentMonth
-        ? (usageRes.data?.transcriptionsUsed || 0)
-        : 0;
-      const max = plan?.maxTranscriptions || 5;
-
-      setUsageInfo({ planName: plan?.name || 'Gratuito', used, max });
-      if (used >= max) setLimitReached(true);
-    }
-    checkUsage();
-  }, []);
+  const limitReached = usage.isAtLimit;
 
   const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); }, []);
   const handleDragLeave = useCallback(() => setIsDragging(false), []);
