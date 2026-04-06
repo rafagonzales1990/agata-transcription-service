@@ -20,6 +20,8 @@ export default function DashboardPage() {
   const [maxTranscriptions, setMaxTranscriptions] = useState(5);
   const [totalMinutes, setTotalMinutes] = useState(0);
   const [planName, setPlanName] = useState('Gratuito');
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
 
   useEffect(() => {
     async function fetchDashboard() {
