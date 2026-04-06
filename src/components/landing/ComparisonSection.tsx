@@ -20,7 +20,7 @@ const rows: CompRow[] = [
     sonix: { status: 'partial', label: 'Limitado' },
   },
   {
-    feature: 'ATA em PDF + Word',
+    feature: 'Ata em PDF + Word',
     agata: { status: 'check', label: 'PDF + Word' },
     fireflies: { status: 'no', label: 'Não tem' },
     otter: { status: 'no', label: 'Não tem' },
