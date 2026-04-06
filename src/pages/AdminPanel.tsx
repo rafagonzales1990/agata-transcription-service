@@ -715,6 +715,17 @@ export default function AdminPanel() {
                           <TableCell><Badge className={`${PLAN_COLORS[u.planId || 'basic']} text-[10px]`}>{PLAN_LABELS[u.planId || 'basic']}</Badge></TableCell>
                           <TableCell><span className={`px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap ${status.cls}`}>{status.label}</span></TableCell>
                           <TableCell className="text-center font-mono text-sm">{u.meetingCount}</TableCell>
+                          <TableCell className="text-center font-mono text-xs">{u.usageTranscriptions}</TableCell>
+                          <TableCell className="text-center font-mono text-xs">{u.usageMinutes}</TableCell>
+                          <TableCell className="text-center">
+                            {(() => {
+                              const limits: Record<string, number> = { basic: 3, inteligente: 20, automacao: 60, enterprise: 999999 };
+                              const max = limits[u.planId || 'basic'] || 3;
+                              const pct = max > 0 ? Math.min(100, Math.round((u.usageTranscriptions / max) * 100)) : 0;
+                              const color = pct >= 100 ? 'text-red-600 font-bold' : pct >= 80 ? 'text-amber-600 font-medium' : 'text-muted-foreground';
+                              return <span className={`text-xs font-mono ${color}`}>{u.planId === 'enterprise' ? '—' : `${pct}%`}</span>;
+                            })()}
+                          </TableCell>
                           <TableCell className="text-xs text-muted-foreground">{dateStr}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
