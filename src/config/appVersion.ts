@@ -26,10 +26,11 @@
  */
 
 export const appVersion = {
-  version: 'v0.9.2',
+  version: 'v0.9.3',
   releaseDate: '2026-04-06',
   environmentLabel: (import.meta.env.MODE === 'production' ? 'production' : 'dev') as string,
   changelog: [
+    'Onboarding do primeiro uso',
     'Google AdSense para usuários trial/basic com fallback 10s',
     'Banners de upgrade Pro (sidebar + footer)',
     'GTM (GTM-T63TT8CJ) integrado no index.html',

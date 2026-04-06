@@ -9,6 +9,8 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { OnboardingWelcome } from '@/components/OnboardingWelcome';
+import { toast } from 'sonner';
 
 export default function DashboardPage() {
   const { profile } = useAuth();
@@ -18,6 +20,8 @@ export default function DashboardPage() {
   const [maxTranscriptions, setMaxTranscriptions] = useState(5);
   const [totalMinutes, setTotalMinutes] = useState(0);
   const [planName, setPlanName] = useState('Gratuito');
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
 
   useEffect(() => {
     async function fetchDashboard() {
@@ -40,7 +44,13 @@ export default function DashboardPage() {
           .single(),
       ]);
 
-      setTotalMeetings(meetingsRes.count || 0);
+      const meetingCount = meetingsRes.count || 0;
+      setTotalMeetings(meetingCount);
+      if (meetingCount === 0) setShowOnboarding(true);
+      if (meetingCount === 1 && !sessionStorage.getItem('first_transcription_toast')) {
+        sessionStorage.setItem('first_transcription_toast', '1');
+        toast.success('🎉 Primeira reunião transcrita! Explore o resumo e a ATA.');
+      }
       setTotalMinutes(usageRes.data?.totalMinutesTranscribed || 0);
       setTranscriptionsUsed(
         usageRes.data?.currentMonth === currentMonth
@@ -97,6 +107,10 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold text-gray-900">Bem-vindo, {userName}!</h1>
           <p className="text-muted-foreground mt-1">Gerencie suas transcrições de reuniões com inteligência artificial</p>
         </div>
+
+        {showOnboarding && !onboardingDismissed && (
+          <OnboardingWelcome onDismiss={() => setOnboardingDismissed(true)} />
+        )}
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat, i) => (

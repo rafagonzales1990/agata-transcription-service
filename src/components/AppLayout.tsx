@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard, FileText, Upload, FolderOpen, Settings,
   Repeat, Sparkles, LogOut, Menu, X, User, CreditCard,
-  ChevronDown, Shield, Users,
+  ChevronDown, Shield, Users, HelpCircle,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -18,6 +18,7 @@ import { PWAInstallButton } from '@/components/PWAInstallButton';
 import { VersionBadge } from '@/components/VersionBadge';
 import { TrialAds } from '@/components/TrialAds';
 import { TrialUpgradeBanners } from '@/components/TrialUpgradeBanners';
+import { HelpModal } from '@/components/HelpModal';
 import { supabase } from '@/integrations/supabase/client';
 
 const menuItems = [
@@ -141,6 +142,12 @@ export function AppLayout({ children }: AppLayoutProps) {
           <Settings className="h-4 w-4" />
           Configurações
         </Link>
+        <HelpModal>
+          <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors w-full text-left">
+            <HelpCircle className="h-4 w-4" />
+            Como usar o Ágata
+          </button>
+        </HelpModal>
         <button
           onClick={() => { onNavigate?.(); handleLogout(); }}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-destructive/10 hover:text-destructive transition-colors w-full text-left"
