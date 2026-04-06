@@ -439,9 +439,14 @@ export default function MeetingDetail() {
                 {durationLabel && ` · ${durationLabel}`}
               </p>
             </div>
-            <Badge variant={cfg.variant} className="shrink-0 flex items-center gap-1">
-              <StatusIcon className="h-3 w-3" /> {cfg.label}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShareOpen(true)} className="flex items-center gap-1.5">
+                <Share2 className="h-3.5 w-3.5" /> Compartilhar
+              </Button>
+              <Badge variant={cfg.variant} className="shrink-0 flex items-center gap-1">
+                <StatusIcon className="h-3 w-3" /> {cfg.label}
+              </Badge>
+            </div>
           </div>
           {meeting.description && <p className="text-sm text-muted-foreground mt-2">{meeting.description}</p>}
         </div>
