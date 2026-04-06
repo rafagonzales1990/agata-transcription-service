@@ -623,6 +623,7 @@ export default function MeetingDetail() {
             </CardContent>
           </Card>
         )}
+        <ShareMeetingModal open={shareOpen} onOpenChange={setShareOpen} meetingId={meeting.id} />
       </div>
     </AppLayout>
   );
