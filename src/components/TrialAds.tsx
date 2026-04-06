@@ -8,17 +8,14 @@ export function TrialAds() {
   const plan = profile?.plan_id;
   const showAds = !plan || plan === 'basic' || plan === 'trial';
 
-  // Inject AdSense script once
+  // Push ad once (script already in index.html <head>)
   useEffect(() => {
     if (!showAds) return;
-    if (!document.querySelector('script[src*="adsbygoogle"]')) {
-      const script = document.createElement('script');
-      script.async = true;
-      script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5098455114804419';
-      script.crossOrigin = 'anonymous';
-      document.head.appendChild(script);
-    }
-  }, [showAds]);
+    try {
+      (window as any).adsbygoogle = (window as any).adsbygoogle || [];
+      (window as any).adsbygoogle.push({});
+    } catch (e) {}
+  }, []); // runs 1x
 
   // Push ad once
   useEffect(() => {
