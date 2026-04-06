@@ -20,7 +20,7 @@ const rows: CompRow[] = [
     sonix: { status: 'partial', label: 'Limitado' },
   },
   {
-    feature: 'ATA em PDF + Word',
+    feature: 'Ata em PDF + Word',
     agata: { status: 'check', label: 'PDF + Word' },
     fireflies: { status: 'no', label: 'Não tem' },
     otter: { status: 'no', label: 'Não tem' },
@@ -133,9 +133,9 @@ export function ComparisonSection() {
                     <span className="text-[10px] opacity-80 font-normal">agatatranscription.com</span>
                   </div>
                 </th>
-                <th className="px-5 py-4 font-semibold text-sm text-center">Fireflies.ai</th>
-                <th className="px-5 py-4 font-semibold text-sm text-center">Otter.ai</th>
-                <th className="px-5 py-4 font-semibold text-sm text-center rounded-tr-2xl">Sonix</th>
+                <th className="px-5 py-4 font-semibold text-sm text-center">Concorrente 1</th>
+                <th className="px-5 py-4 font-semibold text-sm text-center">Concorrente 2</th>
+                <th className="px-5 py-4 font-semibold text-sm text-center rounded-tr-2xl">Concorrente 3</th>
               </tr>
             </thead>
             <tbody>

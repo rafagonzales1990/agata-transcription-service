@@ -6,7 +6,7 @@ import {
 
 const differentials = [
   { icon: Globe, title: 'Português brasileiro nativo', description: 'IA otimizada para português brasileiro com alta precisão, até em sotaques regionais.' },
-  { icon: FileText, title: 'Atas e Documentos Prontos', description: 'ATA profissional em PDF e Word gerada automaticamente — pronta para enviar.' },
+  { icon: FileText, title: 'Atas e Documentos Prontos', description: 'Ata profissional em PDF e Word gerada automaticamente — pronta para enviar.' },
   { icon: Repeat, title: 'Rotinas de Reuniões', description: 'Funcionalidade exclusiva: agrupe reuniões recorrentes e acompanhe a evolução.' },
   { icon: Layers, title: 'Consolidação de Reuniões', description: 'Consolide várias reuniões em um resumo único. Perfeito para sprints e comitês.' },
   { icon: LayoutTemplate, title: 'Templates Customizados', description: 'Personalize a estrutura da ATA para cada tipo de reunião do seu time.' },

@@ -15,12 +15,12 @@ export function HeroSection() {
             </Badge>
 
             <h1 className="text-4xl sm:text-5xl lg:text-[3.4rem] font-bold text-foreground leading-[1.1] mb-6 tracking-tight">
-              Transcreva reuniões com IA,{' '}
-              <span className="text-primary">gere resumos e atas em minutos</span>
+              Transcreva reuniões com IA
+              <span className="text-primary">&nbsp;e gere resumos e atas em minutos</span>
             </h1>
 
             <p className="text-lg text-muted-foreground mb-4 max-w-xl leading-relaxed">
-              Ágata Transcription transforma reuniões em transcrição, resumo executivo e ATA em PDF/Word. 
+              Ágata Transcription transforma reuniões em transcrição, resumo executivo e ata em PDF/Word. 
               Feito para empresas que trabalham em português.
             </p>
             <p className="text-sm text-muted-foreground mb-8 max-w-xl">
@@ -83,11 +83,11 @@ export function HeroSection() {
                 <div className="flex gap-2">
                   <div className="flex-1 p-3 bg-muted rounded-lg text-center">
                     <FileText className="h-5 w-5 text-primary mx-auto mb-1" />
-                    <p className="text-[11px] font-medium text-foreground">ATA em PDF</p>
+                    <p className="text-[11px] font-medium text-foreground">Ata em PDF</p>
                   </div>
                   <div className="flex-1 p-3 bg-muted rounded-lg text-center">
                     <FileText className="h-5 w-5 text-primary mx-auto mb-1" />
-                    <p className="text-[11px] font-medium text-foreground">ATA em Word</p>
+                    <p className="text-[11px] font-medium text-foreground">Ata em Word</p>
                   </div>
                 </div>
               </div>
