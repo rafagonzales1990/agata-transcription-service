@@ -5,8 +5,8 @@ import {
 } from 'lucide-react';
 
 const differentials = [
-  { icon: Globe, title: 'PT-BR Nativo', description: 'IA otimizada para português brasileiro com alta precisão, até em sotaques regionais.' },
-  { icon: FileText, title: 'ATAs e Documentos Prontos', description: 'ATA profissional em PDF e Word gerada automaticamente — pronta para enviar.' },
+  { icon: Globe, title: 'Português brasileiro nativo', description: 'IA otimizada para português brasileiro com alta precisão, até em sotaques regionais.' },
+  { icon: FileText, title: 'Atas e Documentos Prontos', description: 'ATA profissional em PDF e Word gerada automaticamente — pronta para enviar.' },
   { icon: Repeat, title: 'Rotinas de Reuniões', description: 'Funcionalidade exclusiva: agrupe reuniões recorrentes e acompanhe a evolução.' },
   { icon: Layers, title: 'Consolidação de Reuniões', description: 'Consolide várias reuniões em um resumo único. Perfeito para sprints e comitês.' },
   { icon: LayoutTemplate, title: 'Templates Customizados', description: 'Personalize a estrutura da ATA para cada tipo de reunião do seu time.' },
@@ -25,7 +25,8 @@ export function DifferentiationSection() {
             Por que escolher o Ágata?
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Construído do zero para o mercado brasileiro. Não é uma tradução — é uma solução nativa.
+            Construído do zero para o mercado brasileiro. <br />
+            Não é uma tradução — é uma solução nativa.
           </p>
         </div>
 

@@ -15,8 +15,8 @@ export function HeroSection() {
             </Badge>
 
             <h1 className="text-4xl sm:text-5xl lg:text-[3.4rem] font-bold text-foreground leading-[1.1] mb-6 tracking-tight">
-              Transcreva reuniões em PT-BR com IA,{' '}
-              <span className="text-primary">gere resumos e ATAs em minutos</span>
+              Transcreva reuniões com IA,{' '}
+              <span className="text-primary">gere resumos e atas em minutos</span>
             </h1>
 
             <p className="text-lg text-muted-foreground mb-4 max-w-xl leading-relaxed">
@@ -42,7 +42,7 @@ export function HeroSection() {
 
             <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-primary" /> PT-BR nativo</span>
-              <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-primary" /> ATA pronta em PDF e Word</span>
+              <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-primary" /> Ata pronta em PDF e Word</span>
               <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-primary" /> Rotinas e consolidação</span>
             </div>
           </motion.div>
