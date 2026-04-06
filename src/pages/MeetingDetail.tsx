@@ -85,6 +85,7 @@ export default function MeetingDetail() {
   const [selectedTemplate, setSelectedTemplate] = useState("geral");
   const [pdfLoading, setPdfLoading] = useState(false);
   const [wordLoading, setWordLoading] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const isPaidPlan = PAID_PLANS.includes(profile?.plan_id || "basic");
 
