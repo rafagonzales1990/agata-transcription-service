@@ -682,6 +682,9 @@ export default function AdminPanel() {
                       <TableHead>Plano</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-center">Reuniões</TableHead>
+                      <TableHead className="text-center">Uso Mês</TableHead>
+                      <TableHead className="text-center">Min Mês</TableHead>
+                      <TableHead className="text-center">% Limite</TableHead>
                       <TableHead>Cadastro</TableHead>
                       <TableHead className="w-44">Ações</TableHead>
                     </TableRow>
