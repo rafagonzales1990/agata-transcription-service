@@ -36,6 +36,7 @@ import LegalTerms from "./pages/LegalTerms";
 import LegalLgpd from "./pages/LegalLgpd";
 import Demo from "./pages/Demo";
 import AdminLeads from "./pages/AdminLeads";
+import SharedMeeting from "./pages/SharedMeeting";
 
 const queryClient = new QueryClient();
 
@@ -96,6 +97,7 @@ const App = () => (
             <Route path="/legal/terms" element={<LegalTerms />} />
             <Route path="/legal/lgpd" element={<LegalLgpd />} />
             <Route path="/demo" element={<Demo />} />
+            <Route path="/shared/:token" element={<SharedMeeting />} />
             <Route path="/admin/leads" element={<ProtectedRoute><AdminLeads /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
             </Routes>
