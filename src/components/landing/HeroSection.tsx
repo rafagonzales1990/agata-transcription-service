@@ -83,11 +83,11 @@ export function HeroSection() {
                 <div className="flex gap-2">
                   <div className="flex-1 p-3 bg-muted rounded-lg text-center">
                     <FileText className="h-5 w-5 text-primary mx-auto mb-1" />
-                    <p className="text-[11px] font-medium text-foreground">ATA em PDF</p>
+                    <p className="text-[11px] font-medium text-foreground">Ata em PDF</p>
                   </div>
                   <div className="flex-1 p-3 bg-muted rounded-lg text-center">
                     <FileText className="h-5 w-5 text-primary mx-auto mb-1" />
-                    <p className="text-[11px] font-medium text-foreground">ATA em Word</p>
+                    <p className="text-[11px] font-medium text-foreground">Ata em Word</p>
                   </div>
                 </div>
               </div>

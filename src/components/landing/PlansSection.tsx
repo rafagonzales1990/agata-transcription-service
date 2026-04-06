@@ -23,7 +23,7 @@ const plans = [
     originalPrice: 'R$ 61',
     period: '/mês',
     description: 'Para profissionais',
-    features: ['15 transcrições/mês', 'Até 45min por áudio', 'Resumo avançado com IA', 'ATA em PDF profissional', 'Sem marca d\'água'],
+    features: ['15 transcrições/mês', 'Até 45min por áudio', 'Resumo avançado com IA', 'Ata em PDF profissional', 'Sem marca d\'água'],
     cta: 'Assinar Agora',
     popular: true,
     badge: 'MAIS POPULAR',

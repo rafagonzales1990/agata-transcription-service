@@ -29,7 +29,7 @@ const metrics = [
 const testimonials = [
   { name: 'Mariana Costa', role: 'Gerente de Projetos', company: 'Tech Solutions', text: 'A Ágata transformou nosso processo de documentação. Antes gastávamos 2h por reunião fazendo atas, agora leva 5 minutos.', stars: 5 },
   { name: 'Ricardo Almeida', role: 'Diretor de Operações', company: 'Consultoria Nova Era', text: 'Testei várias ferramentas de transcrição e nenhuma chegava perto em português. A Ágata acerta até gírias e termos técnicos.', stars: 5 },
-  { name: 'Fernanda Oliveira', role: 'Advogada', company: 'Oliveira & Associados', text: 'Uso para transcrever audiências e reuniões com clientes. A geração de ATA em PDF é profissional e me poupa horas toda semana.', stars: 5 },
+  { name: 'Fernanda Oliveira', role: 'Advogada', company: 'Oliveira & Associados', text: 'Uso para transcrever audiências e reuniões com clientes. A geração de Ata em PDF é profissional e me poupa horas toda semana.', stars: 5 },
 ];
 
 const faqs = [
