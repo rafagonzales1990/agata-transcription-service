@@ -20,6 +20,7 @@ import {
   Printer,
   FileDown,
   Share2,
+  RefreshCw,
 } from "lucide-react";
 import { ShareMeetingModal } from "@/components/ShareMeetingModal";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +33,7 @@ interface MeetingRow {
   id: string;
   title: string;
   fileName: string;
+  cloudStoragePath: string;
   status: string;
   createdAt: string;
   summary: string | null;
@@ -86,6 +88,7 @@ export default function MeetingDetail() {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [wordLoading, setWordLoading] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [retryLoading, setRetryLoading] = useState(false);
 
   const isPaidPlan = PAID_PLANS.includes(profile?.plan_id || "basic");
 
@@ -95,7 +98,7 @@ export default function MeetingDetail() {
       const { data, error } = await supabase
         .from("Meeting")
         .select(
-          "id, title, fileName, status, createdAt, summary, transcription, participants, meetingDate, meetingTime, actionItems, responsible, location, description, ataTemplate, fileDuration",
+          "id, title, fileName, cloudStoragePath, status, createdAt, summary, transcription, participants, meetingDate, meetingTime, actionItems, responsible, location, description, ataTemplate, fileDuration",
         )
         .eq("id", id)
         .single();
@@ -385,6 +388,32 @@ export default function MeetingDetail() {
     }
   }, [id, meeting, selectedTemplate]);
 
+  const retryTranscription = useCallback(async () => {
+    if (!id || !meeting) return;
+    setRetryLoading(true);
+    try {
+      await supabase.from("Meeting").update({ status: "processing", errorMessage: null, updatedAt: new Date().toISOString() }).eq("id", id);
+      setMeeting((prev) => prev ? { ...prev, status: "processing" } : prev);
+
+      const { data, error } = await supabase.functions.invoke("transcribe", {
+        body: { meetingId: id, storagePath: meeting.cloudStoragePath },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast.success("Transcrição reiniciada com sucesso!");
+      // Refresh meeting data
+      const { data: updated } = await supabase.from("Meeting").select("id, title, fileName, cloudStoragePath, status, createdAt, summary, transcription, participants, meetingDate, meetingTime, actionItems, responsible, location, description, ataTemplate, fileDuration").eq("id", id).maybeSingle();
+      if (updated) setMeeting(updated as MeetingRow);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao tentar novamente");
+      setMeeting((prev) => prev ? { ...prev, status: "failed" } : prev);
+    } finally {
+      setRetryLoading(false);
+    }
+  }, [id, meeting]);
+
   if (loading) {
     return (
       <AppLayout>
@@ -449,6 +478,17 @@ export default function MeetingDetail() {
             </div>
           </div>
           {meeting.description && <p className="text-sm text-muted-foreground mt-2">{meeting.description}</p>}
+
+          {meeting.status === "failed" && (
+            <div className="mt-3 p-3 rounded-md bg-destructive/10 border border-destructive/20 flex items-center gap-3">
+              <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+              <span className="text-sm text-destructive">A transcrição falhou.</span>
+              <Button size="sm" variant="destructive" onClick={retryTranscription} disabled={retryLoading} className="ml-auto">
+                {retryLoading ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1.5" />}
+                Tentar novamente
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Participants */}
