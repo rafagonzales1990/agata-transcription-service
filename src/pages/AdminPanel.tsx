@@ -533,11 +533,20 @@ export default function AdminPanel() {
   const dotColors: Record<string, string> = { basic: 'bg-gray-400', inteligente: 'bg-emerald-500', automacao: 'bg-blue-500', enterprise: 'bg-purple-500' };
 
   const getUserStatus = (u: AdminUser) => {
-    if (u.stripeSubscriptionId) return { label: 'Ativo', cls: 'bg-green-100 text-green-700' };
+    // 1. Active gift takes priority
+    if (u.giftPlanId && u.giftEndsAt && new Date(u.giftEndsAt) > now) {
+      const d = new Date(u.giftEndsAt);
+      return { label: `🎁 Gift até ${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`, cls: 'bg-amber-100 text-amber-700' };
+    }
+    // 2. Active trial
     if (u.trialEndsAt && new Date(u.trialEndsAt) > now) {
       return { label: `Trial ${getDaysRemaining(u.trialEndsAt)}d`, cls: 'bg-amber-100 text-amber-700' };
     }
-    if (u.trialEndsAt && new Date(u.trialEndsAt) <= now) return { label: 'Trial exp.', cls: 'bg-red-100 text-red-700' };
+    // 3. Paid plan (not basic)
+    if (u.planId && u.planId !== 'basic') {
+      return { label: `Pago (${PLAN_LABELS[u.planId] || u.planId})`, cls: 'bg-green-100 text-green-700' };
+    }
+    // 4. Free
     return { label: 'Gratuito', cls: 'bg-gray-100 text-gray-700' };
   };
 
