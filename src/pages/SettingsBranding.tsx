@@ -37,7 +37,8 @@ export default function SettingsBranding() {
 
   useEffect(() => {
     async function loadTeam() {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) return;
       const { data } = await supabase
         .from('Team')
@@ -56,7 +57,8 @@ export default function SettingsBranding() {
 
   const handleSave = async () => {
     setSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) return;
 
     const { data: existing } = await supabase.from('Team').select('id').eq('ownerId', user.id).maybeSingle();
@@ -89,7 +91,8 @@ export default function SettingsBranding() {
     }
 
     setUploadingLogo(true);
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) return;
 
     const ext = file.name.split('.').pop();
@@ -110,7 +113,8 @@ export default function SettingsBranding() {
   };
 
   const handleRemoveLogo = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) return;
 
     const { data: files } = await supabase.storage.from('team-logos').list(user.id);

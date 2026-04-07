@@ -45,15 +45,32 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [userCpf, setUserCpf] = useState<string | null | undefined>(undefined);
 
   const fetchCpfAndAdmin = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data } = await supabase
-      .from('User')
-      .select('isAdmin, cpf')
-      .eq('id', user.id)
-      .maybeSingle();
-    if (data?.isAdmin) setIsAdmin(true);
-    setUserCpf(data?.cpf ?? null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
+      if (!user) return;
+      const { data } = await supabase
+        .from('User')
+        .select('isAdmin, cpf')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (data?.isAdmin) setIsAdmin(true);
+      setUserCpf(data?.cpf ?? null);
+    } catch (error: any) {
+      if (error?.message?.includes('lock') || error?.message?.includes('stolen')) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        const { data: { session } } = await supabase.auth.getSession();
+        const user = session?.user;
+        if (!user) return;
+        const { data } = await supabase
+          .from('User')
+          .select('isAdmin, cpf')
+          .eq('id', user.id)
+          .maybeSingle();
+        if (data?.isAdmin) setIsAdmin(true);
+        setUserCpf(data?.cpf ?? null);
+      }
+    }
   }, []);
 
   useEffect(() => {

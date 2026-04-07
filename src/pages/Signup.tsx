@@ -49,7 +49,8 @@ export default function SignupPage() {
       // Lead attribution: link lead to new user
       if (leadId) {
         try {
-          const { data: { user: newUser } } = await supabase.auth.getUser();
+          const { data: { session: s } } = await supabase.auth.getSession();
+          const newUser = s?.user;
           if (newUser) {
             await supabase.from('Lead' as any).update({
               userId: newUser.id,
@@ -65,7 +66,8 @@ export default function SignupPage() {
       } else {
         // Try to match by email
         try {
-          const { data: { user: newUser } } = await supabase.auth.getUser();
+          const { data: { session: s } } = await supabase.auth.getSession();
+          const newUser = s?.user;
           if (newUser) {
             await supabase.from('Lead' as any).update({
               userId: newUser.id,
