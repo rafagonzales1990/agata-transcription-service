@@ -46,7 +46,8 @@ export default function RoutinesPage() {
   const [saving, setSaving] = useState(false);
 
   const fetchRoutines = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) return;
 
     const { data, error } = await supabase
