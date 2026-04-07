@@ -3,6 +3,14 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
+// Suppress known AdSense internal errors (not actionable)
+window.addEventListener('unhandledrejection', (event) => {
+  const msg = event?.reason?.message || String(event?.reason || '');
+  if (msg.includes('Object Not Found Matching Id')) {
+    event.preventDefault();
+  }
+});
+
 Sentry.init({
   dsn: "https://535dff649d5d630f7a0897f50581f786@o4511150762950656.ingest.us.sentry.io/4511150767210496",
   environment: import.meta.env.MODE,
