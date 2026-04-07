@@ -113,7 +113,8 @@ export default function SettingsBranding() {
   };
 
   const handleRemoveLogo = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) return;
 
     const { data: files } = await supabase.storage.from('team-logos').list(user.id);

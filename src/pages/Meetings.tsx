@@ -53,7 +53,8 @@ export default function MeetingsPage() {
   const [editForm, setEditForm] = useState({ title: '', meetingDate: '', meetingTime: '', location: '', responsible: '', participants: '' });
 
   const fetchMeetings = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) return;
 
     const { data, error } = await supabase

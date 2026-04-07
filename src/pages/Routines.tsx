@@ -92,7 +92,8 @@ export default function RoutinesPage() {
     if (!form.name.trim()) { toast.error('Nome é obrigatório'); return; }
     setSaving(true);
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user;
     if (!user) return;
 
     if (editRoutine) {
