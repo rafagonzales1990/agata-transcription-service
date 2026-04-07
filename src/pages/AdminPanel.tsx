@@ -63,6 +63,7 @@ interface AdminUser {
   stripeSubscriptionId: string | null; stripePriceId: string | null;
   adminGroupId: string | null; meetingCount: number;
   usageTranscriptions: number; usageMinutes: number;
+  giftPlanId: string | null; giftEndsAt: string | null;
 }
 interface AdminGroup {
   id: string; name: string; description: string | null; color: string;
