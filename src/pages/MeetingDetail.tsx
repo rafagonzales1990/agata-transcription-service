@@ -20,6 +20,7 @@ import {
   Printer,
   FileDown,
   Share2,
+  RefreshCw,
 } from "lucide-react";
 import { ShareMeetingModal } from "@/components/ShareMeetingModal";
 import { supabase } from "@/integrations/supabase/client";
