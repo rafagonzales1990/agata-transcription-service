@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,6 +20,7 @@ import { TrialAds } from '@/components/TrialAds';
 import { TrialUpgradeBanners } from '@/components/TrialUpgradeBanners';
 import { HelpModal } from '@/components/HelpModal';
 import { supabase } from '@/integrations/supabase/client';
+import { CpfRequiredModal } from '@/components/CpfRequiredModal';
 
 const menuItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -41,22 +42,23 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { signOut, profile } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userCpf, setUserCpf] = useState<string | null | undefined>(undefined);
+
+  const fetchCpfAndAdmin = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase
+      .from('User')
+      .select('isAdmin, cpf')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (data?.isAdmin) setIsAdmin(true);
+    setUserCpf(data?.cpf ?? null);
+  }, []);
 
   useEffect(() => {
-    async function fetchAdminStatus() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase
-        .from('User')
-        .select('isAdmin')
-        .eq('id', user.id)
-        .maybeSingle();
-      if (data?.isAdmin) {
-        setIsAdmin(true);
-      }
-    }
-    fetchAdminStatus();
-  }, []);
+    fetchCpfAndAdmin();
+  }, [fetchCpfAndAdmin]);
 
   const isActive = (path: string) => {
     if (path === '/dashboard') return location.pathname === path;
@@ -67,6 +69,9 @@ export function AppLayout({ children }: AppLayoutProps) {
     await signOut();
     navigate('/');
   };
+
+  const needsCpf = userCpf !== undefined && !userCpf;
+  const authUser = profile;
 
   const initial = profile?.name?.charAt(0)?.toUpperCase() || profile?.email?.charAt(0)?.toUpperCase() || '?';
   const planLabel = profile?.plan_id === 'enterprise' ? 'Enterprise' : profile?.plan_id === 'automacao' ? 'Automação' : profile?.plan_id === 'inteligente' ? 'Inteligente' : 'Gratuito';
@@ -249,6 +254,9 @@ export function AppLayout({ children }: AppLayoutProps) {
         <TrialAds />
       </main>
       <TrialUpgradeBanners />
+      {needsCpf && authUser && (
+        <CpfRequiredModal userId={authUser.user_id} onSaved={fetchCpfAndAdmin} />
+      )}
     </div>
   );
 }
