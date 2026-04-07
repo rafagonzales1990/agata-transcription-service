@@ -254,6 +254,9 @@ export function AppLayout({ children }: AppLayoutProps) {
         <TrialAds />
       </main>
       <TrialUpgradeBanners />
+      {needsCpf && authUser && (
+        <CpfRequiredModal userId={authUser.user_id} onSaved={fetchCpfAndAdmin} />
+      )}
     </div>
   );
 }
