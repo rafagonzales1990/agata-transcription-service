@@ -42,22 +42,23 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { signOut, profile } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userCpf, setUserCpf] = useState<string | null | undefined>(undefined);
+
+  const fetchCpfAndAdmin = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase
+      .from('User')
+      .select('isAdmin, cpf')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (data?.isAdmin) setIsAdmin(true);
+    setUserCpf(data?.cpf ?? null);
+  }, []);
 
   useEffect(() => {
-    async function fetchAdminStatus() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase
-        .from('User')
-        .select('isAdmin')
-        .eq('id', user.id)
-        .maybeSingle();
-      if (data?.isAdmin) {
-        setIsAdmin(true);
-      }
-    }
-    fetchAdminStatus();
-  }, []);
+    fetchCpfAndAdmin();
+  }, [fetchCpfAndAdmin]);
 
   const isActive = (path: string) => {
     if (path === '/dashboard') return location.pathname === path;
