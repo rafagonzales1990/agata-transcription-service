@@ -404,7 +404,7 @@ export default function MeetingDetail() {
 
       toast.success("Transcrição reiniciada com sucesso!");
       // Refresh meeting data
-      const { data: updated } = await supabase.from("Meeting").select("id, title, fileName, status, createdAt, summary, transcription, participants, meetingDate, meetingTime, actionItems, responsible, location, description, ataTemplate, fileDuration").eq("id", id).maybeSingle();
+      const { data: updated } = await supabase.from("Meeting").select("id, title, fileName, cloudStoragePath, status, createdAt, summary, transcription, participants, meetingDate, meetingTime, actionItems, responsible, location, description, ataTemplate, fileDuration").eq("id", id).maybeSingle();
       if (updated) setMeeting(updated as MeetingRow);
     } catch (err: any) {
       toast.error(err.message || "Erro ao tentar novamente");
