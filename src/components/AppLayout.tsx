@@ -153,6 +153,16 @@ export function AppLayout({ children }: AppLayoutProps) {
             </button>
           </Link>
         )}
+        <a
+          href="https://chrome.google.com/webstore/detail/agata-transcription"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+        >
+          <Puzzle className="h-4 w-4" />
+          Extensão Chrome
+          <ExternalLink className="h-3 w-3 ml-auto opacity-50" />
+        </a>
         <Link
           to="/settings"
           onClick={onNavigate}
