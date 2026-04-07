@@ -145,6 +145,75 @@ export type Database = {
         }
         Relationships: []
       }
+      ExtensionRecording: {
+        Row: {
+          browser: string | null
+          createdAt: string
+          durationSeconds: number | null
+          extensionVersion: string | null
+          fileSizeBytes: number | null
+          id: string
+          meetingId: string | null
+          meetingTitle: string | null
+          meetingUrl: string | null
+          platform: string
+          startedAt: string
+          status: string
+          updatedAt: string
+          uploadedAt: string | null
+          userId: string
+        }
+        Insert: {
+          browser?: string | null
+          createdAt?: string
+          durationSeconds?: number | null
+          extensionVersion?: string | null
+          fileSizeBytes?: number | null
+          id?: string
+          meetingId?: string | null
+          meetingTitle?: string | null
+          meetingUrl?: string | null
+          platform: string
+          startedAt?: string
+          status?: string
+          updatedAt?: string
+          uploadedAt?: string | null
+          userId: string
+        }
+        Update: {
+          browser?: string | null
+          createdAt?: string
+          durationSeconds?: number | null
+          extensionVersion?: string | null
+          fileSizeBytes?: number | null
+          id?: string
+          meetingId?: string | null
+          meetingTitle?: string | null
+          meetingUrl?: string | null
+          platform?: string
+          startedAt?: string
+          status?: string
+          updatedAt?: string
+          uploadedAt?: string | null
+          userId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ExtensionRecording_meetingId_fkey"
+            columns: ["meetingId"]
+            isOneToOne: false
+            referencedRelation: "Meeting"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ExtensionRecording_userId_fkey"
+            columns: ["userId"]
+            isOneToOne: false
+            referencedRelation: "User"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       Lead: {
         Row: {
           campaign: string | null

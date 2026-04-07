@@ -148,6 +148,17 @@ export default function UploadPage() {
           {routineId && <p className="text-sm text-primary mt-1">📌 Vinculada a uma rotina</p>}
         </div>
 
+        <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+          <span className="text-lg leading-none mt-0.5">🧩</span>
+          <div className="text-sm text-emerald-900">
+            Sabia que você pode gravar reuniões diretamente do Chrome?{' '}
+            Instale a extensão Ágata e transcreva sem sair da reunião.{' '}
+            <a href="https://chrome.google.com/webstore/detail/agata-transcription" target="_blank" rel="noopener noreferrer" className="font-semibold text-emerald-700 hover:underline">
+              Instalar extensão →
+            </a>
+          </div>
+        </div>
+
         <UsageBanner isNearLimit={usage.isNearLimit} isAtLimit={usage.isAtLimit} planId={usage.limits.planId} />
 
         <div className="flex gap-2 p-1 bg-muted rounded-lg">
