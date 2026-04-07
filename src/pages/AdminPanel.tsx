@@ -951,7 +951,7 @@ export default function AdminPanel() {
 
       <EditUserDialog open={editOpen} onOpenChange={setEditOpen} user={selectedUser} groups={groups} onSubmit={handleEditSubmit} />
       <AssignGroupDialog open={assignGroupOpen} onOpenChange={setAssignGroupOpen} user={selectedUser} groups={groups} onSubmit={handleAssignGroup} />
-      <GiftEnterpriseDialog open={giftOpen} onOpenChange={setGiftOpen} user={selectedUser} onConfirm={handleGiftEnterprise} />
+      <GiftPlanDialog open={giftOpen} onOpenChange={setGiftOpen} user={selectedUser} onConfirm={handleGiftPlan} />
 
       <Dialog open={showNewGroup} onOpenChange={setShowNewGroup}>
         <DialogContent>
