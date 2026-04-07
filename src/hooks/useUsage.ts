@@ -48,20 +48,19 @@ export function useUsage(): UsageData {
       const currentMonth = new Date().toISOString().slice(0, 7);
 
       const [usageRes, userRes] = await Promise.all([
-        supabase.from('Usage').select('transcriptionsUsed, totalMinutesTranscribed, currentMonth').eq('userId', user.id).single(),
-        supabase.from('User').select('planId').eq('id', user.id).single(),
+        supabase.from('Usage').select('transcriptionsUsed, totalMinutesTranscribed, currentMonth').eq('userId', user.id).maybeSingle(),
+        supabase.from('User').select('planId').eq('id', user.id).maybeSingle(),
       ]);
 
       const planId = userRes.data?.planId || 'basic';
-      const { data: plan } = await supabase.from('Plan').select('name, maxTranscriptions, maxDurationMinutes').eq('id', planId).single();
+      const { data: plan } = await supabase.from('Plan').select('name, maxTranscriptions, maxDurationMinutes').eq('id', planId).maybeSingle();
 
       const isCurrentMonth = usageRes.data?.currentMonth === currentMonth;
       const transcriptionsUsed = isCurrentMonth ? (usageRes.data?.transcriptionsUsed || 0) : 0;
       const totalMinutesTranscribed = isCurrentMonth ? (usageRes.data?.totalMinutesTranscribed || 0) : 0;
 
-      const overrides = PLAN_LIMITS[planId] || PLAN_LIMITS.basic;
-      const maxT = overrides.maxTranscriptions;
-      const maxM = overrides.maxDurationMinutes;
+      const maxT = plan?.maxTranscriptions ?? PLAN_LIMITS[planId]?.maxTranscriptions ?? 3;
+      const maxM = plan?.maxDurationMinutes ?? PLAN_LIMITS[planId]?.maxDurationMinutes ?? 60;
       const planName = plan?.name || 'Gratuito';
 
       const transcriptionPercent = maxT > 0 ? Math.min(100, (transcriptionsUsed / maxT) * 100) : 0;
