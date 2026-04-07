@@ -157,31 +157,83 @@ function EditUserDialog({ open, onOpenChange, user, groups, onSubmit }: {
   );
 }
 
-// ── GiftEnterpriseDialog ───────────────────────────────────
-function GiftEnterpriseDialog({ open, onOpenChange, user, onConfirm }: {
+// ── GiftPlanDialog ─────────────────────────────────────────
+function GiftPlanDialog({ open, onOpenChange, user, onConfirm }: {
   open: boolean; onOpenChange: (o: boolean) => void; user: AdminUser | null;
-  onConfirm: (userId: string) => Promise<void>;
+  onConfirm: (userId: string, planId: string, expiryDate: Date) => Promise<void>;
 }) {
   const [loading, setLoading] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState('enterprise');
+  const [duration, setDuration] = useState(30);
+  const [durationUnit, setDurationUnit] = useState<'days' | 'weeks' | 'months'>('days');
+
+  useEffect(() => {
+    if (open) { setSelectedPlan('enterprise'); setDuration(30); setDurationUnit('days'); }
+  }, [open]);
+
+  const expiryDate = (() => {
+    const d = new Date();
+    if (durationUnit === 'days') d.setDate(d.getDate() + duration);
+    else if (durationUnit === 'weeks') d.setDate(d.getDate() + duration * 7);
+    else d.setMonth(d.getMonth() + duration);
+    return d;
+  })();
+
+  const planLabel = PLAN_LABELS[selectedPlan] || selectedPlan;
+  const dateStr = expiryDate.toLocaleDateString('pt-BR');
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="font-mono text-sm flex items-center gap-2">
-            <Gift className="h-4 w-4 text-purple-500" />Conceder Enterprise
+            <Gift className="h-4 w-4 text-amber-500" />Presentear Plano
           </DialogTitle>
           <DialogDescription className="text-xs">
-            Dar acesso Enterprise gratuito por 30 dias para:
-            <span className="font-mono font-medium block mt-1">{user?.email}</span>
+            Para: <span className="font-mono font-medium">{user?.email}</span>
           </DialogDescription>
         </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div>
+            <Label className="text-xs">Plano</Label>
+            <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+              <SelectTrigger className="h-9 text-sm mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="inteligente">Inteligente</SelectItem>
+                <SelectItem value="automacao">Automação</SelectItem>
+                <SelectItem value="enterprise">Enterprise</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Duração</Label>
+              <Input type="number" min={1} className="h-9 text-sm mt-1" value={duration}
+                onChange={e => setDuration(Math.max(1, parseInt(e.target.value) || 1))} />
+            </div>
+            <div>
+              <Label className="text-xs">Unidade</Label>
+              <Select value={durationUnit} onValueChange={v => setDurationUnit(v as any)}>
+                <SelectTrigger className="h-9 text-sm mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="days">Dias</SelectItem>
+                  <SelectItem value="weeks">Semanas</SelectItem>
+                  <SelectItem value="months">Meses</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+            O usuário terá acesso ao plano <strong>{planLabel}</strong> até <strong>{dateStr}</strong>.
+          </div>
+        </div>
         <DialogFooter>
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button size="sm" className="bg-purple-600 hover:bg-purple-700" disabled={loading}
+          <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white" disabled={loading}
             onClick={async () => {
               if (!user) return;
               setLoading(true);
-              try { await onConfirm(user.id); onOpenChange(false); } finally { setLoading(false); }
+              try { await onConfirm(user.id, selectedPlan, expiryDate); onOpenChange(false); } finally { setLoading(false); }
             }}>
             {loading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Confirmar Gift
           </Button>
