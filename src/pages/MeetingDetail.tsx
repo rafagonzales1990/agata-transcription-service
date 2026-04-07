@@ -478,6 +478,17 @@ export default function MeetingDetail() {
             </div>
           </div>
           {meeting.description && <p className="text-sm text-muted-foreground mt-2">{meeting.description}</p>}
+
+          {meeting.status === "failed" && (
+            <div className="mt-3 p-3 rounded-md bg-destructive/10 border border-destructive/20 flex items-center gap-3">
+              <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+              <span className="text-sm text-destructive">A transcrição falhou.</span>
+              <Button size="sm" variant="destructive" onClick={retryTranscription} disabled={retryLoading} className="ml-auto">
+                {retryLoading ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1.5" />}
+                Tentar novamente
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Participants */}
