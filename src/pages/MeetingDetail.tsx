@@ -387,6 +387,32 @@ export default function MeetingDetail() {
     }
   }, [id, meeting, selectedTemplate]);
 
+  const retryTranscription = useCallback(async () => {
+    if (!id || !meeting) return;
+    setRetryLoading(true);
+    try {
+      await supabase.from("Meeting").update({ status: "processing", errorMessage: null, updatedAt: new Date().toISOString() }).eq("id", id);
+      setMeeting((prev) => prev ? { ...prev, status: "processing" } : prev);
+
+      const { data, error } = await supabase.functions.invoke("transcribe", {
+        body: { meetingId: id, storagePath: meeting.fileName },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      toast.success("Transcrição reiniciada com sucesso!");
+      // Refresh meeting data
+      const { data: updated } = await supabase.from("Meeting").select("id, title, fileName, status, createdAt, summary, transcription, participants, meetingDate, meetingTime, actionItems, responsible, location, description, ataTemplate, fileDuration").eq("id", id).maybeSingle();
+      if (updated) setMeeting(updated as MeetingRow);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao tentar novamente");
+      setMeeting((prev) => prev ? { ...prev, status: "failed" } : prev);
+    } finally {
+      setRetryLoading(false);
+    }
+  }, [id, meeting]);
+
   if (loading) {
     return (
       <AppLayout>
