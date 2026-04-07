@@ -70,6 +70,9 @@ export function AppLayout({ children }: AppLayoutProps) {
     navigate('/');
   };
 
+  const needsCpf = userCpf !== undefined && !userCpf;
+  const authUser = profile;
+
   const initial = profile?.name?.charAt(0)?.toUpperCase() || profile?.email?.charAt(0)?.toUpperCase() || '?';
   const planLabel = profile?.plan_id === 'enterprise' ? 'Enterprise' : profile?.plan_id === 'automacao' ? 'Automação' : profile?.plan_id === 'inteligente' ? 'Inteligente' : 'Gratuito';
   const isEnterprise = profile?.plan_id === 'enterprise';
