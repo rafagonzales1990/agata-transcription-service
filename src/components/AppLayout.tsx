@@ -20,6 +20,7 @@ import { TrialAds } from '@/components/TrialAds';
 import { TrialUpgradeBanners } from '@/components/TrialUpgradeBanners';
 import { HelpModal } from '@/components/HelpModal';
 import { supabase } from '@/integrations/supabase/client';
+import { CpfRequiredModal } from '@/components/CpfRequiredModal';
 
 const menuItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
