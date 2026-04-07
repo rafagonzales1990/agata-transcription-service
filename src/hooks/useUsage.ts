@@ -50,10 +50,16 @@ export function useUsage(): UsageData {
 
       const [usageRes, userRes] = await Promise.all([
         supabase.from('Usage').select('transcriptionsUsed, totalMinutesTranscribed, currentMonth').eq('userId', user.id).maybeSingle(),
-        supabase.from('User').select('planId').eq('id', user.id).maybeSingle(),
+        supabase.from('User').select('planId, giftPlanId, giftEndsAt').eq('id', user.id).maybeSingle(),
       ]);
 
-      const planId = userRes.data?.planId || 'basic';
+      const nowDate = new Date();
+      const hasActiveGift = userRes.data?.giftPlanId &&
+        userRes.data?.giftEndsAt &&
+        new Date(userRes.data.giftEndsAt) > nowDate;
+      const planId = hasActiveGift
+        ? userRes.data!.giftPlanId!
+        : (userRes.data?.planId || 'basic');
       const { data: plan } = await supabase.from('Plan').select('name, maxTranscriptions, maxDurationMinutes').eq('id', planId).maybeSingle();
 
       const isCurrentMonth = usageRes.data?.currentMonth === currentMonth;

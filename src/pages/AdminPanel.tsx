@@ -63,6 +63,7 @@ interface AdminUser {
   stripeSubscriptionId: string | null; stripePriceId: string | null;
   adminGroupId: string | null; meetingCount: number;
   usageTranscriptions: number; usageMinutes: number;
+  giftPlanId: string | null; giftEndsAt: string | null;
 }
 interface AdminGroup {
   id: string; name: string; description: string | null; color: string;
@@ -156,31 +157,83 @@ function EditUserDialog({ open, onOpenChange, user, groups, onSubmit }: {
   );
 }
 
-// ── GiftEnterpriseDialog ───────────────────────────────────
-function GiftEnterpriseDialog({ open, onOpenChange, user, onConfirm }: {
+// ── GiftPlanDialog ─────────────────────────────────────────
+function GiftPlanDialog({ open, onOpenChange, user, onConfirm }: {
   open: boolean; onOpenChange: (o: boolean) => void; user: AdminUser | null;
-  onConfirm: (userId: string) => Promise<void>;
+  onConfirm: (userId: string, planId: string, expiryDate: Date) => Promise<void>;
 }) {
   const [loading, setLoading] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState('enterprise');
+  const [duration, setDuration] = useState(30);
+  const [durationUnit, setDurationUnit] = useState<'days' | 'weeks' | 'months'>('days');
+
+  useEffect(() => {
+    if (open) { setSelectedPlan('enterprise'); setDuration(30); setDurationUnit('days'); }
+  }, [open]);
+
+  const expiryDate = (() => {
+    const d = new Date();
+    if (durationUnit === 'days') d.setDate(d.getDate() + duration);
+    else if (durationUnit === 'weeks') d.setDate(d.getDate() + duration * 7);
+    else d.setMonth(d.getMonth() + duration);
+    return d;
+  })();
+
+  const planLabel = PLAN_LABELS[selectedPlan] || selectedPlan;
+  const dateStr = expiryDate.toLocaleDateString('pt-BR');
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="font-mono text-sm flex items-center gap-2">
-            <Gift className="h-4 w-4 text-purple-500" />Conceder Enterprise
+            <Gift className="h-4 w-4 text-amber-500" />Presentear Plano
           </DialogTitle>
           <DialogDescription className="text-xs">
-            Dar acesso Enterprise gratuito por 30 dias para:
-            <span className="font-mono font-medium block mt-1">{user?.email}</span>
+            Para: <span className="font-mono font-medium">{user?.email}</span>
           </DialogDescription>
         </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div>
+            <Label className="text-xs">Plano</Label>
+            <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+              <SelectTrigger className="h-9 text-sm mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="inteligente">Inteligente</SelectItem>
+                <SelectItem value="automacao">Automação</SelectItem>
+                <SelectItem value="enterprise">Enterprise</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Duração</Label>
+              <Input type="number" min={1} className="h-9 text-sm mt-1" value={duration}
+                onChange={e => setDuration(Math.max(1, parseInt(e.target.value) || 1))} />
+            </div>
+            <div>
+              <Label className="text-xs">Unidade</Label>
+              <Select value={durationUnit} onValueChange={v => setDurationUnit(v as any)}>
+                <SelectTrigger className="h-9 text-sm mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="days">Dias</SelectItem>
+                  <SelectItem value="weeks">Semanas</SelectItem>
+                  <SelectItem value="months">Meses</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+            O usuário terá acesso ao plano <strong>{planLabel}</strong> até <strong>{dateStr}</strong>.
+          </div>
+        </div>
         <DialogFooter>
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button size="sm" className="bg-purple-600 hover:bg-purple-700" disabled={loading}
+          <Button size="sm" className="bg-amber-600 hover:bg-amber-700 text-white" disabled={loading}
             onClick={async () => {
               if (!user) return;
               setLoading(true);
-              try { await onConfirm(user.id); onOpenChange(false); } finally { setLoading(false); }
+              try { await onConfirm(user.id, selectedPlan, expiryDate); onOpenChange(false); } finally { setLoading(false); }
             }}>
             {loading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Confirmar Gift
           </Button>
@@ -285,7 +338,7 @@ export default function AdminPanel() {
       const currentMonth = new Date().toISOString().slice(0, 7);
       const { data: usersData, error } = await supabase
         .from('User')
-        .select('id, name, email, cpf, phone, planId, isAdmin, billingCycle, trialEndsAt, stripeCustomerId, stripeSubscriptionId, stripePriceId, adminGroupId, createdAt')
+        .select('id, name, email, cpf, phone, planId, isAdmin, billingCycle, trialEndsAt, stripeCustomerId, stripeSubscriptionId, stripePriceId, adminGroupId, createdAt, giftPlanId, giftEndsAt')
         .order('createdAt', { ascending: false });
       if (error) throw error;
 
@@ -341,14 +394,20 @@ export default function AdminPanel() {
     refreshUsers();
   };
 
-  const handleGiftEnterprise = async (userId: string) => {
-    const trialEndsAt = new Date();
-    trialEndsAt.setDate(trialEndsAt.getDate() + 30);
-    const { error } = await supabase.from('User').update({
-      planId: 'enterprise', trialEndsAt: trialEndsAt.toISOString(), updatedAt: new Date().toISOString(),
-    }).eq('id', userId);
-    if (error) { toast.error('Erro ao conceder Enterprise'); return; }
-    toast.success('Enterprise concedido por 30 dias!');
+  const handleGiftPlan = async (userId: string, planId: string, expiryDate: Date) => {
+    const user = users.find(u => u.id === userId);
+    const iso = expiryDate.toISOString();
+    const [userRes, profileRes] = await Promise.all([
+      supabase.from('User').update({
+        planId, giftPlanId: planId, giftEndsAt: iso, updatedAt: new Date().toISOString(),
+      }).eq('id', userId),
+      supabase.from('profiles').update({
+        plan_id: planId, gift_plan_id: planId, gift_ends_at: iso, updated_at: new Date().toISOString(),
+      }).eq('user_id', userId),
+    ]);
+    if (userRes.error || profileRes.error) { toast.error('Erro ao aplicar gift'); return; }
+    const dateStr = expiryDate.toLocaleDateString('pt-BR');
+    toast.success(`Gift aplicado! ${user?.email} terá ${PLAN_LABELS[planId]} até ${dateStr}`);
     refreshUsers();
   };
 
@@ -712,7 +771,14 @@ export default function AdminPanel() {
                           </TableCell>
                           <TableCell className="text-xs font-mono">{formatCPF(u.cpf)}</TableCell>
                           <TableCell className="text-xs">{formatPhone(u.phone)}</TableCell>
-                          <TableCell><Badge className={`${PLAN_COLORS[u.planId || 'basic']} text-[10px]`}>{PLAN_LABELS[u.planId || 'basic']}</Badge></TableCell>
+                          <TableCell>
+                            <Badge className={`${PLAN_COLORS[u.planId || 'basic']} text-[10px]`}>{PLAN_LABELS[u.planId || 'basic']}</Badge>
+                            {u.giftPlanId && u.giftEndsAt && new Date(u.giftEndsAt) > now && (
+                              <Badge className="bg-amber-100 text-amber-700 text-[9px] ml-1">
+                                🎁 gift até {new Date(u.giftEndsAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                              </Badge>
+                            )}
+                          </TableCell>
                           <TableCell><span className={`px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap ${status.cls}`}>{status.label}</span></TableCell>
                           <TableCell className="text-center font-mono text-sm">{u.meetingCount}</TableCell>
                           <TableCell className="text-center font-mono text-xs">{u.usageTranscriptions}</TableCell>
@@ -892,7 +958,7 @@ export default function AdminPanel() {
 
       <EditUserDialog open={editOpen} onOpenChange={setEditOpen} user={selectedUser} groups={groups} onSubmit={handleEditSubmit} />
       <AssignGroupDialog open={assignGroupOpen} onOpenChange={setAssignGroupOpen} user={selectedUser} groups={groups} onSubmit={handleAssignGroup} />
-      <GiftEnterpriseDialog open={giftOpen} onOpenChange={setGiftOpen} user={selectedUser} onConfirm={handleGiftEnterprise} />
+      <GiftPlanDialog open={giftOpen} onOpenChange={setGiftOpen} user={selectedUser} onConfirm={handleGiftPlan} />
 
       <Dialog open={showNewGroup} onOpenChange={setShowNewGroup}>
         <DialogContent>

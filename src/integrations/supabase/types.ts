@@ -422,6 +422,8 @@ export type Database = {
           cpf: string | null
           created_at: string
           email: string
+          gift_ends_at: string | null
+          gift_plan_id: string | null
           has_completed_onboarding: boolean
           id: string
           image: string | null
@@ -438,6 +440,8 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           email: string
+          gift_ends_at?: string | null
+          gift_plan_id?: string | null
           has_completed_onboarding?: boolean
           id?: string
           image?: string | null
@@ -454,6 +458,8 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           email?: string
+          gift_ends_at?: string | null
+          gift_plan_id?: string | null
           has_completed_onboarding?: boolean
           id?: string
           image?: string | null
@@ -672,6 +678,8 @@ export type Database = {
           createdAt: string
           email: string
           emailVerified: string | null
+          giftEndsAt: string | null
+          giftPlanId: string | null
           hasCompletedOnboarding: boolean
           id: string
           image: string | null
@@ -698,6 +706,8 @@ export type Database = {
           createdAt?: string
           email: string
           emailVerified?: string | null
+          giftEndsAt?: string | null
+          giftPlanId?: string | null
           hasCompletedOnboarding?: boolean
           id?: string
           image?: string | null
@@ -724,6 +734,8 @@ export type Database = {
           createdAt?: string
           email?: string
           emailVerified?: string | null
+          giftEndsAt?: string | null
+          giftPlanId?: string | null
           hasCompletedOnboarding?: boolean
           id?: string
           image?: string | null
