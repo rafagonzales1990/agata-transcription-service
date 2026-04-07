@@ -396,7 +396,7 @@ export default function MeetingDetail() {
       setMeeting((prev) => prev ? { ...prev, status: "processing" } : prev);
 
       const { data, error } = await supabase.functions.invoke("transcribe", {
-        body: { meetingId: id, storagePath: meeting.fileName },
+        body: { meetingId: id, storagePath: meeting.cloudStoragePath },
       });
 
       if (error) throw error;
