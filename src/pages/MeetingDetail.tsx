@@ -33,6 +33,7 @@ interface MeetingRow {
   id: string;
   title: string;
   fileName: string;
+  cloudStoragePath: string;
   status: string;
   createdAt: string;
   summary: string | null;
