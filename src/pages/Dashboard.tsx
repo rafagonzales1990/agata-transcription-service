@@ -113,6 +113,33 @@ export default function DashboardPage() {
           ))}
         </div>
 
+        {!localStorage.getItem('agata_extension_banner_dismissed') && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 p-4 sm:p-5 text-white shadow-lg"
+          >
+            <button
+              onClick={() => { localStorage.setItem('agata_extension_banner_dismissed', '1'); window.location.reload(); }}
+              className="absolute top-3 right-3 text-white/70 hover:text-white transition-colors"
+              aria-label="Fechar"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex-1 space-y-1">
+                <p className="font-semibold text-base">🧩 Extensão Chrome disponível!</p>
+                <p className="text-sm text-white/80">Grave reuniões diretamente do Meet, Zoom e Teams. Um clique para transcrever.</p>
+              </div>
+              <a href="https://chrome.google.com/webstore/detail/agata-transcription" target="_blank" rel="noopener noreferrer">
+                <Button className="bg-white text-emerald-700 hover:bg-white/90 font-semibold whitespace-nowrap shadow-md">
+                  Instalar extensão →
+                </Button>
+              </a>
+            </div>
+          </motion.div>
+        )}
+
         <div className="grid md:grid-cols-3 gap-6">
           <Card className="shadow-lg hover:shadow-xl transition-shadow">
             <CardHeader>
