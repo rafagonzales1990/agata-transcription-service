@@ -338,7 +338,7 @@ export default function AdminPanel() {
       const currentMonth = new Date().toISOString().slice(0, 7);
       const { data: usersData, error } = await supabase
         .from('User')
-        .select('id, name, email, cpf, phone, planId, isAdmin, billingCycle, trialEndsAt, stripeCustomerId, stripeSubscriptionId, stripePriceId, adminGroupId, createdAt')
+        .select('id, name, email, cpf, phone, planId, isAdmin, billingCycle, trialEndsAt, stripeCustomerId, stripeSubscriptionId, stripePriceId, adminGroupId, createdAt, giftPlanId, giftEndsAt')
         .order('createdAt', { ascending: false });
       if (error) throw error;
 
