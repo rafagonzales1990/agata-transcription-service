@@ -12,6 +12,7 @@ import { HeroSection } from '@/components/landing/HeroSection';
 const FeaturesSection = lazy(() => import('@/components/landing/FeaturesSection').then(m => ({ default: m.FeaturesSection })));
 const DifferentiationSection = lazy(() => import('@/components/landing/DifferentiationSection').then(m => ({ default: m.DifferentiationSection })));
 const ComparisonSection = lazy(() => import('@/components/landing/ComparisonSection').then(m => ({ default: m.ComparisonSection })));
+const ChromeExtensionSection = lazy(() => import('@/components/landing/ChromeExtensionSection').then(m => ({ default: m.ChromeExtensionSection })));
 const PlansSection = lazy(() => import('@/components/landing/PlansSection').then(m => ({ default: m.PlansSection })));
 const UseCasesSection = lazy(() => import('@/components/landing/UseCasesSection').then(m => ({ default: m.UseCasesSection })));
 const FinalCTASection = lazy(() => import('@/components/landing/FinalCTASection').then(m => ({ default: m.FinalCTASection })));
