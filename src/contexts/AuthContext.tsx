@@ -16,6 +16,8 @@ export interface UserProfile {
   trial_ends_at: string | null;
   has_completed_onboarding: boolean;
   old_user_id: string | null;
+  gift_plan_id: string | null;
+  gift_ends_at: string | null;
 }
 
 interface AuthContextType {

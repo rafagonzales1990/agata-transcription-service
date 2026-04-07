@@ -394,14 +394,20 @@ export default function AdminPanel() {
     refreshUsers();
   };
 
-  const handleGiftEnterprise = async (userId: string) => {
-    const trialEndsAt = new Date();
-    trialEndsAt.setDate(trialEndsAt.getDate() + 30);
-    const { error } = await supabase.from('User').update({
-      planId: 'enterprise', trialEndsAt: trialEndsAt.toISOString(), updatedAt: new Date().toISOString(),
-    }).eq('id', userId);
-    if (error) { toast.error('Erro ao conceder Enterprise'); return; }
-    toast.success('Enterprise concedido por 30 dias!');
+  const handleGiftPlan = async (userId: string, planId: string, expiryDate: Date) => {
+    const user = users.find(u => u.id === userId);
+    const iso = expiryDate.toISOString();
+    const [userRes, profileRes] = await Promise.all([
+      supabase.from('User').update({
+        planId, giftPlanId: planId, giftEndsAt: iso, updatedAt: new Date().toISOString(),
+      }).eq('id', userId),
+      supabase.from('profiles').update({
+        plan_id: planId, gift_plan_id: planId, gift_ends_at: iso, updated_at: new Date().toISOString(),
+      }).eq('user_id', userId),
+    ]);
+    if (userRes.error || profileRes.error) { toast.error('Erro ao aplicar gift'); return; }
+    const dateStr = expiryDate.toLocaleDateString('pt-BR');
+    toast.success(`Gift aplicado! ${user?.email} terá ${PLAN_LABELS[planId]} até ${dateStr}`);
     refreshUsers();
   };
 
