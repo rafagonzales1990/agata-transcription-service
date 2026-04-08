@@ -26,16 +26,14 @@
  */
 
 export const appVersion = {
-  version: 'v0.9.6',
-  releaseDate: '2026-04-06',
+  version: 'v1.1.0',
+  releaseDate: '2026-04-08',
   environmentLabel: (import.meta.env.MODE === 'production' ? 'production' : 'dev') as string,
   changelog: [
-    'Usage e métricas por plano',
-    'Compartilhamento público de reuniões',
-    'Busca e filtros no histórico de reuniões',
-    'Onboarding do primeiro uso',
-    'Google AdSense para usuários trial/basic com fallback 10s',
-    'Banners de upgrade Pro (sidebar + footer)',
-    'GTM (GTM-T63TT8CJ) integrado no index.html',
+    'Personalização de ATA — templates customizados com drag-and-drop',
+    'Dark Mode Green Navy (exclusivo do app autenticado)',
+    'Extensão Chrome/Edge — gravação de reuniões direto do browser',
+    'Política de Privacidade (LGPD)',
+    'Gift Plan system no painel admin',
   ],
 } as const;
