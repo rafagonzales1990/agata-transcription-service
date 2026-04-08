@@ -6,18 +6,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const STRIPE_PRICES: Record<string, { monthly: string; annual: string }> = {
+const STRIPE_PRICES: Record<string, { monthly: string; annual: string; annual_upfront: string }> = {
   inteligente: {
-    monthly: 'price_1TK4xHFadSjglwHID3WeaHDI',
-    annual:  'price_1TK4xKFadSjglwHIaCOMlfyN',
+    monthly:        'price_1TK4xHFadSjglwHID3WeaHDI',
+    annual:         'price_1TK4xKFadSjglwHIaCOMlfyN',
+    annual_upfront: 'price_1TK4xNFadSjglwHIXmEy416v',
   },
   automacao: {
-    monthly: 'price_1TK4xQFadSjglwHIOFVCAAxV',
-    annual:  'price_1TK4xTFadSjglwHITH5wnFqr',
+    monthly:        'price_1TK4xQFadSjglwHIOFVCAAxV',
+    annual:         'price_1TK4xTFadSjglwHITH5wnFqr',
+    annual_upfront: 'price_1TK4xWFadSjglwHI04DUDKAl',
   },
   enterprise: {
-    monthly: 'price_1TK4xaFadSjglwHIggSyDPti',
-    annual:  'price_1TK4xdFadSjglwHIiK3NqTKL',
+    monthly:        'price_1TK4xaFadSjglwHIggSyDPti',
+    annual:         'price_1TK4xdFadSjglwHIiK3NqTKL',
+    annual_upfront: 'price_1TK4xgFadSjglwHIrHSkPiUH',
   },
 }
 
