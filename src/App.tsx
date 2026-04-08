@@ -35,6 +35,7 @@ const BlogPostPage = lazy(() => import("./pages/BlogPost"));
 const Teams = lazy(() => import("./pages/Teams"));
 const LegalTerms = lazy(() => import("./pages/LegalTerms"));
 const LegalLgpd = lazy(() => import("./pages/LegalLgpd"));
+const Privacy = lazy(() => import("./pages/Privacy"));
 const Demo = lazy(() => import("./pages/Demo"));
 const AdminLeads = lazy(() => import("./pages/AdminLeads"));
 const SharedMeeting = lazy(() => import("./pages/SharedMeeting"));
