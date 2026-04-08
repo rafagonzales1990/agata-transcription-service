@@ -43,6 +43,7 @@ export default function UploadPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
+  const [selectedAtaTemplateId, setSelectedAtaTemplateId] = useState('__default__');
 
   const limitReached = usage.isAtLimit;
 
