@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Sparkles, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { Sparkles, Eye, EyeOff, CheckCircle, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { conversionSignup, trackSignup, trialStartedFromDemo } from '@/lib/gtag';
@@ -17,6 +17,15 @@ export default function SignupPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const leadId = searchParams.get('leadId');
+  const inviteToken = searchParams.get('invite');
+  const inviteEmail = searchParams.get('email');
+  const inviteTeamId = searchParams.get('team');
+
+  useEffect(() => {
+    if (inviteEmail) {
+      setEmail(inviteEmail);
+    }
+  }, [inviteEmail]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,6 +53,22 @@ export default function SignupPage() {
         });
       } catch (emailErr) {
         console.error('Failed to send welcome email:', emailErr);
+      }
+
+      // Accept team invite if present
+      if (inviteToken) {
+        try {
+          const { error: inviteErr } = await supabase.functions.invoke('accept-team-invite', {
+            body: { token: inviteToken }
+          });
+          if (inviteErr) {
+            console.error('Accept invite error:', inviteErr);
+          } else {
+            toast.success('Convite aceito! Você foi adicionado ao time.');
+          }
+        } catch (e) {
+          console.error('Accept invite error:', e);
+        }
       }
 
       // Lead attribution: link lead to new user
@@ -100,6 +125,20 @@ export default function SignupPage() {
           </Link>
         </div>
 
+        {inviteToken && (
+          <div className="mb-4 rounded-lg bg-emerald-50 border border-emerald-200 p-4 flex items-start gap-3">
+            <Mail className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-emerald-800">
+                ✉️ Você foi convidado para um time no Ágata
+              </p>
+              <p className="text-xs text-emerald-600 mt-1">
+                Crie sua conta para aceitar o convite.
+              </p>
+            </div>
+          </div>
+        )}
+
         <Card>
           <CardHeader className="text-center">
             <CardTitle>Criar Conta Grátis</CardTitle>
@@ -113,7 +152,15 @@ export default function SignupPage() {
               </div>
               <div>
                 <label className="text-sm font-medium text-foreground mb-1 block">Email</label>
-                <Input type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <Input
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  readOnly={!!inviteToken}
+                  className={inviteToken ? 'bg-muted cursor-not-allowed' : ''}
+                />
               </div>
               <div>
                 <label className="text-sm font-medium text-foreground mb-1 block">Senha</label>
@@ -135,7 +182,7 @@ export default function SignupPage() {
                 </div>
               </div>
               <Button type="submit" className="w-full bg-primary hover:bg-emerald-600 text-primary-foreground" disabled={loading}>
-                {loading ? 'Criando...' : 'Criar Conta'}
+                {loading ? 'Criando...' : inviteToken ? 'Criar Conta e Aceitar Convite' : 'Criar Conta'}
               </Button>
             </form>
 
