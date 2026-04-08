@@ -98,8 +98,8 @@ export function AppLayout({ children }: AppLayoutProps) {
   const isEnterprise = profile?.plan_id === 'enterprise';
   const isPaid = ['inteligente', 'automacao', 'enterprise'].includes(profile?.plan_id || '');
 
-  const activeClasses = 'bg-gradient-to-r from-emerald-700 to-teal-700 text-white shadow-md';
-  const inactiveClasses = 'text-foreground/70 hover:bg-accent hover:text-foreground';
+  const activeClasses = 'bg-sidebar-accent text-primary border-l-2 border-primary font-medium';
+  const inactiveClasses = 'text-foreground/70 hover:bg-sidebar-accent hover:text-foreground';
 
   const LogoBrand = ({ logoSize = 32 }: { logoSize?: number }) => (
     <Link to="/" className="flex items-center gap-2.5">
@@ -177,13 +177,6 @@ export function AppLayout({ children }: AppLayoutProps) {
           <Settings className="h-4 w-4" />
           Configurações
         </Link>
-        <button
-          onClick={toggleTheme}
-          className={cn('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors w-full text-left', inactiveClasses)}
-        >
-          {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          {isDark ? 'Modo claro' : 'Modo escuro'}
-        </button>
         <HelpModal>
           <button className={cn('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors w-full text-left', inactiveClasses)}>
             <HelpCircle className="h-4 w-4" />
@@ -205,9 +198,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   );
 
   return (
-    <div className="min-h-screen bg-muted/30 flex">
-      <aside className="hidden md:flex w-64 bg-card border-r border-border flex-col fixed inset-y-0 left-0 z-30">
-        <div className="p-4 border-b border-border">
+    <div className="min-h-screen bg-background flex">
+      <aside className="hidden md:flex w-64 bg-sidebar border-r border-sidebar-border flex-col fixed inset-y-0 left-0 z-30">
+        <div className="p-4 border-b border-sidebar-border">
           <LogoBrand />
         </div>
         <SidebarNav />
@@ -229,7 +222,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           <PWAInstallButton />
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-lg text-foreground/70 hover:bg-accent hover:text-foreground transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
             title={isDark ? 'Modo claro' : 'Modo escuro'}
           >
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -278,8 +271,8 @@ export function AppLayout({ children }: AppLayoutProps) {
       {sidebarOpen && (
         <div className="md:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-foreground/50" onClick={() => setSidebarOpen(false)} />
-          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-card border-r border-border flex flex-col">
-            <div className="p-4 border-b border-border flex items-center justify-between">
+          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
+            <div className="p-4 border-b border-sidebar-border flex items-center justify-between">
               <LogoBrand />
               <button onClick={() => setSidebarOpen(false)}>
                 <X className="h-5 w-5 text-muted-foreground" />
