@@ -28,6 +28,7 @@ interface DocMeeting {
   meetingDate: string | null;
   createdAt: string;
   ataTemplate: string;
+  ataTemplateId: string | null;
 }
 
 export default function DocumentsPage() {

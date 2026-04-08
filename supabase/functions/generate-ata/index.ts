@@ -31,6 +31,30 @@ const templateLabels: Record<string, string> = {
   comercial: 'Ata Comercial',
 }
 
+// Section prompts for custom template AI generation
+const SECTION_PROMPTS: Record<string, string> = {
+  identificacao: '', // handled as info table
+  pauta: 'Liste os principais tópicos e assuntos discutidos na reunião.',
+  decisoes: 'Liste todas as decisões tomadas e aprovações realizadas.',
+  acoes: 'Liste todos os itens de ação com responsável e prazo quando mencionados. Use formato de tabela markdown com colunas: Ação, Responsável, Prazo.',
+  riscos: 'Liste os riscos, impedimentos e problemas identificados.',
+  resumo: 'Faça um resumo executivo com os pontos mais importantes.',
+  transcricao: '', // handled as raw text
+  proximos: 'Liste os próximos passos, reuniões agendadas e entregas futuras.',
+  insights: 'Liste insights, ideias e oportunidades levantadas.',
+  observacoes: 'Registre observações gerais relevantes mencionadas.',
+}
+
+interface AtaSection {
+  id: string
+  key: string
+  label: string
+  enabled: boolean
+  order: number
+  instruction?: string | null
+  isFixed: boolean
+}
+
 // Colors
 const GREEN_DARK = '065F46'
 const GREEN_MID = '059669'
@@ -219,7 +243,6 @@ function parseMarkdownToDocx(md: string): (Paragraph | Table)[] {
       const tableRows: string[][] = []
       while (i < lines.length && /^\|.+\|$/.test(lines[i])) {
         const cells = lines[i].split('|').map(c => c.trim()).filter(Boolean)
-        // Skip separator-like rows (all cells are just dashes)
         const isSeparator = cells.every(c => /^[-:]+$/.test(c))
         if (!isSeparator) {
           tableRows.push(cells)
@@ -267,6 +290,107 @@ function parseMarkdownToDocx(md: string): (Paragraph | Table)[] {
   return children
 }
 
+// Build AI prompt for custom template sections
+function buildCustomPrompt(
+  sections: AtaSection[],
+  transcription: string | null,
+  summaryContent: string | null,
+): string {
+  const sectionInstructions = sections
+    .filter(s => !s.isFixed && s.key !== 'transcricao')
+    .map(s => {
+      const baseInstruction = SECTION_PROMPTS[s.key] || `Gere o conteúdo para a seção "${s.label}".`
+      const customInstruction = s.instruction ? ` Instrução adicional: ${s.instruction}` : ''
+      return `## ${s.label}\n${baseInstruction}${customInstruction}`
+    })
+    .join('\n\n')
+
+  return `Você é um assistente especialista em documentação de reuniões.
+Com base na transcrição e no resumo da reunião abaixo, gere o conteúdo para cada seção solicitada em português brasileiro.
+Para cada seção, use o cabeçalho ## exatamente como especificado abaixo.
+Seja objetivo e profissional. Use listas com - para itens múltiplos.
+Para itens de ação, use tabela markdown com colunas: | Ação | Responsável | Prazo |
+
+TRANSCRIÇÃO:
+${transcription?.slice(0, 8000) || '(não disponível)'}
+
+RESUMO EXISTENTE:
+${summaryContent?.slice(0, 4000) || '(não disponível)'}
+
+SEÇÕES SOLICITADAS:
+${sectionInstructions}`
+}
+
+// Call Gemini to generate custom section content
+async function generateCustomContent(
+  sections: AtaSection[],
+  transcription: string | null,
+  summaryContent: string | null,
+): Promise<string> {
+  const apiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY')
+  if (!apiKey) throw new Error('GOOGLE_GEMINI_API_KEY not configured')
+
+  const prompt = buildCustomPrompt(sections, transcription, summaryContent)
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.3, maxOutputTokens: 4000 },
+      }),
+    }
+  )
+
+  if (!response.ok) {
+    const errText = await response.text()
+    console.error('Gemini error:', errText)
+    throw new Error('Erro ao gerar conteúdo com IA')
+  }
+
+  const result = await response.json()
+  return result.candidates?.[0]?.content?.parts?.[0]?.text || ''
+}
+
+// Build markdown content for custom template (combining AI output + special sections)
+function buildCustomMarkdown(
+  sections: AtaSection[],
+  aiContent: string,
+  transcription: string | null,
+): string {
+  const lines: string[] = []
+
+  for (const section of sections) {
+    if (section.isFixed) continue // identificacao handled separately as info table
+
+    if (section.key === 'transcricao') {
+      lines.push(`## ${section.label}`)
+      lines.push('')
+      lines.push(transcription?.slice(0, 10000) || '(Transcrição não disponível)')
+      lines.push('')
+      continue
+    }
+
+    // Extract this section from AI content using ## header matching
+    const sectionRegex = new RegExp(`## ${escapeRegex(section.label)}\\s*\\n([\\s\\S]*?)(?=\\n## |$)`)
+    const match = aiContent.match(sectionRegex)
+    if (match) {
+      lines.push(`## ${section.label}`)
+      lines.push('')
+      lines.push(match[1].trim())
+      lines.push('')
+    }
+  }
+
+  return lines.join('\n')
+}
+
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -293,14 +417,38 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { meetingId, template } = await req.json()
-    if (!meetingId || !template || !templateLabels[template]) {
-      return new Response(JSON.stringify({ error: 'meetingId and valid template required' }), {
+    const { meetingId, template, ataTemplateId } = await req.json()
+    if (!meetingId) {
+      return new Response(JSON.stringify({ error: 'meetingId is required' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    if (!ataTemplateId && (!template || !templateLabels[template])) {
+      return new Response(JSON.stringify({ error: 'valid template or ataTemplateId required' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+    // Load custom template if ataTemplateId provided
+    let customSections: AtaSection[] | null = null
+    let customTemplateName: string | null = null
+
+    if (ataTemplateId) {
+      const { data: ataTemplate } = await supabase
+        .from('AtaTemplate')
+        .select('name, sections, userId')
+        .eq('id', ataTemplateId)
+        .maybeSingle()
+
+      if (ataTemplate && ataTemplate.userId === user.id) {
+        customSections = (ataTemplate.sections as AtaSection[])
+          .filter((s: AtaSection) => s.enabled)
+          .sort((a: AtaSection, b: AtaSection) => a.order - b.order)
+        customTemplateName = ataTemplate.name
+      }
+    }
 
     const { data: profile } = await supabase
       .from('profiles').select('plan_id').eq('user_id', user.id).single()
@@ -312,13 +460,13 @@ Deno.serve(async (req) => {
     let enterpriseName = ''
 
     const { data: userData } = await supabase
-      .from('User').select('planId, teamId').eq('id', user.id).single()
+      .from('User').select('planId, teamId').eq('id', user.id).maybeSingle()
 
     let teamLogoUrl: string | null = null
 
     if (userData?.planId === 'enterprise' && userData?.teamId) {
       const { data: team } = await supabase
-        .from('Team').select('name, companyName, logoUrl').eq('id', userData.teamId).single()
+        .from('Team').select('name, companyName, logoUrl').eq('id', userData.teamId).maybeSingle()
       if (team) {
         isEnterprise = true
         enterpriseName = team.companyName || team.name || ''
@@ -329,8 +477,8 @@ Deno.serve(async (req) => {
 
     const { data: meeting, error: meetingError } = await supabase
       .from('Meeting')
-      .select('title, summary, userId, meetingDate, meetingTime, location, responsible, participants')
-      .eq('id', meetingId).single()
+      .select('title, summary, transcription, userId, meetingDate, meetingTime, location, responsible, participants')
+      .eq('id', meetingId).maybeSingle()
 
     if (meetingError || !meeting) {
       return new Response(JSON.stringify({ error: 'Meeting not found' }), {
@@ -342,15 +490,25 @@ Deno.serve(async (req) => {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
-    if (!meeting.summary) {
-      return new Response(JSON.stringify({ error: 'No summary available.' }), {
+    if (!meeting.summary && !meeting.transcription) {
+      return new Response(JSON.stringify({ error: 'No summary or transcription available.' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    let summaryContent = meeting.summary
+    let summaryContent = meeting.summary || ''
     const metaMatch = summaryContent.match(/^<!-- depth:\w+ -->\n/)
     if (metaMatch) summaryContent = summaryContent.slice(metaMatch[0].length)
+
+    // Generate content based on custom template or legacy flow
+    let finalMarkdown: string
+    if (customSections) {
+      // Generate AI content for custom sections
+      const aiContent = await generateCustomContent(customSections, meeting.transcription, summaryContent)
+      finalMarkdown = buildCustomMarkdown(customSections, aiContent, meeting.transcription)
+    } else {
+      finalMarkdown = summaryContent
+    }
 
     const date = meeting.meetingDate
       ? new Date(meeting.meetingDate).toLocaleDateString('pt-BR')
@@ -364,29 +522,29 @@ Deno.serve(async (req) => {
     if (meeting.responsible) infoRows.push({ label: 'Responsável', value: meeting.responsible })
     if (meeting.participants?.length) infoRows.push({ label: 'Participantes', value: meeting.participants.join(', ') })
 
-    // Fetch logo - use team logo for enterprise, otherwise Ágata logo
+    // Fetch logo
     let logoImageRun: ImageRun | null = null
     const logoUrlToFetch = (isEnterprise && teamLogoUrl) ? teamLogoUrl : AGATA_LOGO_URL
     try {
       const logoRes = await fetch(logoUrlToFetch)
       if (logoRes.ok) {
         const logoBuffer = await logoRes.arrayBuffer()
-        const logoExt = logoUrlToFetch.toLowerCase().includes('.png') ? 'png' : 'jpg'
         logoImageRun = new ImageRun({
           data: logoBuffer,
           transformation: { width: 40, height: 40 },
-          type: logoExt as 'png' | 'jpg',
         })
       }
     } catch (_) { /* logo optional */ }
 
-    const contentChildren = parseMarkdownToDocx(summaryContent)
+    const contentChildren = parseMarkdownToDocx(finalMarkdown)
 
     const headerChildren: (TextRun | ImageRun)[] = []
     if (logoImageRun) headerChildren.push(logoImageRun)
     if (isEnterprise) {
       headerChildren.push(new TextRun({ text: `  ${enterpriseName}`, bold: true, color: GREEN_DARK, size: 24 }))
     }
+
+    const docTitle = customTemplateName || templateLabels[template] || 'Ata'
 
     const doc = new Document({
       numbering: {
@@ -451,9 +609,11 @@ Deno.serve(async (req) => {
 
     const filename = `ATA_${meeting.title.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 40)}_${date.replace(/\//g, '-')}.docx`
 
-    // Update meeting with template
+    // Update meeting with template info
     await supabase.from('Meeting').update({
-      ataTemplate: template,
+      ataTemplate: template || 'custom',
+      ataTemplateId: ataTemplateId || null,
+      ataSections: customSections || null,
       updatedAt: new Date().toISOString(),
     }).eq('id', meetingId)
 
@@ -461,7 +621,7 @@ Deno.serve(async (req) => {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Generate ATA Word error:', error)
     return new Response(JSON.stringify({ error: (error as Error).message }), {
       status: 500,
