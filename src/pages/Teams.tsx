@@ -13,7 +13,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Building2, Users, FolderOpen, Plus, Trash2, Crown, Search, Palette } from 'lucide-react';
+import { Building2, Users, FolderOpen, Plus, Trash2, Crown, Search, Palette, Mail, Clock, XCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -43,6 +43,14 @@ interface WorkGroupData {
   color: string | null;
 }
 
+interface InviteData {
+  id: string;
+  email: string;
+  status: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
 export default function Teams() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -51,6 +59,7 @@ export default function Teams() {
   const [team, setTeam] = useState<TeamData | null>(null);
   const [members, setMembers] = useState<MemberData[]>([]);
   const [workGroups, setWorkGroups] = useState<WorkGroupData[]>([]);
+  const [invites, setInvites] = useState<InviteData[]>([]);
 
   // Create team
   const [newCompanyName, setNewCompanyName] = useState('');
@@ -59,9 +68,10 @@ export default function Teams() {
   const [editCompany, setEditCompany] = useState('');
   const [editPrimary, setEditPrimary] = useState('#10B981');
   const [editSecondary, setEditSecondary] = useState('#3B82F6');
-  // Add member
-  const [addMemberOpen, setAddMemberOpen] = useState(false);
-  const [memberEmail, setMemberEmail] = useState('');
+  // Invite member
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviting, setInviting] = useState(false);
   const [memberSearch, setMemberSearch] = useState('');
   // Create group
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
@@ -70,6 +80,8 @@ export default function Teams() {
   const [groupColor, setGroupColor] = useState('#10B981');
   // Delete group
   const [deleteGroupId, setDeleteGroupId] = useState<string | null>(null);
+  // Remove member
+  const [removeMember, setRemoveMember] = useState<MemberData | null>(null);
 
   const fetchData = async () => {
     if (!user) return;
@@ -83,6 +95,15 @@ export default function Teams() {
       setMembers(m || []);
       const { data: wg } = await supabase.from('WorkGroup').select('id, name, description, color').eq('teamId', ud.teamId);
       setWorkGroups(wg || []);
+      // Fetch pending/recent invites
+      const { data: inv } = await supabase
+        .from('TeamInvite')
+        .select('id, email, status, createdAt, expiresAt')
+        .eq('teamId', ud.teamId)
+        .in('status', ['pending', 'accepted', 'expired', 'cancelled'])
+        .order('createdAt', { ascending: false })
+        .limit(50);
+      setInvites(inv || []);
     }
     setLoading(false);
   };
@@ -93,7 +114,6 @@ export default function Teams() {
     if (!newCompanyName.trim() || !user) return;
     const { error } = await supabase.from('Team').insert({ name: newCompanyName.trim(), companyName: newCompanyName.trim(), ownerId: user.id });
     if (error) { toast.error('Erro ao criar equipe'); return; }
-    // Get the created team
     const { data: t } = await supabase.from('Team').select('id').eq('ownerId', user.id).maybeSingle();
     if (t) {
       await supabase.from('User').update({ teamId: t.id, isTeamOwner: true } as any).eq('id', user.id);
@@ -110,20 +130,42 @@ export default function Teams() {
     fetchData();
   };
 
-  const handleAddMember = async () => {
-    if (!memberEmail.trim() || !team) return;
-    const { data: found } = await supabase.from('User').select('id').eq('email', memberEmail.trim()).maybeSingle();
-    if (!found) { toast.error('Usuário não encontrado'); return; }
-    await supabase.from('User').update({ teamId: team.id } as any).eq('id', found.id);
-    toast.success('Membro adicionado!');
-    setMemberEmail('');
-    setAddMemberOpen(false);
+  const handleInviteMember = async () => {
+    if (!inviteEmail.trim() || !team) return;
+    setInviting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('invite-team-member', {
+        body: { email: inviteEmail.trim(), teamId: team.id }
+      });
+      if (error) {
+        toast.error('Erro ao enviar convite');
+      } else if (data?.error) {
+        toast.error(data.error);
+      } else if (data?.type === 'existing_user_added') {
+        toast.success('✅ Membro adicionado! Ele já pode acessar o time.');
+      } else {
+        toast.success('✉️ Convite enviado! Ele tem 7 dias para aceitar.');
+      }
+      setInviteEmail('');
+      setInviteOpen(false);
+      fetchData();
+    } catch (err) {
+      toast.error('Erro ao enviar convite');
+    }
+    setInviting(false);
+  };
+
+  const handleRemoveMember = async () => {
+    if (!removeMember) return;
+    await supabase.from('User').update({ teamId: null, planId: 'basic' } as any).eq('id', removeMember.id);
+    toast.success('Membro removido');
+    setRemoveMember(null);
     fetchData();
   };
 
-  const handleRemoveMember = async (memberId: string) => {
-    await supabase.from('User').update({ teamId: null } as any).eq('id', memberId);
-    toast.success('Membro removido');
+  const handleCancelInvite = async (inviteId: string) => {
+    await supabase.from('TeamInvite').update({ status: 'cancelled' } as any).eq('id', inviteId);
+    toast.success('Convite cancelado');
     fetchData();
   };
 
@@ -146,6 +188,8 @@ export default function Teams() {
   const filteredMembers = members.filter(m =>
     !memberSearch || m.name?.toLowerCase().includes(memberSearch.toLowerCase()) || m.email.toLowerCase().includes(memberSearch.toLowerCase())
   );
+
+  const pendingInvites = invites.filter(i => i.status === 'pending');
 
   if (loading) return <AppLayout><div className="flex items-center justify-center py-20"><p className="text-muted-foreground">Carregando...</p></div></AppLayout>;
 
@@ -216,48 +260,84 @@ export default function Teams() {
 
           {/* Tab Membros */}
           <TabsContent value="membros">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <p className="text-sm text-muted-foreground font-medium">{members.length} membro(s)</p>
-                <div className="flex items-center gap-2">
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Buscar..." value={memberSearch} onChange={e => setMemberSearch(e.target.value)} className="pl-9 w-48" />
+            <div className="space-y-6">
+              {/* Members list */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <p className="text-sm text-muted-foreground font-medium">{members.length} membro(s)</p>
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input placeholder="Buscar..." value={memberSearch} onChange={e => setMemberSearch(e.target.value)} className="pl-9 w-48" />
+                    </div>
+                    {userData?.isTeamOwner && (
+                      <Button size="sm" onClick={() => setInviteOpen(true)} className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
+                        <Mail className="h-4 w-4 mr-1" /> Convidar Membro
+                      </Button>
+                    )}
                   </div>
-                  {userData?.isTeamOwner && (
-                    <Button size="sm" onClick={() => setAddMemberOpen(true)} className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
-                      <Plus className="h-4 w-4 mr-1" /> Adicionar
-                    </Button>
-                  )}
+                </div>
+                <div className="grid gap-3">
+                  {filteredMembers.map(m => (
+                    <Card key={m.id}>
+                      <CardContent className="p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-semibold">
+                            {m.name?.charAt(0)?.toUpperCase() || m.email.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-foreground">{m.name || m.email}</span>
+                              {m.isTeamOwner && (
+                                <Badge className="bg-amber-100 text-amber-700 text-[10px]"><Crown className="h-3 w-3 mr-0.5" />Admin</Badge>
+                              )}
+                            </div>
+                            <span className="text-sm text-muted-foreground">{m.email}</span>
+                          </div>
+                        </div>
+                        {userData?.isTeamOwner && !m.isTeamOwner && m.id !== user?.id && (
+                          <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => setRemoveMember(m)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               </div>
-              <div className="grid gap-3">
-                {filteredMembers.map(m => (
-                  <Card key={m.id}>
-                    <CardContent className="p-4 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-semibold">
-                          {m.name?.charAt(0)?.toUpperCase() || m.email.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-foreground">{m.name || m.email}</span>
-                            {m.isTeamOwner && (
-                              <Badge className="bg-amber-100 text-amber-700 text-[10px]"><Crown className="h-3 w-3 mr-0.5" />Admin</Badge>
-                            )}
+
+              {/* Pending invites */}
+              {userData?.isTeamOwner && pendingInvites.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <Clock className="h-4 w-4" /> Convites Pendentes ({pendingInvites.length})
+                  </h3>
+                  <div className="grid gap-2">
+                    {pendingInvites.map(inv => (
+                      <Card key={inv.id} className="border-dashed">
+                        <CardContent className="p-3 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                              <Mail className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                            <div>
+                              <span className="text-sm font-medium text-foreground">{inv.email}</span>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <span>Enviado em {new Date(inv.createdAt).toLocaleDateString('pt-BR')}</span>
+                                <span>·</span>
+                                <span>Expira em {new Date(inv.expiresAt).toLocaleDateString('pt-BR')}</span>
+                              </div>
+                            </div>
                           </div>
-                          <span className="text-sm text-muted-foreground">{m.email}</span>
-                        </div>
-                      </div>
-                      {userData?.isTeamOwner && !m.isTeamOwner && (
-                        <Button variant="ghost" size="icon" className="text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => handleRemoveMember(m.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                          <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-600" onClick={() => handleCancelInvite(inv.id)}>
+                            <XCircle className="h-4 w-4 mr-1" /> Cancelar
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </TabsContent>
 
@@ -347,19 +427,47 @@ export default function Teams() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Member Dialog */}
-      <Dialog open={addMemberOpen} onOpenChange={setAddMemberOpen}>
+      {/* Invite Member Dialog */}
+      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Adicionar Membro</DialogTitle>
-            <DialogDescription>Informe o email do usuário cadastrado</DialogDescription>
+            <DialogTitle>Convidar para o time</DialogTitle>
+            <DialogDescription>
+              Envie um convite por email. Usuários existentes são adicionados automaticamente.
+            </DialogDescription>
           </DialogHeader>
-          <Input placeholder="email@exemplo.com" value={memberEmail} onChange={e => setMemberEmail(e.target.value)} />
+          <Input
+            placeholder="email@empresa.com"
+            type="email"
+            value={inviteEmail}
+            onChange={e => setInviteEmail(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleInviteMember()}
+          />
           <DialogFooter>
-            <Button onClick={handleAddMember} className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white">Adicionar</Button>
+            <Button onClick={handleInviteMember} disabled={inviting || !inviteEmail.trim()} className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
+              {inviting ? 'Enviando...' : 'Enviar convite'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Remove Member Confirmation */}
+      <AlertDialog open={!!removeMember} onOpenChange={open => !open && setRemoveMember(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover {removeMember?.name || removeMember?.email} do time?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ele perderá acesso às funcionalidades Enterprise e voltará ao plano Gratuito.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRemoveMember} className="bg-red-600 hover:bg-red-700 text-white">
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Create Group Dialog */}
       <Dialog open={createGroupOpen} onOpenChange={setCreateGroupOpen}>
@@ -387,11 +495,11 @@ export default function Teams() {
       </Dialog>
 
       {/* Delete Group Confirm */}
-      <AlertDialog open={!!deleteGroupId} onOpenChange={(open) => !open && setDeleteGroupId(null)}>
+      <AlertDialog open={!!deleteGroupId} onOpenChange={open => !open && setDeleteGroupId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir grupo?</AlertDialogTitle>
-            <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+            <AlertDialogDescription>Essa ação não pode ser desfeita. Reuniões do grupo não serão excluídas.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
