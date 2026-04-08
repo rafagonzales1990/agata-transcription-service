@@ -219,6 +219,7 @@ export default function UploadPage() {
                     <Upload className="h-10 w-10 text-muted-foreground" />
                     <p className="font-medium text-foreground">Arraste o arquivo aqui ou clique para selecionar</p>
                     <p className="text-xs text-muted-foreground">MP3, WAV, M4A, AAC, OGG, WebM, MP4, MOV — até 500MB</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">Para reuniões longas, prefira MP3 ou M4A (menor tamanho que MP4).</p>
                   </div>
                 )}
               </div>
