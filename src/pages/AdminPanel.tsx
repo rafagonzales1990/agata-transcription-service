@@ -605,12 +605,12 @@ export default function AdminPanel() {
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'Total Usuários', value: String(totalUsers), sub: `${newLast7} novos (7d)`, color: 'border-l-indigo-500', icon: Users },
-                { label: 'Novos (30d)', value: String(newLast30), color: 'border-l-violet-500', icon: Zap },
-                { label: 'Reuniões', value: String(totalMeetings), color: 'border-l-cyan-500', icon: FileAudio },
-                { label: 'Grupos', value: String(groups.length), color: 'border-l-pink-500', icon: Clock },
+                { label: 'Total Usuários', value: String(totalUsers), sub: `${newLast7} novos (7d)`, icon: Users },
+                { label: 'Novos (30d)', value: String(newLast30), icon: Zap },
+                { label: 'Reuniões', value: String(totalMeetings), icon: FileAudio },
+                { label: 'Grupos', value: String(groups.length), icon: Clock },
               ].map((c, i) => (
-                <Card key={i} className={`border-l-4 ${c.color} bg-white`}>
+                <Card key={i} className="bg-card border-border">
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-xs text-muted-foreground uppercase tracking-wide">{c.label}</p>
