@@ -832,7 +832,7 @@ export default function AdminPanel() {
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {groups.map(g => (
-                <Card key={g.id} className="bg-white">
+                <Card key={g.id} className="bg-card border-border">
                   <CardContent className="p-5">
                     <div className="flex items-start gap-3">
                       <span className="w-4 h-4 rounded-full mt-0.5 shrink-0" style={{ backgroundColor: g.color }} />
