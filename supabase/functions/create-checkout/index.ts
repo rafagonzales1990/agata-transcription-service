@@ -71,6 +71,8 @@ Deno.serve(async (req) => {
         ? planPrices.annual
         : planPrices.monthly
 
+    console.log(`Checkout: planId=${planId} billingCycle=${billingCycle} priceId=${priceId}`)
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     const stripe = new Stripe(stripeKey, { apiVersion: '2024-04-10' })
 

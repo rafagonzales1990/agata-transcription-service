@@ -128,7 +128,8 @@ Deno.serve(async (req) => {
           const priceId = subscription.items.data[0]?.price?.id
           const planId = subscription.items.data[0]?.price?.metadata?.planId
           const interval = subscription.items.data[0]?.price?.recurring?.interval
-          const billingCycle = interval === 'year' ? 'yearly' : 'monthly'
+          const metaBillingCycle = subscription.metadata?.billingCycle
+          const billingCycle = metaBillingCycle || (interval === 'year' ? 'yearly' : 'monthly')
 
           if (planId) {
             await supabase.from('User').update({
