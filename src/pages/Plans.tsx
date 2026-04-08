@@ -41,7 +41,7 @@ export default function PlansPage() {
   const [loading, setLoading] = useState(true);
   const [yearly, setYearly] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
-  const [upfrontLoading, setUpfrontLoading] = useState<string | null>(null);
+  
   const [portalLoading, setPortalLoading] = useState(false);
   const [hasSubscription, setHasSubscription] = useState(false);
   const [showSuccessTip, setShowSuccessTip] = useState(false);
