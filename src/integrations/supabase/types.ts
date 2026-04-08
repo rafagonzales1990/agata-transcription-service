@@ -94,6 +94,47 @@ export type Database = {
         }
         Relationships: []
       }
+      AtaTemplate: {
+        Row: {
+          createdAt: string
+          description: string | null
+          id: string
+          isDefault: boolean
+          name: string
+          sections: Json
+          updatedAt: string
+          userId: string
+        }
+        Insert: {
+          createdAt?: string
+          description?: string | null
+          id?: string
+          isDefault?: boolean
+          name: string
+          sections?: Json
+          updatedAt?: string
+          userId: string
+        }
+        Update: {
+          createdAt?: string
+          description?: string | null
+          id?: string
+          isDefault?: boolean
+          name?: string
+          sections?: Json
+          updatedAt?: string
+          userId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "AtaTemplate_userId_fkey"
+            columns: ["userId"]
+            isOneToOne: false
+            referencedRelation: "User"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       BlogPost: {
         Row: {
           category: string
@@ -299,7 +340,9 @@ export type Database = {
         Row: {
           actionItems: string[]
           ataPdfUrl: string | null
+          ataSections: Json | null
           ataTemplate: string | null
+          ataTemplateId: string | null
           cloudStoragePath: string
           createdAt: string
           description: string | null
@@ -329,7 +372,9 @@ export type Database = {
         Insert: {
           actionItems?: string[]
           ataPdfUrl?: string | null
+          ataSections?: Json | null
           ataTemplate?: string | null
+          ataTemplateId?: string | null
           cloudStoragePath: string
           createdAt?: string
           description?: string | null
@@ -359,7 +404,9 @@ export type Database = {
         Update: {
           actionItems?: string[]
           ataPdfUrl?: string | null
+          ataSections?: Json | null
           ataTemplate?: string | null
+          ataTemplateId?: string | null
           cloudStoragePath?: string
           createdAt?: string
           description?: string | null
@@ -387,6 +434,13 @@ export type Database = {
           workGroupId?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "Meeting_ataTemplateId_fkey"
+            columns: ["ataTemplateId"]
+            isOneToOne: false
+            referencedRelation: "AtaTemplate"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "Meeting_routineId_fkey"
             columns: ["routineId"]
