@@ -1,0 +1,130 @@
+/* ========================================
+   Ágata Transcription – Content Styles
+   ======================================== */
+
+/* Main FAB */
+#agata-fab-container {
+  position: fixed;
+  bottom: 80px;
+  right: 24px;
+  z-index: 2147483647;
+  animation: agata-slide-in 0.3s ease;
+}
+
+#agata-fab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #FFFFFF;
+  border: 2px solid #10B981;
+  border-radius: 28px;
+  padding: 8px 16px 8px 10px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.2);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #059669;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+#agata-fab:hover {
+  box-shadow: 0 6px 24px rgba(16, 185, 129, 0.35);
+  transform: scale(1.02);
+}
+
+#agata-fab.agata-recording {
+  border-color: #EF4444;
+  color: #DC2626;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.2);
+}
+
+#agata-fab.agata-recording:hover {
+  box-shadow: 0 6px 24px rgba(239, 68, 68, 0.35);
+}
+
+.agata-fab-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+
+.agata-fab-label {
+  line-height: 1;
+}
+
+/* Timer */
+#agata-timer {
+  position: fixed;
+  top: 16px;
+  right: 24px;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-family: 'Inter', monospace, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #FCA5A5;
+  animation: agata-slide-in 0.2s ease;
+}
+
+.agata-rec-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #EF4444;
+  animation: agata-pulse 1.5s ease-in-out infinite;
+}
+
+/* Notify Button */
+#agata-notify-btn {
+  position: fixed;
+  bottom: 140px;
+  right: 24px;
+  z-index: 2147483646;
+  animation: agata-slide-in 0.2s ease;
+}
+
+#agata-notify-fab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 20px;
+  padding: 6px 12px 6px 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 11px;
+  color: #6B7280;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+#agata-notify-fab:hover {
+  border-color: #10B981;
+  color: #10B981;
+  box-shadow: 0 2px 12px rgba(16, 185, 129, 0.15);
+}
+
+/* Animations */
+@keyframes agata-slide-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes agata-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
