@@ -215,6 +215,14 @@ Deno.serve(async (req) => {
         subject = 'Última chamada — comece seu teste grátis na Ágata'
         html = demoFollowup72hTemplate(data.name, data.persona)
         break
+      case 'team_invite':
+        subject = `Você foi convidado para o time ${data.teamName} no Ágata`
+        html = teamInviteTemplate(data.teamName, data.inviterName, data.signupUrl, data.expiresIn)
+        break
+      case 'team_member_added':
+        subject = `Você foi adicionado ao time ${data.teamName} no Ágata`
+        html = teamMemberAddedTemplate(data.name, data.teamName, data.inviterName, data.dashboardUrl)
+        break
       default:
         return new Response(
           JSON.stringify({ error: 'Invalid email type' }),
