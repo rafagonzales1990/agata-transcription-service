@@ -200,7 +200,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   return (
     <div className={cn('flex h-screen overflow-hidden bg-background', isDark && 'dark')}>
       <aside className="hidden md:flex w-64 bg-sidebar border-r border-sidebar-border flex-col fixed inset-y-0 left-0 z-30">
-        <div className="p-4 border-b border-sidebar-border">
+        <div className="h-14 lg:h-16 flex items-center px-4 border-b border-sidebar-border">
           <LogoBrand />
         </div>
         <SidebarNav />
