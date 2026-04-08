@@ -91,7 +91,8 @@ export default function UploadPage() {
     }
 
     if (activeTab === 'upload' && !file) return;
-    if (file && file.size > 50 * 1024 * 1024) toast.info('Arquivo grande. A transcrição pode levar alguns minutos.');
+    if (file && file.size > 500 * 1024 * 1024) { toast.error('Arquivo muito grande. O limite é 500MB.'); setUploading(false); return; }
+    if (file && file.size > 100 * 1024 * 1024) toast.info('Arquivo grande (acima de 100MB). A transcrição pode levar alguns minutos.');
 
     setUploading(true); setUploadProgress(0); setStatusMessage('Enviando arquivo...');
 
