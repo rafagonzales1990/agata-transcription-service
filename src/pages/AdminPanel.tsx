@@ -622,12 +622,12 @@ export default function AdminPanel() {
                 </Card>
               ))}
             </div>
-            <Card className="bg-white">
+            <Card className="bg-card border-border">
               <CardHeader><CardTitle className="text-base">Distribuição por Plano</CardTitle></CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-3">
                   {planDistribution.map(p => (
-                    <div key={p.id} className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-full">
+                    <div key={p.id} className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-full">
                       <span className={`w-2.5 h-2.5 rounded-full ${dotColors[p.id]}`} />
                       <span className="text-sm font-medium">{p.label}</span>
                       <span className="text-xs text-muted-foreground font-mono">{p.count} ({p.pct}%)</span>
