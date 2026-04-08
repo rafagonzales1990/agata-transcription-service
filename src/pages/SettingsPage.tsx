@@ -11,6 +11,7 @@ const settingsCards = [
   { title: 'Segurança', description: 'Senha e autenticação', icon: Shield, href: '/settings/security' },
   { title: 'Personalização', description: 'Logo e marca na ATA', icon: Palette, href: '/settings/branding', enterpriseOnly: true },
   { title: 'Grupos', description: 'Organize reuniões por grupo', icon: Users, href: '/settings/groups', badge: 'em breve' },
+  { title: 'Modelos de ATA', description: 'Personalize seções e instruções', icon: LayoutTemplate, href: '/settings/ata-templates' },
 ];
 
 export default function SettingsPage() {
