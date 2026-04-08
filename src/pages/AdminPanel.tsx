@@ -638,7 +638,7 @@ export default function AdminPanel() {
             </Card>
 
             <Collapsible>
-              <Card className="bg-white">
+              <Card className="bg-card border-border">
                 <CardHeader className="pb-2">
                   <CollapsibleTrigger className="flex items-center justify-between w-full">
                     <CardTitle className="text-base">Versão Atual</CardTitle>
