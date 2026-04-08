@@ -249,6 +249,21 @@ export default function UploadPage() {
               </div>
               <div><label className="text-xs text-muted-foreground mb-1 block">Descrição</label>
                 <Textarea placeholder="Pauta ou observações..." value={description} onChange={e => setDescription(e.target.value)} rows={3} disabled={uploading} /></div>
+              <div><label className="text-xs text-muted-foreground mb-1 block">Modelo de ATA</label>
+                <Select value={selectedAtaTemplateId} onValueChange={(v) => {
+                  if (v === '__customize__') { window.open('/settings/ata-templates', '_blank'); return; }
+                  setSelectedAtaTemplateId(v);
+                }}>
+                  <SelectTrigger><SelectValue placeholder="Selecione um modelo" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__default__">Padrão (Ágata)</SelectItem>
+                    {ataTemplates.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>{t.name} {t.isDefault ? '⭐' : ''}</SelectItem>
+                    ))}
+                    <SelectItem value="__customize__">Personalizar agora →</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <Button className="w-full bg-primary hover:bg-emerald-600 text-primary-foreground" size="lg" onClick={handleSubmit}
