@@ -88,7 +88,7 @@ export default function DashboardPage() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
-              <Card className={`border-l-4 ${stat.border} shadow-lg hover:shadow-xl transition-shadow`}>
+              <Card className={`border-l-4 ${stat.border} shadow-lg hover:shadow-xl transition-shadow h-full`}>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-sm text-muted-foreground">{stat.label}</p>
