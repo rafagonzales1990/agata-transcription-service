@@ -78,14 +78,9 @@ export default function PlansPage() {
     fetchPlans();
   }, [profile]);
 
-  const handleSubscribe = async (planId: string, billingCycle?: string) => {
+  const handleSubscribe = async (planId: string) => {
     if (planId === 'basic') return;
-    const loadingKey = billingCycle === 'annual_upfront' ? `upfront_${planId}` : planId;
-    if (billingCycle === 'annual_upfront') {
-      setUpfrontLoading(planId);
-    } else {
-      setCheckoutLoading(planId);
-    }
+    setCheckoutLoading(planId);
     const plan = plans.find(p => p.id === planId);
     if (plan) {
       const price = yearly ? plan.priceYearly : plan.priceMonthly;
@@ -93,7 +88,7 @@ export default function PlansPage() {
       trackBeginCheckout(plan.name, price / 100);
     }
     try {
-      const cycle = billingCycle || (yearly ? 'yearly' : 'monthly');
+      const cycle = yearly ? 'yearly' : 'monthly';
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { planId, billingCycle: cycle },
       });
@@ -110,7 +105,23 @@ export default function PlansPage() {
       toast.error(err.message || 'Erro ao iniciar checkout');
     } finally {
       setCheckoutLoading(null);
-      setUpfrontLoading(null);
+    }
+  };
+
+  const handleUpfrontSubscribe = async (planId: string) => {
+    if (checkoutLoading) return;
+    setCheckoutLoading(planId + '_upfront');
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { planId, billingCycle: 'annual_upfront' },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.url) window.location.href = data.url;
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao iniciar checkout');
+    } finally {
+      setCheckoutLoading(null);
     }
   };
 
