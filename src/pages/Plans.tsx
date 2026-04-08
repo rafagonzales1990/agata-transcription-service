@@ -28,7 +28,7 @@ export default function PlansPage() {
   const [searchParams] = useSearchParams();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
-  const [yearly, setYearly] = useState(false);
+  const [yearly, setYearly] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
 
