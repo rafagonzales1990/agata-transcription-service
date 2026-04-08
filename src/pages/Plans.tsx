@@ -235,36 +235,47 @@ export default function PlansPage() {
 
             {/* Annual Upfront Callout — only for free users */}
             {!isPaid && (
-              <div className="bg-muted/40 border border-border rounded-xl py-4 px-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <Lightbulb className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium text-foreground">
-                    Prefere pagar à vista e economizar ainda mais?
-                  </span>
+              <div className="mt-8 p-5 bg-muted/40 border border-border rounded-xl">
+                <div className="flex items-start gap-2 mb-3">
+                  <span className="text-base">💡</span>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      Prefere pagar à vista e economizar ainda mais?
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Cobrado uma vez. Acesso garantido por 12 meses.
+                    </p>
+                  </div>
                 </div>
-                <div className="space-y-2 sm:space-y-1">
-                  {ANNUAL_UPFRONT.map((item) => (
-                    <div key={item.planId} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                      <button
-                        onClick={() => handleSubscribe(item.planId, 'annual_upfront')}
-                        disabled={!!upfrontLoading}
-                        className="text-sm text-primary hover:underline cursor-pointer text-left inline-flex items-center gap-1 disabled:opacity-50"
-                      >
-                        {upfrontLoading === item.planId ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : null}
-                        {item.name} · {formatBRL(item.total)}/ano
-                        <span className="text-xs text-muted-foreground">
-                          ({formatBRL(item.perMonth)}/mês · 31% off)
-                        </span>
-                        <span className="text-primary">→</span>
-                      </button>
-                    </div>
-                  ))}
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-6 mt-3">
+                  <button
+                    onClick={() => handleUpfrontSubscribe('inteligente')}
+                    disabled={!!checkoutLoading}
+                    className="text-sm text-primary hover:underline text-left disabled:opacity-50"
+                  >
+                    Inteligente · R$540/ano
+                    <span className="text-xs text-muted-foreground ml-1">(R$45/mês · 31% off)</span>
+                    <span className="ml-1">→</span>
+                  </button>
+                  <button
+                    onClick={() => handleUpfrontSubscribe('automacao')}
+                    disabled={!!checkoutLoading}
+                    className="text-sm text-primary hover:underline text-left disabled:opacity-50"
+                  >
+                    Automação · R$1.620/ano
+                    <span className="text-xs text-muted-foreground ml-1">(R$135/mês · 31% off)</span>
+                    <span className="ml-1">→</span>
+                  </button>
+                  <button
+                    onClick={() => handleUpfrontSubscribe('enterprise')}
+                    disabled={!!checkoutLoading}
+                    className="text-sm text-primary hover:underline text-left disabled:opacity-50"
+                  >
+                    Enterprise · R$5.400/ano
+                    <span className="text-xs text-muted-foreground ml-1">(R$450/mês · 31% off)</span>
+                    <span className="ml-1">→</span>
+                  </button>
                 </div>
-                <p className="text-xs text-muted-foreground italic mt-3">
-                  Cobrado uma vez. Acesso garantido por 12 meses.
-                </p>
               </div>
             )}
           </>
