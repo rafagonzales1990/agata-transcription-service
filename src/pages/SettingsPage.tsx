@@ -1,7 +1,7 @@
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Shield, Palette, Users } from 'lucide-react';
+import { Bell, Shield, Palette, Users, LayoutTemplate } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { VersionBadge } from '@/components/VersionBadge';
