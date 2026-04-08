@@ -133,6 +133,24 @@ function demoFollowup72hTemplate(name: string, persona: string | null): string {
 <div style="text-align:center">${btn('Começar teste grátis →', BASE_URL + '/auth/signup')}</div>`)
 }
 
+function teamInviteTemplate(teamName: string, inviterName: string, signupUrl: string, expiresIn: string): string {
+  return baseLayout(`
+<h1 style="margin:0 0 16px;font-size:22px;color:#111827;text-align:center">Você foi convidado! 🎉</h1>
+<p style="color:#4b5563;line-height:1.6;margin:0 0 20px;text-align:center"><strong>${inviterName}</strong> convidou você para fazer parte do time <strong>${teamName}</strong> no Ágata Transcription.</p>
+<p style="color:#4b5563;line-height:1.6;margin:0 0 20px;text-align:center">Com o Ágata você grava e transcreve reuniões automaticamente com IA, gera ATAs em PDF e Word, e muito mais.</p>
+<div style="text-align:center">${btn('Aceitar convite →', signupUrl)}</div>
+<p style="text-align:center;color:#9ca3af;font-size:13px;margin-top:16px">Este convite expira em ${expiresIn}.</p>`)
+}
+
+function teamMemberAddedTemplate(name: string, teamName: string, inviterName: string, dashboardUrl: string): string {
+  return baseLayout(`
+<h1 style="margin:0 0 16px;font-size:22px;color:#111827;text-align:center">Você foi adicionado a um time! 🎉</h1>
+<p style="color:#4b5563;line-height:1.6;margin:0 0 20px;text-align:center">Olá, ${name}! <strong>${inviterName}</strong> adicionou você ao time <strong>${teamName}</strong> no Ágata Transcription.</p>
+<p style="color:#4b5563;line-height:1.6;margin:0 0 20px;text-align:center">Você agora tem acesso às funcionalidades Enterprise. Acesse sua conta para começar.</p>
+<div style="text-align:center">${btn('Ir para o Dashboard →', dashboardUrl)}</div>`)
+}
+
+
 async function sendEmail(to: string, subject: string, html: string) {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
