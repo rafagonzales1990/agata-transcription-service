@@ -28,6 +28,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useAtaTemplates } from "@/hooks/useAtaTemplates";
+import { useNavigate } from "react-router-dom";
+import remarkGfm from "remark-gfm";
 
 interface MeetingRow {
   id: string;
