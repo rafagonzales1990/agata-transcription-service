@@ -1,15 +1,41 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle, ExternalLink } from 'lucide-react';
+import { CheckCircle, ExternalLink, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const CHROME_STORE_URL = 'https://chrome.google.com/webstore/detail/agata-transcription';
 
+const faqs = [
+  {
+    q: 'Os participantes da reunião ficam sabendo que está sendo gravado?',
+    a: 'Não automaticamente. A extensão Ágata grava silenciosamente no seu navegador, sem notificar os outros participantes. Por isso, disponibilizamos um botão opcional "Avisar sobre gravação" que envia uma mensagem no chat da reunião informando os presentes. Recomendamos sempre utilizar este recurso ou avisar verbalmente antes de iniciar a gravação, conforme as boas práticas de privacidade e a LGPD.',
+  },
+  {
+    q: 'A gravação pela extensão é legal?',
+    a: 'No Brasil, gravar conversas das quais você participa é geralmente permitido para uso próprio. No entanto, para fins corporativos e profissionais, recomendamos sempre obter o consentimento dos participantes, conforme previsto na LGPD (Lei nº 13.709/2018). O usuário é responsável pelo uso adequado da ferramenta.',
+  },
+];
+
+function FaqItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-b border-gray-700 last:border-0">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-start justify-between gap-4 py-4 text-left"
+      >
+        <span className="text-sm font-medium text-gray-200">{q}</span>
+        <ChevronDown className={`h-4 w-4 text-gray-400 shrink-0 mt-0.5 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && <p className="text-sm text-gray-400 pb-4 leading-relaxed">{a}</p>}
+    </div>
+  );
+}
+
 function BrowserMockup() {
   return (
     <div className="relative w-full max-w-md mx-auto">
-      {/* Browser frame */}
       <div className="rounded-xl border border-gray-700 bg-gray-800 shadow-2xl overflow-hidden">
-        {/* Title bar */}
         <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 border-b border-gray-700">
           <div className="flex gap-1.5">
             <div className="w-3 h-3 rounded-full bg-red-500" />
@@ -23,9 +49,7 @@ function BrowserMockup() {
           </div>
         </div>
 
-        {/* Meet screen */}
         <div className="relative bg-gray-900 aspect-[4/3] p-6 flex items-center justify-center gap-6">
-          {/* Participant avatars */}
           <div className="flex flex-col items-center gap-2">
             <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 text-lg font-bold">MC</div>
             <span className="text-[10px] text-gray-500">Mariana C.</span>
@@ -36,14 +60,20 @@ function BrowserMockup() {
           </div>
 
           {/* Floating Ágata button */}
-          <div className="absolute bottom-4 right-4">
+          <div className="absolute bottom-4 right-4 space-y-2">
             <div className="flex items-center gap-2 bg-white rounded-full px-4 py-2 border-2 border-emerald-500 shadow-lg shadow-emerald-500/20">
               <div className="w-4 h-4 rounded-sm bg-emerald-500" style={{ borderRadius: '30% 70% 70% 30% / 30% 30% 70% 70%' }} />
               <span className="text-xs font-semibold text-emerald-700 whitespace-nowrap">Gravar reunião</span>
             </div>
+            {/* Notify button preview */}
+            <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-full px-3 py-1.5 shadow-sm ml-auto w-fit">
+              <svg className="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              <span className="text-[9px] text-gray-500 whitespace-nowrap">Avisar sobre gravação</span>
+            </div>
           </div>
 
-          {/* Recording indicator */}
           <div className="absolute top-4 right-4 flex items-center gap-1.5">
             <span className="relative flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
@@ -62,6 +92,7 @@ export function ChromeExtensionSection() {
     'Captura microfone + áudio dos participantes',
     'Funciona no Google Meet, Zoom e Microsoft Teams',
     'Sincroniza automaticamente com sua conta Ágata',
+    'Botão opcional para avisar participantes sobre a gravação',
   ];
 
   return (
@@ -105,12 +136,10 @@ export function ChromeExtensionSection() {
               </a>
               <p className="text-xs text-gray-500">Também funciona no Microsoft Edge</p>
               <div className="flex items-center gap-3 text-gray-500">
-                {/* Chrome icon */}
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/>
                   <circle cx="12" cy="12" r="4"/>
                 </svg>
-                {/* Edge icon */}
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-7a7 7 0 100 14 7 7 0 000-14z"/>
                 </svg>
@@ -129,6 +158,21 @@ export function ChromeExtensionSection() {
             <BrowserMockup />
           </motion.div>
         </div>
+
+        {/* FAQ */}
+        <motion.div
+          className="mt-16 max-w-2xl mx-auto"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+        >
+          <h3 className="text-lg font-semibold text-white mb-4">Perguntas frequentes</h3>
+          <div className="rounded-xl border border-gray-700 bg-gray-800/50 px-5">
+            {faqs.map((faq, i) => (
+              <FaqItem key={i} q={faq.q} a={faq.a} />
+            ))}
+          </div>
+        </motion.div>
       </div>
     </section>
   );
