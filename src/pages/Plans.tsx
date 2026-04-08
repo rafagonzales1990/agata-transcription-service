@@ -29,11 +29,6 @@ const ANNUAL_SAVINGS: Record<string, { monthlyTotal: number; annualTotal: number
   enterprise:  { monthlyTotal: 7800_00, annualTotal: 5880_00, savings: 1920_00 },
 };
 
-const ANNUAL_UPFRONT = [
-  { planId: 'inteligente', name: 'Inteligente', total: 540_00, perMonth: 45_00 },
-  { planId: 'automacao',   name: 'Automação',   total: 1620_00, perMonth: 135_00 },
-  { planId: 'enterprise',  name: 'Enterprise',  total: 5400_00, perMonth: 450_00 },
-];
 
 function formatBRL(centavos: number) {
   return `R$\u00a0${(centavos / 100).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -46,7 +41,7 @@ export default function PlansPage() {
   const [loading, setLoading] = useState(true);
   const [yearly, setYearly] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
-  const [upfrontLoading, setUpfrontLoading] = useState<string | null>(null);
+  
   const [portalLoading, setPortalLoading] = useState(false);
   const [hasSubscription, setHasSubscription] = useState(false);
   const [showSuccessTip, setShowSuccessTip] = useState(false);
@@ -78,14 +73,9 @@ export default function PlansPage() {
     fetchPlans();
   }, [profile]);
 
-  const handleSubscribe = async (planId: string, billingCycle?: string) => {
+  const handleSubscribe = async (planId: string) => {
     if (planId === 'basic') return;
-    const loadingKey = billingCycle === 'annual_upfront' ? `upfront_${planId}` : planId;
-    if (billingCycle === 'annual_upfront') {
-      setUpfrontLoading(planId);
-    } else {
-      setCheckoutLoading(planId);
-    }
+    setCheckoutLoading(planId);
     const plan = plans.find(p => p.id === planId);
     if (plan) {
       const price = yearly ? plan.priceYearly : plan.priceMonthly;
@@ -93,7 +83,7 @@ export default function PlansPage() {
       trackBeginCheckout(plan.name, price / 100);
     }
     try {
-      const cycle = billingCycle || (yearly ? 'yearly' : 'monthly');
+      const cycle = yearly ? 'yearly' : 'monthly';
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { planId, billingCycle: cycle },
       });
@@ -110,7 +100,23 @@ export default function PlansPage() {
       toast.error(err.message || 'Erro ao iniciar checkout');
     } finally {
       setCheckoutLoading(null);
-      setUpfrontLoading(null);
+    }
+  };
+
+  const handleUpfrontSubscribe = async (planId: string) => {
+    if (checkoutLoading) return;
+    setCheckoutLoading(planId + '_upfront');
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { planId, billingCycle: 'annual_upfront' },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.url) window.location.href = data.url;
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao iniciar checkout');
+    } finally {
+      setCheckoutLoading(null);
     }
   };
 
@@ -224,36 +230,47 @@ export default function PlansPage() {
 
             {/* Annual Upfront Callout — only for free users */}
             {!isPaid && (
-              <div className="bg-muted/40 border border-border rounded-xl py-4 px-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <Lightbulb className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium text-foreground">
-                    Prefere pagar à vista e economizar ainda mais?
-                  </span>
+              <div className="mt-8 p-5 bg-muted/40 border border-border rounded-xl">
+                <div className="flex items-start gap-2 mb-3">
+                  <span className="text-base">💡</span>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      Prefere pagar à vista e economizar ainda mais?
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Cobrado uma vez. Acesso garantido por 12 meses.
+                    </p>
+                  </div>
                 </div>
-                <div className="space-y-2 sm:space-y-1">
-                  {ANNUAL_UPFRONT.map((item) => (
-                    <div key={item.planId} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                      <button
-                        onClick={() => handleSubscribe(item.planId, 'annual_upfront')}
-                        disabled={!!upfrontLoading}
-                        className="text-sm text-primary hover:underline cursor-pointer text-left inline-flex items-center gap-1 disabled:opacity-50"
-                      >
-                        {upfrontLoading === item.planId ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : null}
-                        {item.name} · {formatBRL(item.total)}/ano
-                        <span className="text-xs text-muted-foreground">
-                          ({formatBRL(item.perMonth)}/mês · 31% off)
-                        </span>
-                        <span className="text-primary">→</span>
-                      </button>
-                    </div>
-                  ))}
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-6 mt-3">
+                  <button
+                    onClick={() => handleUpfrontSubscribe('inteligente')}
+                    disabled={!!checkoutLoading}
+                    className="text-sm text-primary hover:underline text-left disabled:opacity-50"
+                  >
+                    Inteligente · R$540/ano
+                    <span className="text-xs text-muted-foreground ml-1">(R$45/mês · 31% off)</span>
+                    <span className="ml-1">→</span>
+                  </button>
+                  <button
+                    onClick={() => handleUpfrontSubscribe('automacao')}
+                    disabled={!!checkoutLoading}
+                    className="text-sm text-primary hover:underline text-left disabled:opacity-50"
+                  >
+                    Automação · R$1.620/ano
+                    <span className="text-xs text-muted-foreground ml-1">(R$135/mês · 31% off)</span>
+                    <span className="ml-1">→</span>
+                  </button>
+                  <button
+                    onClick={() => handleUpfrontSubscribe('enterprise')}
+                    disabled={!!checkoutLoading}
+                    className="text-sm text-primary hover:underline text-left disabled:opacity-50"
+                  >
+                    Enterprise · R$5.400/ano
+                    <span className="text-xs text-muted-foreground ml-1">(R$450/mês · 31% off)</span>
+                    <span className="ml-1">→</span>
+                  </button>
                 </div>
-                <p className="text-xs text-muted-foreground italic mt-3">
-                  Cobrado uma vez. Acesso garantido por 12 meses.
-                </p>
               </div>
             )}
           </>
