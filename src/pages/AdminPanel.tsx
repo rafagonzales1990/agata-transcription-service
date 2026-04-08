@@ -138,11 +138,11 @@ function EditUserDialog({ open, onOpenChange, user, groups, onSubmit }: {
               </Select>
             </div>
           </div>
-          {user?.stripeSubscriptionId && (
-            <div className="p-3 bg-gray-50 rounded border text-xs font-mono space-y-1">
-              <p><span className="text-gray-500">Stripe Customer:</span> {user.stripeCustomerId}</p>
-              <p><span className="text-gray-500">Subscription:</span> {user.stripeSubscriptionId}</p>
-              <p><span className="text-gray-500">Price ID:</span> {user.stripePriceId || 'N/A'}</p>
+            {user?.stripeSubscriptionId && (
+            <div className="p-3 bg-muted rounded border border-border text-xs font-mono space-y-1">
+              <p><span className="text-muted-foreground">Stripe Customer:</span> {user.stripeCustomerId}</p>
+              <p><span className="text-muted-foreground">Subscription:</span> {user.stripeSubscriptionId}</p>
+              <p><span className="text-muted-foreground">Price ID:</span> {user.stripePriceId || 'N/A'}</p>
             </div>
           )}
         </div>
@@ -500,7 +500,7 @@ export default function AdminPanel() {
 
   // ── Loading ───────────────────────────────────────────────
   if (isAdmin === null) {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-50"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+    return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
   // ── Derived data ──────────────────────────────────────────
@@ -552,9 +552,9 @@ export default function AdminPanel() {
 
   return (
     <AppLayout>
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="sticky top-0 z-40 bg-white border-b px-6 py-3 flex items-center justify-between">
+      <div className="sticky top-0 z-40 bg-card border-b border-border px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <LogoIcon size={32} />
           <h1 className="text-lg font-bold text-foreground">Admin Console</h1>
@@ -575,7 +575,7 @@ export default function AdminPanel() {
 
       <div className="p-6">
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="bg-white border">
+          <TabsList className="bg-card border border-border">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="users">Usuários ({totalUsers})</TabsTrigger>
             <TabsTrigger value="groups" onClick={fetchGroups}>Grupos ({groups.length})</TabsTrigger>
@@ -586,12 +586,12 @@ export default function AdminPanel() {
           <TabsContent value="dashboard" className="space-y-6">
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'MRR', value: 'R$ 0', sub: 'ARR: R$ 0', color: 'border-l-emerald-500', icon: DollarSign },
-                { label: 'Assinaturas Ativas', value: String(activeSubscriptions), sub: `${totalUsers > 0 ? Math.round((activeSubscriptions / totalUsers) * 100) : 0}% conversão`, color: 'border-l-blue-500', icon: TrendingUp },
-                { label: 'Em Trial', value: String(trialUsers), sub: `${freeUsers} expirados`, color: 'border-l-amber-500', icon: Clock },
-                { label: 'Churn Rate', value: '0%', sub: `${freeUsers} usuários free`, color: 'border-l-red-500', icon: BarChart3 },
+                { label: 'MRR', value: 'R$ 0', sub: 'ARR: R$ 0', icon: DollarSign },
+                { label: 'Assinaturas Ativas', value: String(activeSubscriptions), sub: `${totalUsers > 0 ? Math.round((activeSubscriptions / totalUsers) * 100) : 0}% conversão`, icon: TrendingUp },
+                { label: 'Em Trial', value: String(trialUsers), sub: `${freeUsers} expirados`, icon: Clock },
+                { label: 'Churn Rate', value: '0%', sub: `${freeUsers} usuários free`, icon: BarChart3 },
               ].map((c, i) => (
-                <Card key={i} className={`border-l-4 ${c.color} bg-white`}>
+                <Card key={i} className="bg-card border-border">
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-xs text-muted-foreground uppercase tracking-wide">{c.label}</p>
@@ -605,12 +605,12 @@ export default function AdminPanel() {
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'Total Usuários', value: String(totalUsers), sub: `${newLast7} novos (7d)`, color: 'border-l-indigo-500', icon: Users },
-                { label: 'Novos (30d)', value: String(newLast30), color: 'border-l-violet-500', icon: Zap },
-                { label: 'Reuniões', value: String(totalMeetings), color: 'border-l-cyan-500', icon: FileAudio },
-                { label: 'Grupos', value: String(groups.length), color: 'border-l-pink-500', icon: Clock },
+                { label: 'Total Usuários', value: String(totalUsers), sub: `${newLast7} novos (7d)`, icon: Users },
+                { label: 'Novos (30d)', value: String(newLast30), icon: Zap },
+                { label: 'Reuniões', value: String(totalMeetings), icon: FileAudio },
+                { label: 'Grupos', value: String(groups.length), icon: Clock },
               ].map((c, i) => (
-                <Card key={i} className={`border-l-4 ${c.color} bg-white`}>
+                <Card key={i} className="bg-card border-border">
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-xs text-muted-foreground uppercase tracking-wide">{c.label}</p>
@@ -622,12 +622,12 @@ export default function AdminPanel() {
                 </Card>
               ))}
             </div>
-            <Card className="bg-white">
+            <Card className="bg-card border-border">
               <CardHeader><CardTitle className="text-base">Distribuição por Plano</CardTitle></CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-3">
                   {planDistribution.map(p => (
-                    <div key={p.id} className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-full">
+                    <div key={p.id} className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-full">
                       <span className={`w-2.5 h-2.5 rounded-full ${dotColors[p.id]}`} />
                       <span className="text-sm font-medium">{p.label}</span>
                       <span className="text-xs text-muted-foreground font-mono">{p.count} ({p.pct}%)</span>
@@ -638,7 +638,7 @@ export default function AdminPanel() {
             </Card>
 
             <Collapsible>
-              <Card className="bg-white">
+              <Card className="bg-card border-border">
                 <CardHeader className="pb-2">
                   <CollapsibleTrigger className="flex items-center justify-between w-full">
                     <CardTitle className="text-base">Versão Atual</CardTitle>
@@ -677,7 +677,7 @@ export default function AdminPanel() {
               </Card>
             </Collapsible>
 
-            <Card className="bg-white">
+            <Card className="bg-card border-border">
               <CardHeader>
                 <CardTitle className="text-base">Ações</CardTitle>
               </CardHeader>
@@ -735,7 +735,7 @@ export default function AdminPanel() {
             {loading ? (
               <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
             ) : (
-              <Card className="bg-white overflow-auto">
+              <Card className="bg-card border-border overflow-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -770,7 +770,7 @@ export default function AdminPanel() {
                           </TableCell>
                           <TableCell>
                             <p className="text-sm font-bold">{u.name || '—'} {u.isAdmin && <Badge variant="destructive" className="text-[9px] ml-1">ADMIN</Badge>}</p>
-                            <p className="text-xs text-gray-500 font-mono">{u.email}</p>
+                            <p className="text-xs text-muted-foreground font-mono">{u.email}</p>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
@@ -832,7 +832,7 @@ export default function AdminPanel() {
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {groups.map(g => (
-                <Card key={g.id} className="bg-white">
+                <Card key={g.id} className="bg-card border-border">
                   <CardContent className="p-5">
                     <div className="flex items-start gap-3">
                       <span className="w-4 h-4 rounded-full mt-0.5 shrink-0" style={{ backgroundColor: g.color }} />
@@ -861,12 +861,12 @@ export default function AdminPanel() {
               <>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {[
-                    { label: 'Total Transcrições', value: String(costsData.totalTranscriptions), color: 'border-l-emerald-500' },
-                    { label: 'Minutos Transcritos', value: String(costsData.totalMinutes), sub: `~${Math.round(costsData.totalMinutes / 60)}h`, color: 'border-l-blue-500' },
-                    { label: 'Custo Total', value: `R$ ${(costsData.totalCostCents / 100).toFixed(2)}`, color: 'border-l-orange-500' },
-                    { label: 'Economia Gemini', value: 'Free Tier', sub: 'Gemini 2.5 Flash', color: 'border-l-green-500' },
+                    { label: 'Total Transcrições', value: String(costsData.totalTranscriptions) },
+                    { label: 'Minutos Transcritos', value: String(costsData.totalMinutes), sub: `~${Math.round(costsData.totalMinutes / 60)}h` },
+                    { label: 'Custo Total', value: `R$ ${(costsData.totalCostCents / 100).toFixed(2)}` },
+                    { label: 'Economia Gemini', value: 'Free Tier', sub: 'Gemini 2.5 Flash' },
                   ].map((c, i) => (
-                    <Card key={i} className={`border-l-4 ${c.color} bg-white`}>
+                    <Card key={i} className="bg-card border-border">
                       <CardContent className="p-5">
                         <p className="text-xs text-muted-foreground uppercase tracking-wide">{c.label}</p>
                         <p className="text-2xl font-bold font-mono text-foreground mt-1">{c.value}</p>
@@ -875,7 +875,7 @@ export default function AdminPanel() {
                     </Card>
                   ))}
                 </div>
-                <Card className="bg-white">
+                <Card className="bg-card border-border">
                   <CardHeader><CardTitle className="text-base">Uso por Provedor — Mês Atual</CardTitle></CardHeader>
                   <CardContent>
                     <div className="grid sm:grid-cols-2 gap-4">
@@ -897,7 +897,7 @@ export default function AdminPanel() {
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="bg-white">
+                <Card className="bg-card border-border">
                   <CardHeader><CardTitle className="text-base">Logs Recentes</CardTitle></CardHeader>
                   <CardContent>
                     <Table>

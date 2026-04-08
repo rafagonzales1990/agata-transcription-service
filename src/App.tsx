@@ -73,7 +73,7 @@ const App = () => (
         <BrowserRouter>
           <RouteTracker />
           <AuthProvider>
-            <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}>
+            <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-background"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}>
               <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth/login" element={<Login />} />

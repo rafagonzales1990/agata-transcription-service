@@ -16,6 +16,16 @@
     <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#059669">
+    <style id="dark-loading">
+      .dark-loading-bg { background-color: #0D1F2D !important; }
+    </style>
+    <script>
+      if (localStorage.getItem('agata-theme') !== 'dark') {
+        document.getElementById('dark-loading').remove();
+      } else {
+        document.documentElement.classList.add('dark-loading-bg');
+      }
+    </script>
 
 
 
