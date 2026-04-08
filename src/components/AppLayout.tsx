@@ -5,6 +5,7 @@ import {
   LayoutDashboard, FileText, Upload, FolderOpen, Settings,
   Repeat, Sparkles, LogOut, Menu, X, User, CreditCard,
   ChevronDown, Shield, Users, HelpCircle, Puzzle, ExternalLink,
+  Sun, Moon,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -21,6 +22,7 @@ import { TrialUpgradeBanners } from '@/components/TrialUpgradeBanners';
 import { HelpModal } from '@/components/HelpModal';
 import { supabase } from '@/integrations/supabase/client';
 import { CpfRequiredModal } from '@/components/CpfRequiredModal';
+import { useTheme } from '@/hooks/useTheme';
 
 const menuItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -40,6 +42,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, profile } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [userCpf, setUserCpf] = useState<string | null | undefined>(undefined);
@@ -96,13 +99,13 @@ export function AppLayout({ children }: AppLayoutProps) {
   const isPaid = ['inteligente', 'automacao', 'enterprise'].includes(profile?.plan_id || '');
 
   const activeClasses = 'bg-gradient-to-r from-emerald-700 to-teal-700 text-white shadow-md';
-  const inactiveClasses = 'text-gray-700 hover:bg-gray-100 hover:text-gray-900';
+  const inactiveClasses = 'text-foreground/70 hover:bg-accent hover:text-foreground';
 
   const LogoBrand = ({ logoSize = 32 }: { logoSize?: number }) => (
     <Link to="/" className="flex items-center gap-2.5">
       <LogoIcon size={logoSize} />
       <div className="flex flex-col">
-        <span className="text-lg font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent leading-tight">Ágata</span>
+        <span className="text-lg font-bold bg-gradient-to-r from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent leading-tight">Ágata</span>
         <span className="text-[10px] text-muted-foreground -mt-0.5">Transcription</span>
       </div>
     </Link>
@@ -138,7 +141,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
               location.pathname.startsWith('/admin')
                 ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-md'
-                : 'text-red-700 hover:bg-red-50 hover:text-red-900'
+                : 'text-destructive hover:bg-destructive/10'
             )}
           >
             <Shield className="h-5 w-5" />
@@ -157,7 +160,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           href="https://chrome.google.com/webstore/detail/agata-transcription"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+          className={cn('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors', inactiveClasses)}
         >
           <Puzzle className="h-4 w-4" />
           Extensão Chrome
@@ -174,15 +177,22 @@ export function AppLayout({ children }: AppLayoutProps) {
           <Settings className="h-4 w-4" />
           Configurações
         </Link>
+        <button
+          onClick={toggleTheme}
+          className={cn('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors w-full text-left', inactiveClasses)}
+        >
+          {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          {isDark ? 'Modo claro' : 'Modo escuro'}
+        </button>
         <HelpModal>
-          <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors w-full text-left">
+          <button className={cn('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors w-full text-left', inactiveClasses)}>
             <HelpCircle className="h-4 w-4" />
             Como usar o Ágata
           </button>
         </HelpModal>
         <button
           onClick={() => { onNavigate?.(); handleLogout(); }}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-destructive/10 hover:text-destructive transition-colors w-full text-left"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-foreground/70 hover:bg-destructive/10 hover:text-destructive transition-colors w-full text-left"
         >
           <LogOut className="h-4 w-4" />
           Sair
@@ -196,14 +206,14 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="min-h-screen bg-muted/30 flex">
-      <aside className="hidden md:flex w-64 bg-white border-r border-border flex-col fixed inset-y-0 left-0 z-30">
+      <aside className="hidden md:flex w-64 bg-card border-r border-border flex-col fixed inset-y-0 left-0 z-30">
         <div className="p-4 border-b border-border">
           <LogoBrand />
         </div>
         <SidebarNav />
       </aside>
 
-      <div className="fixed top-0 left-0 right-0 md:left-64 z-40 h-14 lg:h-16 bg-white/95 backdrop-blur-sm border-b border-border flex items-center justify-between px-4">
+      <div className="fixed top-0 left-0 right-0 md:left-64 z-40 h-14 lg:h-16 bg-card/95 backdrop-blur-sm border-b border-border flex items-center justify-between px-4">
         <div className="flex items-center gap-3 md:hidden">
           <button onClick={() => setSidebarOpen(true)}>
             <Menu className="h-5 w-5 text-foreground" />
@@ -217,6 +227,13 @@ export function AppLayout({ children }: AppLayoutProps) {
 
         <div className="flex items-center gap-3">
           <PWAInstallButton />
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-lg text-foreground/70 hover:bg-accent hover:text-foreground transition-colors"
+            title={isDark ? 'Modo claro' : 'Modo escuro'}
+          >
+            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
           {isEnterprise && (
             <span className="hidden sm:inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
               ENTERPRISE
@@ -261,7 +278,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       {sidebarOpen && (
         <div className="md:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-foreground/50" onClick={() => setSidebarOpen(false)} />
-          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-white border-r border-border flex flex-col">
+          <aside className="absolute left-0 top-0 bottom-0 w-64 bg-card border-r border-border flex flex-col">
             <div className="p-4 border-b border-border flex items-center justify-between">
               <LogoBrand />
               <button onClick={() => setSidebarOpen(false)}>
@@ -276,7 +293,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <main className="flex-1 md:ml-64 pt-14 lg:pt-16">
         <TrialBanner />
         {profile?.gift_plan_id && profile?.gift_ends_at && new Date(profile.gift_ends_at) > new Date() && (
-          <div className="mx-4 md:mx-8 mt-3 px-4 py-2.5 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800 flex items-center gap-2">
+          <div className="mx-4 md:mx-8 mt-3 px-4 py-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-sm text-amber-800 dark:text-amber-300 flex items-center gap-2">
             <span>🎁</span>
             <span>
               Você está com acesso <strong>{profile.gift_plan_id === 'enterprise' ? 'Enterprise' : profile.gift_plan_id === 'automacao' ? 'Automação' : 'Inteligente'}</strong> até{' '}
