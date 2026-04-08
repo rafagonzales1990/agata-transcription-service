@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,17 @@ interface Plan {
   popular: boolean;
 }
 
+// Annual savings computed from monthly vs annual_split prices
+const ANNUAL_SAVINGS: Record<string, { monthlyTotal: number; annualTotal: number; savings: number }> = {
+  inteligente: { monthlyTotal: 780_00, annualTotal: 588_00, savings: 192_00 },
+  automacao:   { monthlyTotal: 2340_00, annualTotal: 1764_00, savings: 576_00 },
+  enterprise:  { monthlyTotal: 7800_00, annualTotal: 5880_00, savings: 1920_00 },
+};
+
+function formatBRL(centavos: number) {
+  return `R$\u00a0${(centavos / 100).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
+
 export default function PlansPage() {
   const { profile } = useAuth();
   const [searchParams] = useSearchParams();
@@ -31,8 +42,6 @@ export default function PlansPage() {
   const [yearly, setYearly] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
-
-  // Check User table for stripeSubscriptionId
   const [hasSubscription, setHasSubscription] = useState(false);
 
   useEffect(() => {
@@ -118,8 +127,10 @@ export default function PlansPage() {
         <div className="flex items-center justify-center gap-3">
           <span className={`text-sm ${!yearly ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>Mensal</span>
           <Switch checked={yearly} onCheckedChange={setYearly} />
-          <span className={`text-sm ${yearly ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
-            Anual <Badge variant="secondary" className="ml-1 text-[10px]">-20%</Badge>
+          <span className={`text-sm flex items-center gap-1.5 ${yearly ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+            Anual
+            <Badge variant="secondary" className="text-[10px]">Mais popular</Badge>
+            <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]">25% de desconto</Badge>
           </span>
         </div>
 
@@ -140,6 +151,7 @@ export default function PlansPage() {
               const price = yearly ? plan.priceYearly : plan.priceMonthly;
               const displayPrice = (price / 100).toFixed(0);
               const isCurrent = plan.id === currentPlanId;
+              const savings = yearly ? ANNUAL_SAVINGS[plan.id] : null;
 
               return (
                 <Card key={plan.id} className={`relative ${plan.popular ? 'border-primary ring-2 ring-primary/20' : ''}`}>
@@ -153,8 +165,13 @@ export default function PlansPage() {
                     <p className="text-xs text-muted-foreground mt-1">{plan.description}</p>
                     <div className="my-4">
                       <span className="text-3xl font-bold text-foreground">R$ {displayPrice}</span>
-                      <span className="text-sm text-muted-foreground">/{yearly ? 'mês' : 'mês'}</span>
+                      <span className="text-sm text-muted-foreground">/mês</span>
                     </div>
+                    {savings && (
+                      <p className="text-xs text-primary -mt-2 mb-4">
+                        {formatBRL(savings.annualTotal)}/ano • economize {formatBRL(savings.savings)}
+                      </p>
+                    )}
                     <ul className="space-y-2 mb-6">
                       {plan.features.map((f, j) => (
                         <li key={j} className="text-sm text-muted-foreground flex items-center gap-2">

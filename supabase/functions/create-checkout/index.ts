@@ -6,6 +6,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const STRIPE_PRICES: Record<string, { monthly: string; annual: string }> = {
+  inteligente: {
+    monthly: 'price_1TK4xHFadSjglwHID3WeaHDI',
+    annual:  'price_1TK4xKFadSjglwHIaCOMlfyN',
+  },
+  automacao: {
+    monthly: 'price_1TK4xQFadSjglwHIOFVCAAxV',
+    annual:  'price_1TK4xTFadSjglwHITH5wnFqr',
+  },
+  enterprise: {
+    monthly: 'price_1TK4xaFadSjglwHIggSyDPti',
+    annual:  'price_1TK4xdFadSjglwHIiK3NqTKL',
+  },
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -40,32 +55,19 @@ Deno.serve(async (req) => {
       })
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
-    const stripe = new Stripe(stripeKey, { apiVersion: '2024-04-10' })
-
-    // Get plan
-    const { data: plan, error: planError } = await supabase
-      .from('Plan')
-      .select('*')
-      .eq('id', planId)
-      .single()
-
-    if (planError || !plan) {
-      return new Response(JSON.stringify({ error: 'Plan not found' }), {
+    // Look up the fixed Stripe price ID
+    const planPrices = STRIPE_PRICES[planId]
+    if (!planPrices) {
+      return new Response(JSON.stringify({ error: 'Plan not found or not subscribable' }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+    const priceId = billingCycle === 'yearly' ? planPrices.annual : planPrices.monthly
 
-    // Get user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', user.id)
-      .single()
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    const stripe = new Stripe(stripeKey, { apiVersion: '2024-04-10' })
 
     // Get or create Stripe customer
-    let stripeCustomerId = profile?.cpf // Reusing a field? No, use old_user_id logic
-    // Check User table for stripeCustomerId
     const { data: oldUser } = await supabase
       .from('User')
       .select('stripeCustomerId, stripeSubscriptionId')
@@ -81,51 +83,9 @@ Deno.serve(async (req) => {
       })
       customerId = customer.id
 
-      // Save to User table if exists
       if (oldUser) {
         await supabase.from('User').update({ stripeCustomerId: customerId }).eq('email', user.email!)
       }
-    }
-
-    // Calculate price
-    const interval = billingCycle === 'yearly' ? 'year' : 'month'
-    const unitAmount = billingCycle === 'yearly' ? plan.priceYearly : plan.priceMonthly
-
-    // Search for existing price
-    const existingPrices = await stripe.prices.search({
-      query: `metadata["planId"]:"${planId}" AND metadata["interval"]:"${interval}" AND active:"true"`,
-    })
-
-    let priceId: string
-    const matchingPrice = existingPrices.data.find((p: any) => p.unit_amount === unitAmount)
-
-    if (matchingPrice) {
-      priceId = matchingPrice.id
-    } else {
-      // Create product if needed
-      const products = await stripe.products.search({
-        query: `metadata["planId"]:"${planId}" AND active:"true"`,
-      })
-
-      let productId: string
-      if (products.data.length > 0) {
-        productId = products.data[0].id
-      } else {
-        const product = await stripe.products.create({
-          name: `Ágata - ${plan.name}`,
-          metadata: { planId },
-        })
-        productId = product.id
-      }
-
-      const price = await stripe.prices.create({
-        product: productId,
-        unit_amount: unitAmount,
-        currency: 'brl',
-        recurring: { interval },
-        metadata: { planId, interval },
-      })
-      priceId = price.id
     }
 
     // Check if user has active subscription to upgrade
@@ -138,19 +98,16 @@ Deno.serve(async (req) => {
             proration_behavior: 'create_prorations',
           })
 
-          // Update DB
           await supabase.from('profiles').update({
             plan_id: planId,
             billing_cycle: billingCycle,
           }).eq('user_id', user.id)
 
-          if (oldUser) {
-            await supabase.from('User').update({
-              planId,
-              billingCycle,
-              stripePriceId: priceId,
-            }).eq('email', user.email!)
-          }
+          await supabase.from('User').update({
+            planId,
+            billingCycle,
+            stripePriceId: priceId,
+          }).eq('email', user.email!)
 
           return new Response(JSON.stringify({ success: true, type: 'upgrade' }), {
             status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
