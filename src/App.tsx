@@ -64,6 +64,24 @@ const RouteTracker = () => {
   return null;
 };
 
+const LoadingFallback = () => {
+  const isDark = typeof window !== 'undefined' && localStorage.getItem('agata-theme') === 'dark';
+  return (
+    <div
+      className="flex items-center justify-center min-h-screen"
+      style={{ backgroundColor: isDark ? '#0D1F2D' : '#ffffff' }}
+    >
+      <div className="flex flex-col items-center gap-3">
+        <svg width="32" height="32" viewBox="0 0 100 100" fill="none">
+          <path d="M50 8 C62 8,88 30,88 52 C88 74,68 92,50 92 C32 92,12 74,12 52 C12 30,38 8,50 8Z" fill="#10B981"/>
+          <path d="M50 18 C58 18,76 34,76 52 C76 68,62 82,50 82 C38 82,24 68,24 52 C24 34,42 18,50 18Z" fill="#059669"/>
+        </svg>
+        <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    </div>
+  );
+};
+
 const App = () => (
   <Sentry.ErrorBoundary fallback={<SentryErrorFallback />}>
     <QueryClientProvider client={queryClient}>
@@ -73,7 +91,7 @@ const App = () => (
         <BrowserRouter>
           <RouteTracker />
           <AuthProvider>
-            <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-background"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}>
+            <Suspense fallback={<LoadingFallback />}>
               <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth/login" element={<Login />} />
