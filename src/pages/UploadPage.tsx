@@ -195,7 +195,7 @@ export default function UploadPage() {
                   <div className="flex flex-col items-center gap-2">
                     <Upload className="h-10 w-10 text-muted-foreground" />
                     <p className="font-medium text-foreground">Arraste o arquivo aqui ou clique para selecionar</p>
-                    <p className="text-xs text-muted-foreground">MP3, WAV, M4A, AAC, CAF, OGG, WebM, MP4</p>
+                    <p className="text-xs text-muted-foreground">MP3, WAV, M4A, AAC, OGG, WebM, MP4, MOV — até 500MB</p>
                   </div>
                 )}
               </div>
