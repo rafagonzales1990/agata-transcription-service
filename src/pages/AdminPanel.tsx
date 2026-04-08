@@ -875,7 +875,7 @@ export default function AdminPanel() {
                     </Card>
                   ))}
                 </div>
-                <Card className="bg-white">
+                <Card className="bg-card border-border">
                   <CardHeader><CardTitle className="text-base">Uso por Provedor — Mês Atual</CardTitle></CardHeader>
                   <CardContent>
                     <div className="grid sm:grid-cols-2 gap-4">
