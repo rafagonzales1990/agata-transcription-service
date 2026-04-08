@@ -713,6 +713,60 @@ export type Database = {
           },
         ]
       }
+      TeamInvite: {
+        Row: {
+          acceptedAt: string | null
+          createdAt: string
+          email: string
+          expiresAt: string
+          id: string
+          invitedBy: string
+          status: string
+          teamId: string
+          token: string
+          updatedAt: string
+        }
+        Insert: {
+          acceptedAt?: string | null
+          createdAt?: string
+          email: string
+          expiresAt?: string
+          id?: string
+          invitedBy: string
+          status?: string
+          teamId: string
+          token?: string
+          updatedAt?: string
+        }
+        Update: {
+          acceptedAt?: string | null
+          createdAt?: string
+          email?: string
+          expiresAt?: string
+          id?: string
+          invitedBy?: string
+          status?: string
+          teamId?: string
+          token?: string
+          updatedAt?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "TeamInvite_invitedBy_fkey"
+            columns: ["invitedBy"]
+            isOneToOne: false
+            referencedRelation: "User"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "TeamInvite_teamId_fkey"
+            columns: ["teamId"]
+            isOneToOne: false
+            referencedRelation: "Team"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       TranscriptionLog: {
         Row: {
           chunks: number
@@ -813,6 +867,7 @@ export type Database = {
           password: string | null
           phone: string | null
           planId: string | null
+          role: string
           stripeCustomerId: string | null
           stripePriceId: string | null
           stripeSubscriptionId: string | null
@@ -841,6 +896,7 @@ export type Database = {
           password?: string | null
           phone?: string | null
           planId?: string | null
+          role?: string
           stripeCustomerId?: string | null
           stripePriceId?: string | null
           stripeSubscriptionId?: string | null
@@ -869,6 +925,7 @@ export type Database = {
           password?: string | null
           phone?: string | null
           planId?: string | null
+          role?: string
           stripeCustomerId?: string | null
           stripePriceId?: string | null
           stripeSubscriptionId?: string | null
