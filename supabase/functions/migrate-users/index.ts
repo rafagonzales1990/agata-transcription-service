@@ -125,7 +125,7 @@ Deno.serve(async (req) => {
 
         results.created++;
       } catch (err) {
-        results.errors.push(`${legacyUser.email}: ${err.message}`);
+        results.errors.push(`${legacyUser.email}: ${(err as Error).message}`);
       }
     }
 
