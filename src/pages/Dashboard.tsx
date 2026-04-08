@@ -151,7 +151,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <Link to="/upload" className="block">
-                <Button className="w-full bg-primary hover:bg-emerald-600 text-primary-foreground" disabled={usage.isAtLimit}>
+                <Button className="w-full text-primary-foreground bg-primary" disabled={usage.isAtLimit}>
                   {usage.isAtLimit ? 'Limite atingido' : 'Fazer Upload →'}
                 </Button>
               </Link>
