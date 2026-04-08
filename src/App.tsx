@@ -27,6 +27,7 @@ const SettingsSecurity = lazy(() => import("./pages/SettingsSecurity"));
 const SettingsBranding = lazy(() => import("./pages/SettingsBranding"));
 const SettingsPlaceholder = lazy(() => import("./pages/SettingsPlaceholder"));
 const SettingsGroups = lazy(() => import("./pages/SettingsGroups"));
+const SettingsAtaTemplates = lazy(() => import("./pages/SettingsAtaTemplates"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Plans = lazy(() => import("./pages/Plans"));
 const AdminPanel = lazy(() => import("./pages/AdminPanel"));
