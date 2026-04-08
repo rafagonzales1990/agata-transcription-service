@@ -65,7 +65,11 @@ Deno.serve(async (req) => {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
-    const priceId = billingCycle === 'yearly' ? planPrices.annual : planPrices.monthly
+    const priceId = billingCycle === 'annual_upfront'
+      ? planPrices.annual_upfront
+      : billingCycle === 'yearly'
+        ? planPrices.annual
+        : planPrices.monthly
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     const stripe = new Stripe(stripeKey, { apiVersion: '2024-04-10' })
