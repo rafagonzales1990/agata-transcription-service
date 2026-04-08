@@ -28,6 +28,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useAtaTemplates } from "@/hooks/useAtaTemplates";
+import { useNavigate } from "react-router-dom";
 
 interface MeetingRow {
   id: string;
@@ -85,10 +87,13 @@ export default function MeetingDetail() {
   const [summaryContent, setSummaryContent] = useState<string>("");
   const [summaryDepth, setSummaryDepth] = useState<string>("");
   const [selectedTemplate, setSelectedTemplate] = useState("geral");
+  const [selectedAtaTemplateId, setSelectedAtaTemplateId] = useState("__default__");
   const [pdfLoading, setPdfLoading] = useState(false);
   const [wordLoading, setWordLoading] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [retryLoading, setRetryLoading] = useState(false);
+  const navigate = useNavigate();
+  const { templates: ataTemplates, defaultTemplate } = useAtaTemplates();
 
   const isPaidPlan = PAID_PLANS.includes(profile?.plan_id || "basic");
 
@@ -607,6 +612,28 @@ export default function MeetingDetail() {
                               {v}
                             </SelectItem>
                           ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="min-w-[180px]">
+                      <Select value={selectedAtaTemplateId} onValueChange={(v) => {
+                        if (v === '__customize__') {
+                          window.open('/settings/ata-templates', '_blank');
+                          return;
+                        }
+                        setSelectedAtaTemplateId(v);
+                      }}>
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue placeholder="Modelo de ATA" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__default__">Padrão (Ágata)</SelectItem>
+                          {ataTemplates.map((t) => (
+                            <SelectItem key={t.id} value={t.id}>
+                              {t.name} {t.isDefault ? '⭐' : ''}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value="__customize__">Personalizar agora →</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

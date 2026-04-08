@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Upload, Mic, ClipboardPaste, CheckCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -13,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { LimitReachedDialog } from '@/components/LimitReachedDialog';
 import { UsageBanner } from '@/components/UsageBanner';
 import { useUsage } from '@/hooks/useUsage';
+import { useAtaTemplates } from '@/hooks/useAtaTemplates';
 import { eventFirstTranscription, trackUploadStarted, trackFirstTranscription } from '@/lib/gtag';
 
 const tabs = [
@@ -26,6 +28,7 @@ export default function UploadPage() {
   const [searchParams] = useSearchParams();
   const routineId = searchParams.get('routineId');
   const usage = useUsage();
+  const { templates: ataTemplates, defaultTemplate } = useAtaTemplates();
   const [activeTab, setActiveTab] = useState<'upload' | 'record' | 'paste'>('upload');
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
@@ -40,6 +43,7 @@ export default function UploadPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
+  const [selectedAtaTemplateId, setSelectedAtaTemplateId] = useState('__default__');
 
   const limitReached = usage.isAtLimit;
 
@@ -112,6 +116,7 @@ export default function UploadPage() {
         responsible: responsible || null, participants: participantsList,
         routineId: routineId || null, createdAt: now, updatedAt: now,
         fileExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        ataTemplateId: selectedAtaTemplateId !== '__default__' && selectedAtaTemplateId !== '__customize__' ? selectedAtaTemplateId : null,
       });
       if (insertError) throw new Error(`Erro ao criar reunião: ${insertError.message}`);
       setUploadProgress(70); setStatusMessage('Processando transcrição...');
@@ -244,6 +249,21 @@ export default function UploadPage() {
               </div>
               <div><label className="text-xs text-muted-foreground mb-1 block">Descrição</label>
                 <Textarea placeholder="Pauta ou observações..." value={description} onChange={e => setDescription(e.target.value)} rows={3} disabled={uploading} /></div>
+              <div><label className="text-xs text-muted-foreground mb-1 block">Modelo de ATA</label>
+                <Select value={selectedAtaTemplateId} onValueChange={(v) => {
+                  if (v === '__customize__') { window.open('/settings/ata-templates', '_blank'); return; }
+                  setSelectedAtaTemplateId(v);
+                }}>
+                  <SelectTrigger><SelectValue placeholder="Selecione um modelo" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__default__">Padrão (Ágata)</SelectItem>
+                    {ataTemplates.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>{t.name} {t.isDefault ? '⭐' : ''}</SelectItem>
+                    ))}
+                    <SelectItem value="__customize__">Personalizar agora →</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <Button className="w-full bg-primary hover:bg-emerald-600 text-primary-foreground" size="lg" onClick={handleSubmit}

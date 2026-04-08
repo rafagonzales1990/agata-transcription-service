@@ -27,6 +27,7 @@ const SettingsSecurity = lazy(() => import("./pages/SettingsSecurity"));
 const SettingsBranding = lazy(() => import("./pages/SettingsBranding"));
 const SettingsPlaceholder = lazy(() => import("./pages/SettingsPlaceholder"));
 const SettingsGroups = lazy(() => import("./pages/SettingsGroups"));
+const SettingsAtaTemplates = lazy(() => import("./pages/SettingsAtaTemplates"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Plans = lazy(() => import("./pages/Plans"));
 const AdminPanel = lazy(() => import("./pages/AdminPanel"));
@@ -91,6 +92,7 @@ const App = () => (
               <Route path="/settings/branding" element={<ProtectedRoute><SettingsBranding /></ProtectedRoute>} />
               <Route path="/settings/notifications" element={<ProtectedRoute><SettingsPlaceholder /></ProtectedRoute>} />
               <Route path="/settings/groups" element={<ProtectedRoute><SettingsGroups /></ProtectedRoute>} />
+              <Route path="/settings/ata-templates" element={<ProtectedRoute><SettingsAtaTemplates /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
               <Route path="/teams" element={<ProtectedRoute><Teams /></ProtectedRoute>} />

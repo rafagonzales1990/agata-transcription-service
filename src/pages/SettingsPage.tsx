@@ -1,7 +1,7 @@
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Shield, Palette, Users } from 'lucide-react';
+import { Bell, Shield, Palette, Users, LayoutTemplate } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { VersionBadge } from '@/components/VersionBadge';
@@ -11,6 +11,7 @@ const settingsCards = [
   { title: 'Segurança', description: 'Senha e autenticação', icon: Shield, href: '/settings/security' },
   { title: 'Personalização', description: 'Logo e marca na ATA', icon: Palette, href: '/settings/branding', enterpriseOnly: true },
   { title: 'Grupos', description: 'Organize reuniões por grupo', icon: Users, href: '/settings/groups', badge: 'em breve' },
+  { title: 'Modelos de ATA', description: 'Personalize seções e instruções', icon: LayoutTemplate, href: '/settings/ata-templates' },
 ];
 
 export default function SettingsPage() {
