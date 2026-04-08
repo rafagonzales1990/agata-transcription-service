@@ -552,9 +552,9 @@ export default function AdminPanel() {
 
   return (
     <AppLayout>
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="sticky top-0 z-40 bg-white border-b px-6 py-3 flex items-center justify-between">
+      <div className="sticky top-0 z-40 bg-card border-b border-border px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <LogoIcon size={32} />
           <h1 className="text-lg font-bold text-foreground">Admin Console</h1>
