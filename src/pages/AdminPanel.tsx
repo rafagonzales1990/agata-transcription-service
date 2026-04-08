@@ -586,12 +586,12 @@ export default function AdminPanel() {
           <TabsContent value="dashboard" className="space-y-6">
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'MRR', value: 'R$ 0', sub: 'ARR: R$ 0', color: 'border-l-emerald-500', icon: DollarSign },
-                { label: 'Assinaturas Ativas', value: String(activeSubscriptions), sub: `${totalUsers > 0 ? Math.round((activeSubscriptions / totalUsers) * 100) : 0}% conversão`, color: 'border-l-blue-500', icon: TrendingUp },
-                { label: 'Em Trial', value: String(trialUsers), sub: `${freeUsers} expirados`, color: 'border-l-amber-500', icon: Clock },
-                { label: 'Churn Rate', value: '0%', sub: `${freeUsers} usuários free`, color: 'border-l-red-500', icon: BarChart3 },
+                { label: 'MRR', value: 'R$ 0', sub: 'ARR: R$ 0', icon: DollarSign },
+                { label: 'Assinaturas Ativas', value: String(activeSubscriptions), sub: `${totalUsers > 0 ? Math.round((activeSubscriptions / totalUsers) * 100) : 0}% conversão`, icon: TrendingUp },
+                { label: 'Em Trial', value: String(trialUsers), sub: `${freeUsers} expirados`, icon: Clock },
+                { label: 'Churn Rate', value: '0%', sub: `${freeUsers} usuários free`, icon: BarChart3 },
               ].map((c, i) => (
-                <Card key={i} className={`border-l-4 ${c.color} bg-white`}>
+                <Card key={i} className="bg-card border-border">
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-xs text-muted-foreground uppercase tracking-wide">{c.label}</p>
