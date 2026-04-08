@@ -35,6 +35,7 @@ const BlogPostPage = lazy(() => import("./pages/BlogPost"));
 const Teams = lazy(() => import("./pages/Teams"));
 const LegalTerms = lazy(() => import("./pages/LegalTerms"));
 const LegalLgpd = lazy(() => import("./pages/LegalLgpd"));
+const Privacy = lazy(() => import("./pages/Privacy"));
 const Demo = lazy(() => import("./pages/Demo"));
 const AdminLeads = lazy(() => import("./pages/AdminLeads"));
 const SharedMeeting = lazy(() => import("./pages/SharedMeeting"));
@@ -98,6 +99,7 @@ const App = () => (
               <Route path="/blog/:slug" element={<BlogPostPage />} />
               <Route path="/legal/terms" element={<LegalTerms />} />
               <Route path="/legal/lgpd" element={<LegalLgpd />} />
+              <Route path="/privacy" element={<Privacy />} />
               <Route path="/demo" element={<Demo />} />
               <Route path="/shared/:token" element={<SharedMeeting />} />
               <Route path="/admin/leads" element={<ProtectedRoute><AdminLeads /></ProtectedRoute>} />
