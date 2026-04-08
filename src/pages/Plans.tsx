@@ -29,11 +29,6 @@ const ANNUAL_SAVINGS: Record<string, { monthlyTotal: number; annualTotal: number
   enterprise:  { monthlyTotal: 7800_00, annualTotal: 5880_00, savings: 1920_00 },
 };
 
-const ANNUAL_UPFRONT = [
-  { planId: 'inteligente', name: 'Inteligente', total: 540_00, perMonth: 45_00 },
-  { planId: 'automacao',   name: 'Automação',   total: 1620_00, perMonth: 135_00 },
-  { planId: 'enterprise',  name: 'Enterprise',  total: 5400_00, perMonth: 450_00 },
-];
 
 function formatBRL(centavos: number) {
   return `R$\u00a0${(centavos / 100).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
