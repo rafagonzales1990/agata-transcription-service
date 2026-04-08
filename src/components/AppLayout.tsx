@@ -283,7 +283,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
       )}
 
-      <main className="flex-1 md:ml-64 pt-14 lg:pt-16">
+      <main className="flex-1 md:ml-64 pt-14 lg:pt-16 overflow-y-auto bg-background">
         <TrialBanner />
         {profile?.gift_plan_id && profile?.gift_ends_at && new Date(profile.gift_ends_at) > new Date() && (
           <div className="mx-4 md:mx-8 mt-3 px-4 py-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-sm text-amber-800 dark:text-amber-300 flex items-center gap-2">

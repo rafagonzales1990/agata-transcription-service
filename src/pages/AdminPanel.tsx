@@ -770,7 +770,7 @@ export default function AdminPanel() {
                           </TableCell>
                           <TableCell>
                             <p className="text-sm font-bold">{u.name || '—'} {u.isAdmin && <Badge variant="destructive" className="text-[9px] ml-1">ADMIN</Badge>}</p>
-                            <p className="text-xs text-gray-500 font-mono">{u.email}</p>
+                            <p className="text-xs text-muted-foreground font-mono">{u.email}</p>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1">
