@@ -75,100 +75,10 @@ export default function DashboardPage() {
     <AppLayout>
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-inherit">Bem-vindo, {userName}!</h1>
-          <p className="text-muted-foreground mt-1">Gerencie suas transcrições de reuniões com inteligência artificial</p>
-        </div>
-
-        <UsageBanner isNearLimit={usage.isNearLimit} isAtLimit={usage.isAtLimit} planId={usage.limits.planId} />
-
-        {showOnboarding && !onboardingDismissed && (
-          <OnboardingWelcome onDismiss={() => setOnboardingDismissed(true)} />
-        )}
-
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {stats.map((stat, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
-              <Card className={`border-l-4 ${stat.border} shadow-lg hover:shadow-xl transition-shadow`}>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm text-muted-foreground">{stat.label}</p>
-                    <stat.icon className={`h-4 w-4 ${stat.iconColor}`} />
-                  </div>
-                  {stat.value === null ? (
-                    <Skeleton className="h-8 w-20" />
-                  ) : (
-                    <>
-                      <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                      {stat.showProgress && <Progress value={stat.progressValue} className={`h-1.5 mt-2 ${(stat.progressValue ?? 0) >= 100 ? '[&>div]:bg-red-500' : (stat.progressValue ?? 0) >= 80 ? '[&>div]:bg-amber-500' : ''}`} />}
-                      {stat.subtext === 'plans' ? (
-                        <Link to="/plans" className="text-xs text-primary hover:underline mt-1 inline-block">Ver outros planos</Link>
-                      ) : (
-                        <p className="text-xs text-muted-foreground mt-1">{stat.subtext}</p>
-                      )}
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-
-        {!localStorage.getItem('agata_extension_banner_dismissed') && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="relative rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 p-4 sm:p-5 text-white shadow-lg"
-          >
-            <button
-              onClick={() => { localStorage.setItem('agata_extension_banner_dismissed', '1'); window.location.reload(); }}
-              className="absolute top-3 right-3 text-white/70 hover:text-white transition-colors"
-              aria-label="Fechar"
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <div className="flex-1 space-y-1">
-                <p className="font-semibold text-base">🧩 Extensão Chrome disponível!</p>
-                <p className="text-sm text-white/80">Grave reuniões diretamente do Meet, Zoom e Teams. Um clique para transcrever.</p>
-              </div>
-              <a href="https://chrome.google.com/webstore/detail/agata-transcription" target="_blank" rel="noopener noreferrer">
-                <Button className="bg-white text-emerald-700 hover:bg-white/90 font-semibold whitespace-nowrap shadow-md">
-                  Instalar extensão →
-                </Button>
-              </a>
-            </div>
-          </motion.div>
-        )}
-
-        <div className="grid md:grid-cols-3 gap-6">
-          <Card className="shadow-lg hover:shadow-xl transition-shadow">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-purple-100"><Upload className="h-5 w-5 text-purple-600" /></div>
-                <CardTitle className="text-lg">Nova Transcrição</CardTitle>
-              </div>
-              <CardDescription>Envie um arquivo de áudio ou vídeo</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link to="/upload" className="block">
-                <Button className="w-full text-primary-foreground bg-primary" disabled={usage.isAtLimit}>
-                  {usage.isAtLimit ? 'Limite atingido' : 'Fazer Upload →'}
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-lg hover:shadow-xl transition-shadow">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-100"><FileAudio className="h-5 w-5 text-blue-600" /></div>
-                <CardTitle className="text-lg">Minhas Reuniões</CardTitle>
-              </div>
-              <CardDescription>Veja transcrições e ATAs geradas</CardDescription>
-            </CardHeader>
-            <CardContent>
+          <h1 className="text-3xl font-bold text-white">Bem-vindo, {userName}!</h1>
+...
               <Link to="/meetings" className="block">
-                <Button variant="outline" className="w-full">Ver Reuniões →</Button>
+                <Button className="w-full text-primary-foreground bg-primary border border-input">Ver Reuniões →</Button>
               </Link>
             </CardContent>
           </Card>
