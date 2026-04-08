@@ -44,7 +44,7 @@ export default function DocumentsPage() {
 
       const { data, error } = await supabase
         .from('Meeting')
-        .select('id, title, meetingDate, createdAt, ataTemplate')
+        .select('id, title, meetingDate, createdAt, ataTemplate, ataTemplateId')
         .eq('userId', user.id)
         .not('ataTemplate', 'is', null)
         .order('createdAt', { ascending: false });
