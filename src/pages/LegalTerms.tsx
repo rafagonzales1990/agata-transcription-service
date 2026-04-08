@@ -41,6 +41,11 @@ export default function LegalTerms() {
           <h2 className="text-xl font-semibold text-gray-900">4. Uso Aceitável</h2>
           <p className="text-gray-700">Você se compromete a utilizar a plataforma apenas para fins legais e de acordo com estes termos. É proibido o uso para atividades ilegais, upload de conteúdo ofensivo ou tentativa de violar a segurança do sistema.</p>
 
+          <h3 className="text-lg font-semibold text-gray-900">4.1 Gravação de Reuniões</h3>
+          <p className="text-gray-700">O usuário é o único responsável por obter o consentimento dos participantes antes de gravar qualquer reunião. A plataforma Ágata Transcription fornece ferramentas de gravação e transcrição, mas não monitora nem controla o uso dessas funcionalidades.</p>
+          <p className="text-gray-700">Ao usar a extensão de gravação, o usuário declara estar ciente das leis aplicáveis em sua jurisdição sobre gravação de conversas, incluindo a Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018) e demais normas pertinentes.</p>
+          <p className="text-gray-700">A Ágata disponibiliza um recurso opcional de notificação automática de gravação, mas sua utilização não é obrigatória nem garantida pela plataforma.</p>
+
           <h2 className="text-xl font-semibold text-gray-900">5. Armazenamento e Exclusão de Dados</h2>
           <p className="text-gray-700">Os arquivos de áudio enviados são processados e excluídos automaticamente após 24 horas do upload. Transcrições e resumos permanecem disponíveis enquanto sua conta estiver ativa.</p>
 

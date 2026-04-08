@@ -93,6 +93,10 @@ export default function Privacy() {
           </ul>
           <p className="text-gray-700">O áudio é enviado diretamente para nossos servidores seguros e excluído em 24 horas. Nenhum dado é coletado sem ação explícita do usuário.</p>
 
+          <h3 className="text-lg font-semibold text-gray-900">7.1 Notificação de Gravação</h3>
+          <p className="text-gray-700">A extensão Ágata oferece um botão opcional "Avisar sobre gravação" que envia uma mensagem automática no chat da reunião informando os participantes. O uso deste recurso é de inteira responsabilidade do usuário.</p>
+          <p className="text-gray-700">A Ágata Transcription não é responsável por gravações realizadas sem o consentimento dos participantes. Recomendamos sempre informar os presentes antes de iniciar uma gravação.</p>
+
           <h2 className="text-xl font-semibold text-gray-900">8. Cookies e Analytics</h2>
           <p className="text-gray-700">Utilizamos Google Analytics (GA4) para análise de uso agregado e Google Tag Manager. Você pode desativar cookies nas configurações do seu navegador.</p>
 
