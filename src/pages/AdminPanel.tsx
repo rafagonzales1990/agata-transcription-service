@@ -575,7 +575,7 @@ export default function AdminPanel() {
 
       <div className="p-6">
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="bg-white border">
+          <TabsList className="bg-card border border-border">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="users">Usuários ({totalUsers})</TabsTrigger>
             <TabsTrigger value="groups" onClick={fetchGroups}>Grupos ({groups.length})</TabsTrigger>
