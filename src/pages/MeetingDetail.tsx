@@ -616,6 +616,28 @@ export default function MeetingDetail() {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div className="min-w-[180px]">
+                      <Select value={selectedAtaTemplateId} onValueChange={(v) => {
+                        if (v === '__customize__') {
+                          window.open('/settings/ata-templates', '_blank');
+                          return;
+                        }
+                        setSelectedAtaTemplateId(v);
+                      }}>
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue placeholder="Modelo de ATA" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__default__">Padrão (Ágata)</SelectItem>
+                          {ataTemplates.map((t) => (
+                            <SelectItem key={t.id} value={t.id}>
+                              {t.name} {t.isDefault ? '⭐' : ''}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value="__customize__">Personalizar agora →</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <Button size="sm" onClick={generatePDF} disabled={pdfLoading || wordLoading}>
                       {pdfLoading ? (
                         <Loader2 className="h-3 w-3 mr-1 animate-spin" />
