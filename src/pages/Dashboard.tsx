@@ -183,7 +183,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <Link to="/documents" className="block">
-                <Button variant="outline" className="w-full">Ver Documentos →</Button>
+                <Button className="w-full text-primary-foreground bg-primary border border-input">Ver Documentos →</Button>
               </Link>
             </CardContent>
           </Card>
