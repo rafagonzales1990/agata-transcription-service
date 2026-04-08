@@ -59,7 +59,7 @@ export default function DocumentsPage() {
     setDownloadingId(doc.id);
     try {
       const { data, error } = await supabase.functions.invoke('generate-ata', {
-        body: { meetingId: doc.id, template: doc.ataTemplate },
+        body: { meetingId: doc.id, template: doc.ataTemplate, ataTemplateId: doc.ataTemplateId || null },
       });
 
       if (error) throw error;
