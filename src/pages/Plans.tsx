@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { CheckCircle, Loader2, ExternalLink } from 'lucide-react';
+import { CheckCircle, Loader2, ExternalLink, Lightbulb } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -23,12 +23,17 @@ interface Plan {
   popular: boolean;
 }
 
-// Annual savings computed from monthly vs annual_split prices
 const ANNUAL_SAVINGS: Record<string, { monthlyTotal: number; annualTotal: number; savings: number }> = {
   inteligente: { monthlyTotal: 780_00, annualTotal: 588_00, savings: 192_00 },
   automacao:   { monthlyTotal: 2340_00, annualTotal: 1764_00, savings: 576_00 },
   enterprise:  { monthlyTotal: 7800_00, annualTotal: 5880_00, savings: 1920_00 },
 };
+
+const ANNUAL_UPFRONT = [
+  { planId: 'inteligente', name: 'Inteligente', total: 540_00, perMonth: 45_00 },
+  { planId: 'automacao',   name: 'Automação',   total: 1620_00, perMonth: 135_00 },
+  { planId: 'enterprise',  name: 'Enterprise',  total: 5400_00, perMonth: 450_00 },
+];
 
 function formatBRL(centavos: number) {
   return `R$\u00a0${(centavos / 100).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -41,8 +46,10 @@ export default function PlansPage() {
   const [loading, setLoading] = useState(true);
   const [yearly, setYearly] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const [upfrontLoading, setUpfrontLoading] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [hasSubscription, setHasSubscription] = useState(false);
+  const [showSuccessTip, setShowSuccessTip] = useState(false);
 
   useEffect(() => {
     if (searchParams.get('success') === 'true') {
@@ -51,6 +58,7 @@ export default function PlansPage() {
       const planValue = parseFloat(searchParams.get('value') || '0');
       conversionPurchase(planName, planValue);
       trackPurchase(planName, planValue);
+      setShowSuccessTip(true);
     }
     if (searchParams.get('canceled') === 'true') toast.error('Pagamento cancelado');
   }, [searchParams]);
@@ -70,9 +78,14 @@ export default function PlansPage() {
     fetchPlans();
   }, [profile]);
 
-  const handleSubscribe = async (planId: string) => {
+  const handleSubscribe = async (planId: string, billingCycle?: string) => {
     if (planId === 'basic') return;
-    setCheckoutLoading(planId);
+    const loadingKey = billingCycle === 'annual_upfront' ? `upfront_${planId}` : planId;
+    if (billingCycle === 'annual_upfront') {
+      setUpfrontLoading(planId);
+    } else {
+      setCheckoutLoading(planId);
+    }
     const plan = plans.find(p => p.id === planId);
     if (plan) {
       const price = yearly ? plan.priceYearly : plan.priceMonthly;
@@ -80,8 +93,9 @@ export default function PlansPage() {
       trackBeginCheckout(plan.name, price / 100);
     }
     try {
+      const cycle = billingCycle || (yearly ? 'yearly' : 'monthly');
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { planId, billingCycle: yearly ? 'yearly' : 'monthly' },
+        body: { planId, billingCycle: cycle },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -96,6 +110,7 @@ export default function PlansPage() {
       toast.error(err.message || 'Erro ao iniciar checkout');
     } finally {
       setCheckoutLoading(null);
+      setUpfrontLoading(null);
     }
   };
 
@@ -114,6 +129,7 @@ export default function PlansPage() {
   };
 
   const currentPlanId = profile?.plan_id || 'basic';
+  const isPaid = currentPlanId !== 'basic';
 
   return (
     <AppLayout>
@@ -122,6 +138,16 @@ export default function PlansPage() {
           <h1 className="text-3xl font-bold text-foreground mb-2">Escolha seu plano</h1>
           <p className="text-muted-foreground">Upgrade a qualquer momento. Cancele quando quiser.</p>
         </div>
+
+        {/* Post-checkout success tip */}
+        {showSuccessTip && (
+          <div className="mx-auto max-w-xl bg-primary/5 border border-primary/20 rounded-lg px-4 py-3 flex items-start gap-2">
+            <Lightbulb className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+            <p className="text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">Dica:</span> Na renovação, você pode trocar para pagamento antecipado anual e economizar 31%. Fale com nosso suporte.
+            </p>
+          </div>
+        )}
 
         {/* Toggle */}
         <div className="flex items-center justify-center gap-3">
@@ -146,54 +172,91 @@ export default function PlansPage() {
         {loading ? (
           <div className="flex justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {plans.map((plan) => {
-              const price = yearly ? plan.priceYearly : plan.priceMonthly;
-              const displayPrice = (price / 100).toFixed(0);
-              const isCurrent = plan.id === currentPlanId;
-              const savings = yearly ? ANNUAL_SAVINGS[plan.id] : null;
+          <>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {plans.map((plan) => {
+                const price = yearly ? plan.priceYearly : plan.priceMonthly;
+                const displayPrice = (price / 100).toFixed(0);
+                const isCurrent = plan.id === currentPlanId;
+                const savings = yearly ? ANNUAL_SAVINGS[plan.id] : null;
 
-              return (
-                <Card key={plan.id} className={`relative ${plan.popular ? 'border-primary ring-2 ring-primary/20' : ''}`}>
-                  {plan.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-primary text-primary-foreground text-[10px]">MAIS POPULAR</Badge>
-                    </div>
-                  )}
-                  <CardContent className="p-6 pt-8">
-                    <h3 className="font-semibold text-foreground">{plan.name}</h3>
-                    <p className="text-xs text-muted-foreground mt-1">{plan.description}</p>
-                    <div className="my-4">
-                      <span className="text-3xl font-bold text-foreground">R$ {displayPrice}</span>
-                      <span className="text-sm text-muted-foreground">/mês</span>
-                    </div>
-                    {savings && (
-                      <p className="text-xs text-primary -mt-2 mb-4">
-                        {formatBRL(savings.annualTotal)}/ano • economize {formatBRL(savings.savings)}
-                      </p>
+                return (
+                  <Card key={plan.id} className={`relative ${plan.popular ? 'border-primary ring-2 ring-primary/20' : ''}`}>
+                    {plan.popular && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                        <Badge className="bg-primary text-primary-foreground text-[10px]">MAIS POPULAR</Badge>
+                      </div>
                     )}
-                    <ul className="space-y-2 mb-6">
-                      {plan.features.map((f, j) => (
-                        <li key={j} className="text-sm text-muted-foreground flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-primary shrink-0" /> {f}
-                        </li>
-                      ))}
-                    </ul>
-                    <Button
-                      className={`w-full ${plan.popular && !isCurrent ? 'bg-primary hover:bg-emerald-600 text-primary-foreground' : ''}`}
-                      variant={plan.popular && !isCurrent ? 'default' : 'outline'}
-                      disabled={isCurrent || plan.id === 'basic' || !!checkoutLoading}
-                      onClick={() => handleSubscribe(plan.id)}
-                    >
-                      {checkoutLoading === plan.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : isCurrent ? 'Plano Atual' : plan.id === 'basic' ? 'Gratuito' : 'Assinar'}
-                    </Button>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                    <CardContent className="p-6 pt-8">
+                      <h3 className="font-semibold text-foreground">{plan.name}</h3>
+                      <p className="text-xs text-muted-foreground mt-1">{plan.description}</p>
+                      <div className="my-4">
+                        <span className="text-3xl font-bold text-foreground">R$ {displayPrice}</span>
+                        <span className="text-sm text-muted-foreground">/mês</span>
+                      </div>
+                      {savings && (
+                        <p className="text-xs text-primary -mt-2 mb-4">
+                          {formatBRL(savings.annualTotal)}/ano • economize {formatBRL(savings.savings)}
+                        </p>
+                      )}
+                      <ul className="space-y-2 mb-6">
+                        {plan.features.map((f, j) => (
+                          <li key={j} className="text-sm text-muted-foreground flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-primary shrink-0" /> {f}
+                          </li>
+                        ))}
+                      </ul>
+                      <Button
+                        className={`w-full ${plan.popular && !isCurrent ? 'bg-primary hover:bg-emerald-600 text-primary-foreground' : ''}`}
+                        variant={plan.popular && !isCurrent ? 'default' : 'outline'}
+                        disabled={isCurrent || plan.id === 'basic' || !!checkoutLoading}
+                        onClick={() => handleSubscribe(plan.id)}
+                      >
+                        {checkoutLoading === plan.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : isCurrent ? 'Plano Atual' : plan.id === 'basic' ? 'Gratuito' : 'Assinar'}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {/* Annual Upfront Callout — only for free users */}
+            {!isPaid && (
+              <div className="bg-muted/40 border border-border rounded-xl py-4 px-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Lightbulb className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium text-foreground">
+                    Prefere pagar à vista e economizar ainda mais?
+                  </span>
+                </div>
+                <div className="space-y-2 sm:space-y-1">
+                  {ANNUAL_UPFRONT.map((item) => (
+                    <div key={item.planId} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                      <button
+                        onClick={() => handleSubscribe(item.planId, 'annual_upfront')}
+                        disabled={!!upfrontLoading}
+                        className="text-sm text-primary hover:underline cursor-pointer text-left inline-flex items-center gap-1 disabled:opacity-50"
+                      >
+                        {upfrontLoading === item.planId ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : null}
+                        {item.name} · {formatBRL(item.total)}/ano
+                        <span className="text-xs text-muted-foreground">
+                          ({formatBRL(item.perMonth)}/mês · 31% off)
+                        </span>
+                        <span className="text-primary">→</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground italic mt-3">
+                  Cobrado uma vez. Acesso garantido por 12 meses.
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
     </AppLayout>
