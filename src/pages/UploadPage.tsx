@@ -91,7 +91,8 @@ export default function UploadPage() {
     }
 
     if (activeTab === 'upload' && !file) return;
-    if (file && file.size > 50 * 1024 * 1024) toast.info('Arquivo grande. A transcrição pode levar alguns minutos.');
+    if (file && file.size > 500 * 1024 * 1024) { toast.error('Arquivo muito grande. O limite é 500MB.'); setUploading(false); return; }
+    if (file && file.size > 100 * 1024 * 1024) toast.info('Arquivo grande (acima de 100MB). A transcrição pode levar alguns minutos.');
 
     setUploading(true); setUploadProgress(0); setStatusMessage('Enviando arquivo...');
 
@@ -183,7 +184,7 @@ export default function UploadPage() {
                 className={cn('border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer',
                   isDragging ? 'border-primary bg-emerald-50' : 'border-border hover:border-primary/50', file && 'border-primary bg-emerald-50')}
                 onClick={() => !uploading && document.getElementById('file-input')?.click()}>
-                <input id="file-input" type="file" accept="audio/*,video/*,.mp3,.wav,.m4a,.aac,.caf,.ogg,.webm,.mp4" className="hidden" onChange={handleFileChange} disabled={uploading} />
+                <input id="file-input" type="file" accept="audio/*,video/*,.mp3,.wav,.m4a,.mp4,.aac,.ogg,.webm,.mov" className="hidden" onChange={handleFileChange} disabled={uploading} />
                 {file ? (
                   <div className="flex flex-col items-center gap-2">
                     <CheckCircle className="h-10 w-10 text-primary" />
@@ -194,7 +195,7 @@ export default function UploadPage() {
                   <div className="flex flex-col items-center gap-2">
                     <Upload className="h-10 w-10 text-muted-foreground" />
                     <p className="font-medium text-foreground">Arraste o arquivo aqui ou clique para selecionar</p>
-                    <p className="text-xs text-muted-foreground">MP3, WAV, M4A, AAC, CAF, OGG, WebM, MP4</p>
+                    <p className="text-xs text-muted-foreground">MP3, WAV, M4A, AAC, OGG, WebM, MP4, MOV — até 500MB</p>
                   </div>
                 )}
               </div>

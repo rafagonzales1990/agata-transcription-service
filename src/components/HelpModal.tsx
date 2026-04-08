@@ -5,7 +5,7 @@ const tips = [
   {
     icon: Upload,
     title: 'Faça upload do áudio',
-    description: 'Envie arquivos MP3, MP4, WAV ou M4A de até 20MB. A transcrição é feita automaticamente pela IA.',
+    description: 'Envie arquivos de áudio ou vídeo (MP3, MP4, WAV, M4A, WEBM) de até 500MB. Reuniões longas com vídeo são suportadas.',
   },
   {
     icon: FileText,
