@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Upload, FileText, Repeat, HelpCircle } from 'lucide-react';
+import { Upload, FileText, Repeat, HelpCircle, AlertTriangle } from 'lucide-react';
 
 const tips = [
   {
@@ -42,6 +42,17 @@ export function HelpModal({ children }: { children: React.ReactNode }) {
               </div>
             </div>
           ))}
+
+          {/* Extension recording notice */}
+          <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-3 flex gap-3">
+            <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-300">Boas práticas de gravação</p>
+              <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                Informe os participantes antes de gravar. A extensão oferece um botão "Avisar sobre gravação" que envia uma mensagem automática no chat da reunião.
+              </p>
+            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
