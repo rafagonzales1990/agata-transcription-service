@@ -88,10 +88,13 @@ export default function MeetingDetail() {
   const [summaryContent, setSummaryContent] = useState<string>("");
   const [summaryDepth, setSummaryDepth] = useState<string>("");
   const [selectedTemplate, setSelectedTemplate] = useState("geral");
+  const [selectedAtaTemplateId, setSelectedAtaTemplateId] = useState("__default__");
   const [pdfLoading, setPdfLoading] = useState(false);
   const [wordLoading, setWordLoading] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [retryLoading, setRetryLoading] = useState(false);
+  const navigate = useNavigate();
+  const { templates: ataTemplates, defaultTemplate } = useAtaTemplates();
 
   const isPaidPlan = PAID_PLANS.includes(profile?.plan_id || "basic");
 
