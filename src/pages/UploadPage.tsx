@@ -184,7 +184,7 @@ export default function UploadPage() {
                 className={cn('border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer',
                   isDragging ? 'border-primary bg-emerald-50' : 'border-border hover:border-primary/50', file && 'border-primary bg-emerald-50')}
                 onClick={() => !uploading && document.getElementById('file-input')?.click()}>
-                <input id="file-input" type="file" accept="audio/*,video/*,.mp3,.wav,.m4a,.aac,.caf,.ogg,.webm,.mp4" className="hidden" onChange={handleFileChange} disabled={uploading} />
+                <input id="file-input" type="file" accept="audio/*,video/*,.mp3,.wav,.m4a,.mp4,.aac,.ogg,.webm,.mov" className="hidden" onChange={handleFileChange} disabled={uploading} />
                 {file ? (
                   <div className="flex flex-col items-center gap-2">
                     <CheckCircle className="h-10 w-10 text-primary" />
