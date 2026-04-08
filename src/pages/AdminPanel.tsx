@@ -861,12 +861,12 @@ export default function AdminPanel() {
               <>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {[
-                    { label: 'Total Transcrições', value: String(costsData.totalTranscriptions), color: 'border-l-emerald-500' },
-                    { label: 'Minutos Transcritos', value: String(costsData.totalMinutes), sub: `~${Math.round(costsData.totalMinutes / 60)}h`, color: 'border-l-blue-500' },
-                    { label: 'Custo Total', value: `R$ ${(costsData.totalCostCents / 100).toFixed(2)}`, color: 'border-l-orange-500' },
-                    { label: 'Economia Gemini', value: 'Free Tier', sub: 'Gemini 2.5 Flash', color: 'border-l-green-500' },
+                    { label: 'Total Transcrições', value: String(costsData.totalTranscriptions) },
+                    { label: 'Minutos Transcritos', value: String(costsData.totalMinutes), sub: `~${Math.round(costsData.totalMinutes / 60)}h` },
+                    { label: 'Custo Total', value: `R$ ${(costsData.totalCostCents / 100).toFixed(2)}` },
+                    { label: 'Economia Gemini', value: 'Free Tier', sub: 'Gemini 2.5 Flash' },
                   ].map((c, i) => (
-                    <Card key={i} className={`border-l-4 ${c.color} bg-white`}>
+                    <Card key={i} className="bg-card border-border">
                       <CardContent className="p-5">
                         <p className="text-xs text-muted-foreground uppercase tracking-wide">{c.label}</p>
                         <p className="text-2xl font-bold font-mono text-foreground mt-1">{c.value}</p>
