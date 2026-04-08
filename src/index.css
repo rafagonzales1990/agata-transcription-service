@@ -49,45 +49,45 @@
   }
 
   .dark {
-    --background: 155 33% 7%;
-    --foreground: 138 77% 97%;
-    --card: 150 24% 11%;
-    --card-foreground: 138 77% 97%;
-    --popover: 150 24% 11%;
-    --popover-foreground: 138 77% 97%;
+    --background: 162 45% 11%;
+    --foreground: 0 0% 100%;
+    --card: 210 40% 14%;
+    --card-foreground: 0 0% 100%;
+    --popover: 210 40% 14%;
+    --popover-foreground: 0 0% 100%;
     --primary: 158 64% 52%;
-    --primary-foreground: 155 33% 7%;
-    --secondary: 150 24% 15%;
-    --secondary-foreground: 142 69% 58%;
-    --muted: 150 24% 15%;
-    --muted-foreground: 142 69% 58%;
-    --accent: 150 24% 15%;
-    --accent-foreground: 138 77% 97%;
-    --destructive: 0 93% 82%;
-    --destructive-foreground: 155 33% 7%;
-    --border: 150 30% 17%;
-    --input: 150 24% 15%;
+    --primary-foreground: 162 45% 8%;
+    --secondary: 210 35% 17%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 210 35% 17%;
+    --muted-foreground: 0 0% 100% / 0.5;
+    --accent: 210 35% 17%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 94% 82%;
+    --destructive-foreground: 162 45% 8%;
+    --border: 210 35% 18%;
+    --input: 210 40% 14%;
     --ring: 158 64% 52%;
 
-    --sidebar-background: 156 33% 5%;
-    --sidebar-foreground: 152 81% 85%;
+    --sidebar-background: 215 52% 9%;
+    --sidebar-foreground: 0 0% 100%;
     --sidebar-primary: 158 64% 52%;
-    --sidebar-primary-foreground: 155 33% 7%;
-    --sidebar-accent: 150 24% 11%;
-    --sidebar-accent-foreground: 142 69% 58%;
-    --sidebar-border: 150 30% 17%;
+    --sidebar-primary-foreground: 162 45% 8%;
+    --sidebar-accent: 210 40% 14%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 210 35% 18%;
     --sidebar-ring: 158 64% 52%;
 
-    --emerald-50: 150 24% 15%;
-    --emerald-100: 150 24% 18%;
-    --emerald-200: 150 30% 22%;
-    --emerald-300: 156 40% 35%;
+    --emerald-50: 210 35% 17%;
+    --emerald-100: 210 35% 20%;
+    --emerald-200: 210 30% 25%;
+    --emerald-300: 200 25% 35%;
     --emerald-400: 158 64% 52%;
     --emerald-500: 160 84% 39%;
     --emerald-600: 161 94% 30%;
     --emerald-700: 158 64% 52%;
-    --emerald-800: 152 81% 85%;
-    --emerald-900: 138 77% 97%;
+    --emerald-800: 0 0% 100% / 0.7;
+    --emerald-900: 0 0% 100%;
   }
 }
 
