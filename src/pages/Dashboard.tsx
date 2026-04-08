@@ -75,7 +75,7 @@ export default function DashboardPage() {
     <AppLayout>
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Bem-vindo, {userName}!</h1>
+          <h1 className="text-3xl font-bold text-inherit">Bem-vindo, {userName}!</h1>
           <p className="text-muted-foreground mt-1">Gerencie suas transcrições de reuniões com inteligência artificial</p>
         </div>
 
@@ -151,7 +151,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <Link to="/upload" className="block">
-                <Button className="w-full bg-primary hover:bg-emerald-600 text-primary-foreground" disabled={usage.isAtLimit}>
+                <Button className="w-full text-primary-foreground bg-primary" disabled={usage.isAtLimit}>
                   {usage.isAtLimit ? 'Limite atingido' : 'Fazer Upload →'}
                 </Button>
               </Link>
