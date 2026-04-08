@@ -99,6 +99,7 @@ const App = () => (
               <Route path="/blog/:slug" element={<BlogPostPage />} />
               <Route path="/legal/terms" element={<LegalTerms />} />
               <Route path="/legal/lgpd" element={<LegalLgpd />} />
+              <Route path="/privacy" element={<Privacy />} />
               <Route path="/demo" element={<Demo />} />
               <Route path="/shared/:token" element={<SharedMeeting />} />
               <Route path="/admin/leads" element={<ProtectedRoute><AdminLeads /></ProtectedRoute>} />
