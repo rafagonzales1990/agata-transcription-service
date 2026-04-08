@@ -138,11 +138,11 @@ function EditUserDialog({ open, onOpenChange, user, groups, onSubmit }: {
               </Select>
             </div>
           </div>
-          {user?.stripeSubscriptionId && (
-            <div className="p-3 bg-gray-50 rounded border text-xs font-mono space-y-1">
-              <p><span className="text-gray-500">Stripe Customer:</span> {user.stripeCustomerId}</p>
-              <p><span className="text-gray-500">Subscription:</span> {user.stripeSubscriptionId}</p>
-              <p><span className="text-gray-500">Price ID:</span> {user.stripePriceId || 'N/A'}</p>
+            {user?.stripeSubscriptionId && (
+            <div className="p-3 bg-muted rounded border border-border text-xs font-mono space-y-1">
+              <p><span className="text-muted-foreground">Stripe Customer:</span> {user.stripeCustomerId}</p>
+              <p><span className="text-muted-foreground">Subscription:</span> {user.stripeSubscriptionId}</p>
+              <p><span className="text-muted-foreground">Price ID:</span> {user.stripePriceId || 'N/A'}</p>
             </div>
           )}
         </div>
