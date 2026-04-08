@@ -500,7 +500,7 @@ export default function AdminPanel() {
 
   // ── Loading ───────────────────────────────────────────────
   if (isAdmin === null) {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-50"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+    return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
   // ── Derived data ──────────────────────────────────────────
