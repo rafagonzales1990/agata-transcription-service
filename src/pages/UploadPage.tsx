@@ -98,9 +98,32 @@ export default function UploadPage() {
 
     try {
       const storagePath = `${user.id}/${Date.now()}-${file!.name}`;
-      setUploadProgress(10);
-      const { error: uploadError } = await supabase.storage.from('meetings').upload(storagePath, file!, { cacheControl: '3600', upsert: false });
-      if (uploadError) throw new Error(`Erro no upload: ${uploadError.message}`);
+      setUploadProgress(5);
+
+      // For large files, simulate progress (SDK doesn't expose real progress)
+      let progressInterval: ReturnType<typeof setInterval> | null = null;
+      if (file!.size > 50 * 1024 * 1024) {
+        const estimatedSeconds = Math.max(10, file!.size / (500 * 1024));
+        const startTime = Date.now();
+        progressInterval = setInterval(() => {
+          const elapsed = (Date.now() - startTime) / 1000;
+          const percent = Math.min(45, Math.round((elapsed / estimatedSeconds) * 45) + 5);
+          setUploadProgress(percent);
+          const uploaded = (file!.size * percent / 100 / 1024 / 1024).toFixed(0);
+          const total = (file!.size / 1024 / 1024).toFixed(0);
+          setStatusMessage(`Enviando ${uploaded}MB de ${total}MB...`);
+        }, 500);
+      }
+
+      try {
+        const { error: uploadError } = await supabase.storage.from('meetings').upload(storagePath, file!, { cacheControl: '3600', upsert: false });
+        if (progressInterval) clearInterval(progressInterval);
+        if (uploadError) throw new Error(`Erro no upload: ${uploadError.message}`);
+      } catch (err) {
+        if (progressInterval) clearInterval(progressInterval);
+        throw err;
+      }
+
       setUploadProgress(50); setStatusMessage('Criando registro...');
 
       const meetingId = crypto.randomUUID();
