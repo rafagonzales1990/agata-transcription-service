@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
     })
 
     let priceId: string
-    const matchingPrice = existingPrices.data.find(p => p.unit_amount === unitAmount)
+    const matchingPrice = existingPrices.data.find((p: any) => p.unit_amount === unitAmount)
 
     if (matchingPrice) {
       priceId = matchingPrice.id

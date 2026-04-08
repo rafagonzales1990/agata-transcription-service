@@ -28,6 +28,7 @@ interface DocMeeting {
   meetingDate: string | null;
   createdAt: string;
   ataTemplate: string;
+  ataTemplateId: string | null;
 }
 
 export default function DocumentsPage() {
@@ -43,7 +44,7 @@ export default function DocumentsPage() {
 
       const { data, error } = await supabase
         .from('Meeting')
-        .select('id, title, meetingDate, createdAt, ataTemplate')
+        .select('id, title, meetingDate, createdAt, ataTemplate, ataTemplateId')
         .eq('userId', user.id)
         .not('ataTemplate', 'is', null)
         .order('createdAt', { ascending: false });
@@ -58,7 +59,7 @@ export default function DocumentsPage() {
     setDownloadingId(doc.id);
     try {
       const { data, error } = await supabase.functions.invoke('generate-ata', {
-        body: { meetingId: doc.id, template: doc.ataTemplate },
+        body: { meetingId: doc.id, template: doc.ataTemplate, ataTemplateId: doc.ataTemplateId || null },
       });
 
       if (error) throw error;

@@ -356,8 +356,9 @@ export default function MeetingDetail() {
     setWordLoading(true);
 
     try {
+      const ataId = selectedAtaTemplateId !== "__default__" ? selectedAtaTemplateId : null;
       const { data, error } = await supabase.functions.invoke("generate-ata", {
-        body: { meetingId: id, template: selectedTemplate },
+        body: { meetingId: id, template: selectedTemplate, ataTemplateId: ataId },
       });
 
       if (error) throw error;
