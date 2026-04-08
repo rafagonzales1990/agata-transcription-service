@@ -897,7 +897,7 @@ export default function AdminPanel() {
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="bg-white">
+                <Card className="bg-card border-border">
                   <CardHeader><CardTitle className="text-base">Logs Recentes</CardTitle></CardHeader>
                   <CardContent>
                     <Table>
