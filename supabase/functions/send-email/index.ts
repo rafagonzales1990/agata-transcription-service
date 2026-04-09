@@ -7,7 +7,7 @@ const corsHeaders = {
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const FROM = 'Ágata Transcription <noreply@agatatranscription.com>'
-const BASE_URL = 'https://agatatranscription.lovable.app'
+const BASE_URL = 'https://agatatranscription.com'
 
 function baseLayout(content: string): string {
   return `<!DOCTYPE html>
@@ -26,8 +26,8 @@ function baseLayout(content: string): string {
 <tr><td style="padding:32px 40px">${content}</td></tr>
 <tr><td style="background:#f9fafb;padding:20px 40px;text-align:center">
 <p style="margin:0;font-size:12px;color:#9ca3af">© 2026 Ágata Transcription · 
-<a href="${BASE_URL}/legal/lgpd" style="color:#10B981;text-decoration:none">Privacidade</a> · 
-<a href="${BASE_URL}/legal/terms" style="color:#10B981;text-decoration:none">Termos</a></p>
+<a href="${BASE_URL}/privacy" style="color:#10B981;text-decoration:none">Privacidade</a> · 
+<a href="${BASE_URL}/legal-terms" style="color:#10B981;text-decoration:none">Termos</a></p>
 </td></tr>
 </table>
 </td></tr></table>

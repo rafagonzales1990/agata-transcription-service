@@ -26,14 +26,13 @@
  */
 
 export const appVersion = {
-  version: 'v1.1.0',
-  releaseDate: '2026-04-08',
+  version: 'v0.10.2',
+  releaseDate: '2026-04-09',
   environmentLabel: (import.meta.env.MODE === 'production' ? 'production' : 'dev') as string,
   changelog: [
-    'Personalização de ATA — templates customizados com drag-and-drop',
-    'Dark Mode Green Navy (exclusivo do app autenticado)',
-    'Extensão Chrome/Edge — gravação de reuniões direto do browser',
-    'Política de Privacidade (LGPD)',
-    'Gift Plan system no painel admin',
+    'Gerador de e-mail de follow-up automático após transcrição',
+    'Tom formal ou informal configurável',
+    'Edição do assunto e corpo antes de enviar',
+    'Copiar ou abrir direto no cliente de e-mail',
   ],
 } as const;

@@ -14,7 +14,26 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showResetNotice, setShowResetNotice] = useState(false);
+  const [emailNotConfirmed, setEmailNotConfirmed] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSent, setResendSent] = useState(false);
   const navigate = useNavigate();
+
+  const handleResendConfirmation = async () => {
+    setResendLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+      if (error) throw error;
+      setResendSent(true);
+    } catch {
+      toast.error('Erro ao reenviar e-mail. Tente novamente.');
+    } finally {
+      setResendLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +42,16 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      if (error.message === 'Invalid login credentials') {
+      const msg = error.message?.toLowerCase() || '';
+
+      if (msg.includes('email not confirmed') || msg.includes('email_not_confirmed')) {
+        setEmailNotConfirmed(true);
+        setResendSent(false);
+        setLoading(false);
+        return;
+      }
+
+      if (msg.includes('invalid login credentials') || msg.includes('invalid_credentials')) {
         // Check if this email belongs to a migrated user via edge function (bypasses RLS)
         try {
           const { data: checkData } = await supabase.functions.invoke('check-migrated-user', {
@@ -31,7 +59,6 @@ export default function LoginPage() {
           });
 
           if (checkData?.isMigrated) {
-            // Legacy user — trigger password reset
             const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
               redirectTo: `${window.location.origin}/auth/reset-password`,
             });
@@ -46,9 +73,11 @@ export default function LoginPage() {
           // If edge function fails, fall through to generic error
         }
 
-        toast.error('Email ou senha incorretos');
+        toast.error('E-mail ou senha incorretos. Tente novamente.');
+      } else if (msg.includes('too many requests')) {
+        toast.error('Muitas tentativas. Aguarde alguns minutos e tente novamente.');
       } else {
-        toast.error(error.message);
+        toast.error(error.message || 'Erro ao fazer login');
       }
     } else {
       toast.success('Login realizado com sucesso!');
@@ -114,10 +143,43 @@ export default function LoginPage() {
             <CardDescription>Acesse sua conta</CardDescription>
           </CardHeader>
           <CardContent>
+            {emailNotConfirmed && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <span className="text-amber-500 text-lg mt-0.5">✉️</span>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-amber-800">
+                      Confirme seu e-mail para continuar
+                    </p>
+                    <p className="text-sm text-amber-700 mt-1">
+                      Enviamos um link de confirmação para <strong>{email}</strong>.
+                      Acesse seu e-mail e clique no link para ativar sua conta.
+                    </p>
+                    <p className="text-xs text-amber-600 mt-1">
+                      Não encontrou? Verifique a pasta de spam ou lixo eletrônico.
+                    </p>
+                    {!resendSent ? (
+                      <button
+                        type="button"
+                        onClick={handleResendConfirmation}
+                        disabled={resendLoading}
+                        className="mt-2 text-xs font-medium text-amber-700 hover:text-amber-900 underline disabled:opacity-50"
+                      >
+                        {resendLoading ? 'Reenviando...' : 'Reenviar e-mail de confirmação →'}
+                      </button>
+                    ) : (
+                      <p className="mt-2 text-xs font-medium text-emerald-600">
+                        ✅ E-mail reenviado! Verifique sua caixa de entrada.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label className="text-sm font-medium text-foreground mb-1 block">Email</label>
-                <Input type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <Input type="email" placeholder="seu@email.com" value={email} onChange={(e) => { setEmail(e.target.value); setEmailNotConfirmed(false); }} required />
               </div>
               <div>
                 <label className="text-sm font-medium text-foreground mb-1 block">Senha</label>

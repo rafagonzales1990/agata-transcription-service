@@ -4,7 +4,10 @@ import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Loader2,
   ChevronLeft,
@@ -21,6 +24,9 @@ import {
   FileDown,
   Share2,
   RefreshCw,
+  Mail,
+  Copy,
+  Check,
 } from "lucide-react";
 import { ShareMeetingModal } from "@/components/ShareMeetingModal";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +36,15 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useAtaTemplates } from "@/hooks/useAtaTemplates";
 import { useNavigate } from "react-router-dom";
+import { MEETING_TEMPLATES, MEETING_TEMPLATE_GROUPS, TEMPLATE_LABELS } from "@/lib/meetingTemplates";
+
+interface FollowupDraft {
+  subject: string;
+  body: string;
+  recipients: string[];
+  generatedAt: string;
+  tone: string;
+}
 
 interface MeetingRow {
   id: string;
@@ -49,6 +64,7 @@ interface MeetingRow {
   description: string | null;
   ataTemplate: string | null;
   fileDuration: number | null;
+  followupDraft: FollowupDraft | null;
 }
 
 const statusConfig: Record<
@@ -62,21 +78,6 @@ const statusConfig: Record<
 };
 
 const PAID_PLANS = ["inteligente", "automacao", "enterprise"];
-
-const templateLabels: Record<string, string> = {
-  geral: "Ata Geral",
-  juridico_audiencia: "Ata de Audiência",
-  juridico_entrevista: "Ata Jurídica - Entrevista",
-  rh_entrevista: "Ata RH - Entrevista",
-  rh_pdi: "Ata RH - PDI",
-  marketing_estrategia: "Ata Marketing - Estratégia",
-  marketing_planejamento: "Ata Marketing - Planejamento",
-  engenharia_projetos: "Ata Engenharia - Projetos",
-  engenharia_obra: "Ata Engenharia - Obra",
-  ti_sprint: "Ata TI - Sprint",
-  financeiro: "Ata Financeiro",
-  comercial: "Ata Comercial",
-};
 
 export default function MeetingDetail() {
   const { id } = useParams<{ id: string }>();
@@ -92,6 +93,12 @@ export default function MeetingDetail() {
   const [wordLoading, setWordLoading] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [retryLoading, setRetryLoading] = useState(false);
+  const [followupDraft, setFollowupDraft] = useState<FollowupDraft | null>(null);
+  const [followupLoading, setFollowupLoading] = useState(false);
+  const [followupTone, setFollowupTone] = useState<'formal' | 'informal'>('formal');
+  const [followupSubject, setFollowupSubject] = useState('');
+  const [followupBody, setFollowupBody] = useState('');
+  const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
   const { templates: ataTemplates, defaultTemplate } = useAtaTemplates();
 
@@ -103,14 +110,18 @@ export default function MeetingDetail() {
       const { data, error } = await supabase
         .from("Meeting")
         .select(
-          "id, title, fileName, cloudStoragePath, status, createdAt, summary, transcription, participants, meetingDate, meetingTime, actionItems, responsible, location, description, ataTemplate, fileDuration",
+          "id, title, fileName, cloudStoragePath, status, createdAt, summary, transcription, participants, meetingDate, meetingTime, actionItems, responsible, location, description, ataTemplate, fileDuration, followupDraft",
         )
         .eq("id", id)
         .single();
 
       if (error) console.error("Error fetching meeting:", error);
       else {
-        const m = data as MeetingRow;
+        const m = data as unknown as MeetingRow;
+        setMeeting(m);
+        if (m.ataTemplate && TEMPLATE_LABELS[m.ataTemplate]) {
+          setSelectedTemplate(m.ataTemplate);
+        }
         setMeeting(m);
         if (m.summary) {
           const depthMatch = m.summary.match(/^<!-- depth:(\w+) -->\n/);
@@ -121,11 +132,54 @@ export default function MeetingDetail() {
             setSummaryContent(m.summary);
           }
         }
+        if (m.followupDraft) {
+          setFollowupDraft(m.followupDraft);
+          setFollowupSubject(m.followupDraft.subject);
+          setFollowupBody(m.followupDraft.body);
+        }
       }
       setLoading(false);
     }
     fetchMeeting();
   }, [id]);
+
+  const trialEndsAt = profile?.trial_ends_at;
+  const isTrialing = trialEndsAt ? new Date(trialEndsAt) > new Date() : false;
+
+  const generateFollowup = useCallback(async () => {
+    if (!id) return;
+    setFollowupLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-followup', {
+        body: { meetingId: id, tone: followupTone }
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setFollowupDraft(data.draft);
+      setFollowupSubject(data.draft.subject);
+      setFollowupBody(data.draft.body);
+      toast.success('Follow-up gerado com sucesso!');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao gerar follow-up');
+    } finally {
+      setFollowupLoading(false);
+    }
+  }, [id, followupTone]);
+
+  const copyFollowup = async () => {
+    const text = `Assunto: ${followupSubject}\n\n${followupBody}`;
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast.success('Copiado para a área de transferência!');
+  };
+
+  const openInEmail = () => {
+    const recipients = followupDraft?.recipients?.join(',') || '';
+    const subject = encodeURIComponent(followupSubject);
+    const body = encodeURIComponent(followupBody);
+    window.open(`mailto:${recipients}?subject=${subject}&body=${body}`);
+  };
 
   const generateSummary = useCallback(
     async (depth: string) => {
@@ -241,7 +295,7 @@ export default function MeetingDetail() {
         ? new Date(meeting.meetingDate).toLocaleDateString('pt-BR')
         : new Date(meeting.createdAt).toLocaleDateString('pt-BR');
 
-      const templateLabel = templateLabels[selectedTemplate] || 'Ata Geral';
+      const templateLabel = TEMPLATE_LABELS[selectedTemplate] || 'Ata Geral';
 
       const infoRows = [
         `<tr><td class="label">Título</td><td>${meeting.title}</td></tr>`,
@@ -602,19 +656,23 @@ export default function MeetingDetail() {
                   )}
 
                   <div className="flex items-center gap-2 ml-auto flex-wrap">
-                    <div className="min-w-[180px]">
+                    <div className="min-w-[200px]">
                       <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
                         <SelectTrigger className="h-9 text-xs">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(templateLabels).map(([k, v]) => (
-                            <SelectItem key={k} value={k}>
-                              {v}
-                            </SelectItem>
+                          {MEETING_TEMPLATE_GROUPS.map(group => (
+                            <SelectGroup key={group}>
+                              <SelectLabel>{group}</SelectLabel>
+                              {MEETING_TEMPLATES.filter(t => t.group === group).map(t => (
+                                <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                              ))}
+                            </SelectGroup>
                           ))}
                         </SelectContent>
                       </Select>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">O tipo de reunião orienta a IA ao gerar sua ATA</p>
                     </div>
                     <div className="min-w-[180px]">
                       <Select value={selectedAtaTemplateId} onValueChange={(v) => {
@@ -671,7 +729,115 @@ export default function MeetingDetail() {
           </Card>
         )}
 
-        {/* Action Items */}
+        {/* Follow-up Email */}
+        {meeting.status === 'completed' && (meeting.summary || meeting.transcription) && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Mail className="h-4 w-4 text-primary" /> Follow-up por E-mail
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!isPaidPlan && !isTrialing ? (
+                <div className="text-center py-6 space-y-3">
+                  <Lock className="h-8 w-8 mx-auto text-muted-foreground opacity-40" />
+                  <p className="text-sm text-muted-foreground">
+                    Follow-up automático disponível no plano Inteligente ou superior
+                  </p>
+                  <Button size="sm" variant="outline" onClick={() => navigate('/plans')}>
+                    Ver planos →
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">Tom:</span>
+                      <Tabs value={followupTone} onValueChange={(v) => setFollowupTone(v as 'formal' | 'informal')}>
+                        <TabsList className="h-8">
+                          <TabsTrigger value="formal" className="text-xs px-3 h-6">Formal</TabsTrigger>
+                          <TabsTrigger value="informal" className="text-xs px-3 h-6">Informal</TabsTrigger>
+                        </TabsList>
+                      </Tabs>
+                    </div>
+                    <Button size="sm" onClick={generateFollowup} disabled={followupLoading}>
+                      {followupLoading ? (
+                        <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Gerando...</>
+                      ) : followupDraft ? (
+                        <><RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Regenerar</>
+                      ) : (
+                        <><Sparkles className="h-3.5 w-3.5 mr-1.5" /> Gerar Follow-up</>
+                      )}
+                    </Button>
+                  </div>
+
+                  {followupDraft && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm font-medium text-foreground">Assunto</label>
+                        <Input
+                          value={followupSubject}
+                          onChange={(e) => setFollowupSubject(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground">Corpo do e-mail</label>
+                        <Textarea
+                          value={followupBody}
+                          onChange={(e) => setFollowupBody(e.target.value)}
+                          rows={14}
+                          className="mt-1 font-mono text-sm"
+                        />
+                      </div>
+
+                      {followupDraft.recipients?.length > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          Destinatários sugeridos: {followupDraft.recipients.join(', ')}
+                        </p>
+                      )}
+
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Button variant="outline" size="sm" onClick={copyFollowup}>
+                          {copied ? (
+                            <><Check className="h-3.5 w-3.5 mr-1.5 text-emerald-500" /> Copiado!</>
+                          ) : (
+                            <><Copy className="h-3.5 w-3.5 mr-1.5" /> Copiar</>
+                          )}
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={openInEmail}>
+                          <Mail className="h-3.5 w-3.5 mr-1.5" />
+                          Abrir no cliente de e-mail
+                        </Button>
+                      </div>
+
+                      <p className="text-xs text-muted-foreground">
+                        Gerado em {new Date(followupDraft.generatedAt).toLocaleString('pt-BR')}
+                        {' · '}
+                        <button onClick={generateFollowup} className="underline hover:text-foreground">
+                          Regenerar
+                        </button>
+                      </p>
+                    </div>
+                  )}
+
+                  {!followupDraft && !followupLoading && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Mail className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                      <p className="font-medium">Nenhum follow-up gerado ainda</p>
+                      <p className="text-sm mt-1">
+                        Clique em "Gerar Follow-up" para criar um e-mail profissional
+                        com as decisões e próximos passos desta reunião.
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+
         {meeting.actionItems.length > 0 && (
           <Card>
             <CardHeader className="pb-3">

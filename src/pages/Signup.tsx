@@ -14,6 +14,10 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [signupPending, setSignupPending] = useState(false);
+  const [signupEmail, setSignupEmail] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSent, setResendSent] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const leadId = searchParams.get('leadId');
@@ -26,6 +30,22 @@ export default function SignupPage() {
       setEmail(inviteEmail);
     }
   }, [inviteEmail]);
+
+  const handleResendConfirmation = async () => {
+    setResendLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: signupEmail,
+      });
+      if (error) throw error;
+      setResendSent(true);
+    } catch (err: any) {
+      toast.error('Erro ao reenviar e-mail. Tente novamente.');
+    } finally {
+      setResendLoading(false);
+    }
+  };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +91,7 @@ export default function SignupPage() {
         }
       }
 
-      // Lead attribution: link lead to new user
+      // Lead attribution
       if (leadId) {
         try {
           const { data: { session: s } } = await supabase.auth.getSession();
@@ -89,7 +109,6 @@ export default function SignupPage() {
           console.error('Lead attribution error:', e);
         }
       } else {
-        // Try to match by email
         try {
           const { data: { session: s } } = await supabase.auth.getSession();
           const newUser = s?.user;
@@ -108,10 +127,60 @@ export default function SignupPage() {
 
       conversionSignup();
       trackSignup();
-      toast.success('Conta criada! Verifique seu email para confirmar.');
-      navigate('/auth/login');
+      setSignupEmail(email);
+      setSignupPending(true);
     }
   };
+
+  if (signupPending) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="max-w-md w-full text-center space-y-6">
+          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
+            <span className="text-3xl">✉️</span>
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Verifique seu e-mail</h1>
+            <p className="text-muted-foreground mt-2">Enviamos um link de confirmação para</p>
+            <p className="font-medium text-foreground mt-1">{signupEmail}</p>
+          </div>
+          <div className="bg-muted/40 rounded-xl p-5 text-left space-y-3">
+            <div className="flex items-start gap-3">
+              <span className="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">1</span>
+              <p className="text-sm text-foreground">Abra seu e-mail em <strong>{signupEmail}</strong></p>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
+              <p className="text-sm text-foreground">Clique no link <strong>"Confirmar e-mail"</strong> que enviamos</p>
+            </div>
+            <div className="flex items-start gap-3">
+              <span className="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">3</span>
+              <p className="text-sm text-foreground">Pronto! Você será redirecionado automaticamente para o Ágata</p>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Não encontrou o e-mail? Verifique a pasta de <strong>spam</strong> ou <strong>lixo eletrônico</strong>.
+          </p>
+          <div>
+            {!resendSent ? (
+              <button
+                onClick={handleResendConfirmation}
+                disabled={resendLoading}
+                className="text-sm text-primary hover:underline disabled:opacity-50"
+              >
+                {resendLoading ? 'Reenviando...' : 'Reenviar e-mail de confirmação'}
+              </button>
+            ) : (
+              <p className="text-sm text-emerald-600 font-medium">✅ E-mail reenviado! Verifique sua caixa de entrada.</p>
+            )}
+          </div>
+          <Link to="/auth/login" className="text-xs text-muted-foreground hover:text-foreground">
+            ← Voltar para o login
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-muted/30 flex items-center justify-center px-4">
@@ -129,12 +198,8 @@ export default function SignupPage() {
           <div className="mb-4 rounded-lg bg-emerald-50 border border-emerald-200 p-4 flex items-start gap-3">
             <Mail className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
             <div>
-              <p className="text-sm font-medium text-emerald-800">
-                ✉️ Você foi convidado para um time no Ágata
-              </p>
-              <p className="text-xs text-emerald-600 mt-1">
-                Crie sua conta para aceitar o convite.
-              </p>
+              <p className="text-sm font-medium text-emerald-800">✉️ Você foi convidado para um time no Ágata</p>
+              <p className="text-xs text-emerald-600 mt-1">Crie sua conta para aceitar o convite.</p>
             </div>
           </div>
         )}
