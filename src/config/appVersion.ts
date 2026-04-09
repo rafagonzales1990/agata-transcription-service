@@ -26,13 +26,13 @@
  */
 
 export const appVersion = {
-  version: 'v0.10.1',
+  version: 'v0.10.2',
   releaseDate: '2026-04-09',
   environmentLabel: (import.meta.env.MODE === 'production' ? 'production' : 'dev') as string,
   changelog: [
-    'Templates de tipo de reunião com prompts específicos por área (Jurídico, RH, Marketing, etc.)',
-    'Seletor de tipo de reunião na página de upload',
-    'Seletor agrupado por categoria na página de detalhes da reunião',
-    'Prompts especializados para gerar ATAs mais precisas por contexto',
+    'Gerador de e-mail de follow-up automático após transcrição',
+    'Tom formal ou informal configurável',
+    'Edição do assunto e corpo antes de enviar',
+    'Copiar ou abrir direto no cliente de e-mail',
   ],
 } as const;
