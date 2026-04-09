@@ -729,7 +729,115 @@ export default function MeetingDetail() {
           </Card>
         )}
 
-        {/* Action Items */}
+        {/* Follow-up Email */}
+        {meeting.status === 'completed' && (meeting.summary || meeting.transcription) && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Mail className="h-4 w-4 text-primary" /> Follow-up por E-mail
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!isPaidPlan && !isTrialing ? (
+                <div className="text-center py-6 space-y-3">
+                  <Lock className="h-8 w-8 mx-auto text-muted-foreground opacity-40" />
+                  <p className="text-sm text-muted-foreground">
+                    Follow-up automático disponível no plano Inteligente ou superior
+                  </p>
+                  <Button size="sm" variant="outline" onClick={() => navigate('/plans')}>
+                    Ver planos →
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">Tom:</span>
+                      <Tabs value={followupTone} onValueChange={(v) => setFollowupTone(v as 'formal' | 'informal')}>
+                        <TabsList className="h-8">
+                          <TabsTrigger value="formal" className="text-xs px-3 h-6">Formal</TabsTrigger>
+                          <TabsTrigger value="informal" className="text-xs px-3 h-6">Informal</TabsTrigger>
+                        </TabsList>
+                      </Tabs>
+                    </div>
+                    <Button size="sm" onClick={generateFollowup} disabled={followupLoading}>
+                      {followupLoading ? (
+                        <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Gerando...</>
+                      ) : followupDraft ? (
+                        <><RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Regenerar</>
+                      ) : (
+                        <><Sparkles className="h-3.5 w-3.5 mr-1.5" /> Gerar Follow-up</>
+                      )}
+                    </Button>
+                  </div>
+
+                  {followupDraft && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm font-medium text-foreground">Assunto</label>
+                        <Input
+                          value={followupSubject}
+                          onChange={(e) => setFollowupSubject(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-foreground">Corpo do e-mail</label>
+                        <Textarea
+                          value={followupBody}
+                          onChange={(e) => setFollowupBody(e.target.value)}
+                          rows={14}
+                          className="mt-1 font-mono text-sm"
+                        />
+                      </div>
+
+                      {followupDraft.recipients?.length > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          Destinatários sugeridos: {followupDraft.recipients.join(', ')}
+                        </p>
+                      )}
+
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Button variant="outline" size="sm" onClick={copyFollowup}>
+                          {copied ? (
+                            <><Check className="h-3.5 w-3.5 mr-1.5 text-emerald-500" /> Copiado!</>
+                          ) : (
+                            <><Copy className="h-3.5 w-3.5 mr-1.5" /> Copiar</>
+                          )}
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={openInEmail}>
+                          <Mail className="h-3.5 w-3.5 mr-1.5" />
+                          Abrir no cliente de e-mail
+                        </Button>
+                      </div>
+
+                      <p className="text-xs text-muted-foreground">
+                        Gerado em {new Date(followupDraft.generatedAt).toLocaleString('pt-BR')}
+                        {' · '}
+                        <button onClick={generateFollowup} className="underline hover:text-foreground">
+                          Regenerar
+                        </button>
+                      </p>
+                    </div>
+                  )}
+
+                  {!followupDraft && !followupLoading && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Mail className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                      <p className="font-medium">Nenhum follow-up gerado ainda</p>
+                      <p className="text-sm mt-1">
+                        Clique em "Gerar Follow-up" para criar um e-mail profissional
+                        com as decisões e próximos passos desta reunião.
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+
         {meeting.actionItems.length > 0 && (
           <Card>
             <CardHeader className="pb-3">
