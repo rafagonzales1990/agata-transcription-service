@@ -117,7 +117,7 @@ export default function MeetingDetail() {
 
       if (error) console.error("Error fetching meeting:", error);
       else {
-        const m = data as MeetingRow;
+        const m = data as unknown as MeetingRow;
         setMeeting(m);
         if (m.ataTemplate && TEMPLATE_LABELS[m.ataTemplate]) {
           setSelectedTemplate(m.ataTemplate);
