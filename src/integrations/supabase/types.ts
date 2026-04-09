@@ -352,6 +352,7 @@ export type Database = {
           fileExpiresAt: string | null
           fileName: string
           fileSize: number
+          followupDraft: Json | null
           id: string
           isPublic: boolean
           location: string | null
@@ -384,6 +385,7 @@ export type Database = {
           fileExpiresAt?: string | null
           fileName: string
           fileSize: number
+          followupDraft?: Json | null
           id?: string
           isPublic?: boolean
           location?: string | null
@@ -416,6 +418,7 @@ export type Database = {
           fileExpiresAt?: string | null
           fileName?: string
           fileSize?: number
+          followupDraft?: Json | null
           id?: string
           isPublic?: boolean
           location?: string | null
