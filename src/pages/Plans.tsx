@@ -228,51 +228,42 @@ export default function PlansPage() {
               })}
             </div>
 
-            {/* Annual Upfront Callout — only for free users */}
-            {!isPaid && (
-              <div className="mt-8 p-5 bg-muted/40 border border-border rounded-xl">
-                <div className="flex items-start gap-2 mb-3">
-                  <span className="text-base">💡</span>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      Prefere pagar à vista e economizar ainda mais?
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Cobrado uma vez. Acesso garantido por 12 meses.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-2 sm:gap-6 mt-3">
-                  <button
-                    onClick={() => handleUpfrontSubscribe('inteligente')}
-                    disabled={!!checkoutLoading}
-                    className="text-sm text-primary hover:underline text-left disabled:opacity-50"
-                  >
-                    Inteligente · R$540/ano
-                    <span className="text-xs text-muted-foreground ml-1">(R$45/mês · 31% off)</span>
-                    <span className="ml-1">→</span>
-                  </button>
-                  <button
-                    onClick={() => handleUpfrontSubscribe('automacao')}
-                    disabled={!!checkoutLoading}
-                    className="text-sm text-primary hover:underline text-left disabled:opacity-50"
-                  >
-                    Automação · R$1.620/ano
-                    <span className="text-xs text-muted-foreground ml-1">(R$135/mês · 31% off)</span>
-                    <span className="ml-1">→</span>
-                  </button>
-                  <button
-                    onClick={() => handleUpfrontSubscribe('enterprise')}
-                    disabled={!!checkoutLoading}
-                    className="text-sm text-primary hover:underline text-left disabled:opacity-50"
-                  >
-                    Enterprise · R$5.400/ano
-                    <span className="text-xs text-muted-foreground ml-1">(R$450/mês · 31% off)</span>
-                    <span className="ml-1">→</span>
-                  </button>
+            {/* Annual Upfront Callout — always visible */}
+            <hr className="border-border my-2" />
+            <div className="p-5 bg-muted/40 border border-border rounded-xl">
+              <div className="flex items-start gap-2 mb-3">
+                <span className="text-base">💡</span>
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    Prefere pagar à vista e economizar ainda mais?
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Cobrado uma vez. Acesso garantido por 12 meses.
+                  </p>
                 </div>
               </div>
-            )}
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-6 mt-3">
+                {[
+                  { id: 'inteligente', label: 'Inteligente · R$540/ano', detail: '(R$45/mês · 31% off)' },
+                  { id: 'automacao', label: 'Automação · R$1.620/ano', detail: '(R$135/mês · 31% off)' },
+                  { id: 'enterprise', label: 'Enterprise · R$5.400/ano', detail: '(R$450/mês · 31% off)' },
+                ].map((item) => {
+                  const isCurrent = currentPlanId === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleUpfrontSubscribe(item.id)}
+                      disabled={!!checkoutLoading || isCurrent}
+                      className={`text-sm text-left disabled:opacity-50 ${isCurrent ? 'text-muted-foreground line-through cursor-not-allowed' : 'text-primary hover:underline'}`}
+                    >
+                      {item.label}
+                      <span className="text-xs text-muted-foreground ml-1">{item.detail}</span>
+                      {!isCurrent && <span className="ml-1">→</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </>
         )}
       </div>
