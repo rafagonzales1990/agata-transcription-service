@@ -38,6 +38,14 @@ import { useAtaTemplates } from "@/hooks/useAtaTemplates";
 import { useNavigate } from "react-router-dom";
 import { MEETING_TEMPLATES, MEETING_TEMPLATE_GROUPS, TEMPLATE_LABELS } from "@/lib/meetingTemplates";
 
+interface FollowupDraft {
+  subject: string;
+  body: string;
+  recipients: string[];
+  generatedAt: string;
+  tone: string;
+}
+
 interface MeetingRow {
   id: string;
   title: string;
@@ -56,6 +64,7 @@ interface MeetingRow {
   description: string | null;
   ataTemplate: string | null;
   fileDuration: number | null;
+  followupDraft: FollowupDraft | null;
 }
 
 const statusConfig: Record<
