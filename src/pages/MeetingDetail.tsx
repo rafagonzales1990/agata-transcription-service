@@ -4,7 +4,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Loader2,
   ChevronLeft,
@@ -30,6 +30,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useAtaTemplates } from "@/hooks/useAtaTemplates";
 import { useNavigate } from "react-router-dom";
+import { MEETING_TEMPLATES, MEETING_TEMPLATE_GROUPS, TEMPLATE_LABELS } from "@/lib/meetingTemplates";
 
 interface MeetingRow {
   id: string;
@@ -62,21 +63,6 @@ const statusConfig: Record<
 };
 
 const PAID_PLANS = ["inteligente", "automacao", "enterprise"];
-
-const templateLabels: Record<string, string> = {
-  geral: "Ata Geral",
-  juridico_audiencia: "Ata de Audiência",
-  juridico_entrevista: "Ata Jurídica - Entrevista",
-  rh_entrevista: "Ata RH - Entrevista",
-  rh_pdi: "Ata RH - PDI",
-  marketing_estrategia: "Ata Marketing - Estratégia",
-  marketing_planejamento: "Ata Marketing - Planejamento",
-  engenharia_projetos: "Ata Engenharia - Projetos",
-  engenharia_obra: "Ata Engenharia - Obra",
-  ti_sprint: "Ata TI - Sprint",
-  financeiro: "Ata Financeiro",
-  comercial: "Ata Comercial",
-};
 
 export default function MeetingDetail() {
   const { id } = useParams<{ id: string }>();
@@ -111,6 +97,10 @@ export default function MeetingDetail() {
       if (error) console.error("Error fetching meeting:", error);
       else {
         const m = data as MeetingRow;
+        setMeeting(m);
+        if (m.ataTemplate && TEMPLATE_LABELS[m.ataTemplate]) {
+          setSelectedTemplate(m.ataTemplate);
+        }
         setMeeting(m);
         if (m.summary) {
           const depthMatch = m.summary.match(/^<!-- depth:(\w+) -->\n/);
@@ -241,7 +231,7 @@ export default function MeetingDetail() {
         ? new Date(meeting.meetingDate).toLocaleDateString('pt-BR')
         : new Date(meeting.createdAt).toLocaleDateString('pt-BR');
 
-      const templateLabel = templateLabels[selectedTemplate] || 'Ata Geral';
+      const templateLabel = TEMPLATE_LABELS[selectedTemplate] || 'Ata Geral';
 
       const infoRows = [
         `<tr><td class="label">Título</td><td>${meeting.title}</td></tr>`,
@@ -602,19 +592,23 @@ export default function MeetingDetail() {
                   )}
 
                   <div className="flex items-center gap-2 ml-auto flex-wrap">
-                    <div className="min-w-[180px]">
+                    <div className="min-w-[200px]">
                       <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
                         <SelectTrigger className="h-9 text-xs">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(templateLabels).map(([k, v]) => (
-                            <SelectItem key={k} value={k}>
-                              {v}
-                            </SelectItem>
+                          {MEETING_TEMPLATE_GROUPS.map(group => (
+                            <SelectGroup key={group}>
+                              <SelectLabel>{group}</SelectLabel>
+                              {MEETING_TEMPLATES.filter(t => t.group === group).map(t => (
+                                <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                              ))}
+                            </SelectGroup>
                           ))}
                         </SelectContent>
                       </Select>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">O tipo de reunião orienta a IA ao gerar sua ATA</p>
                     </div>
                     <div className="min-w-[180px]">
                       <Select value={selectedAtaTemplateId} onValueChange={(v) => {

@@ -26,14 +26,13 @@
  */
 
 export const appVersion = {
-  version: 'v1.1.0',
-  releaseDate: '2026-04-08',
+  version: 'v0.10.1',
+  releaseDate: '2026-04-09',
   environmentLabel: (import.meta.env.MODE === 'production' ? 'production' : 'dev') as string,
   changelog: [
-    'Personalização de ATA — templates customizados com drag-and-drop',
-    'Dark Mode Green Navy (exclusivo do app autenticado)',
-    'Extensão Chrome/Edge — gravação de reuniões direto do browser',
-    'Política de Privacidade (LGPD)',
-    'Gift Plan system no painel admin',
+    'Templates de tipo de reunião com prompts específicos por área (Jurídico, RH, Marketing, etc.)',
+    'Seletor de tipo de reunião na página de upload',
+    'Seletor agrupado por categoria na página de detalhes da reunião',
+    'Prompts especializados para gerar ATAs mais precisas por contexto',
   ],
 } as const;
