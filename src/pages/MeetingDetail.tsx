@@ -132,11 +132,54 @@ export default function MeetingDetail() {
             setSummaryContent(m.summary);
           }
         }
+        if (m.followupDraft) {
+          setFollowupDraft(m.followupDraft);
+          setFollowupSubject(m.followupDraft.subject);
+          setFollowupBody(m.followupDraft.body);
+        }
       }
       setLoading(false);
     }
     fetchMeeting();
   }, [id]);
+
+  const trialEndsAt = profile?.trial_ends_at;
+  const isTrialing = trialEndsAt ? new Date(trialEndsAt) > new Date() : false;
+
+  const generateFollowup = useCallback(async () => {
+    if (!id) return;
+    setFollowupLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-followup', {
+        body: { meetingId: id, tone: followupTone }
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setFollowupDraft(data.draft);
+      setFollowupSubject(data.draft.subject);
+      setFollowupBody(data.draft.body);
+      toast.success('Follow-up gerado com sucesso!');
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao gerar follow-up');
+    } finally {
+      setFollowupLoading(false);
+    }
+  }, [id, followupTone]);
+
+  const copyFollowup = async () => {
+    const text = `Assunto: ${followupSubject}\n\n${followupBody}`;
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast.success('Copiado para a área de transferência!');
+  };
+
+  const openInEmail = () => {
+    const recipients = followupDraft?.recipients?.join(',') || '';
+    const subject = encodeURIComponent(followupSubject);
+    const body = encodeURIComponent(followupBody);
+    window.open(`mailto:${recipients}?subject=${subject}&body=${body}`);
+  };
 
   const generateSummary = useCallback(
     async (depth: string) => {
