@@ -31,6 +31,77 @@ const templateLabels: Record<string, string> = {
   comercial: 'Ata Comercial',
 }
 
+const TEMPLATE_PROMPTS: Record<string, string> = {
+  geral: `Gere uma ATA completa e profissional com as seções:
+    Resumo Executivo, Tópicos Discutidos, Decisões Tomadas, 
+    Itens de Ação (com responsável e prazo quando mencionado) 
+    e Próximos Passos. Use linguagem formal e objetiva.`,
+  juridico_audiencia: `Gere uma ATA de Audiência Jurídica com as seções:
+    Dados da Audiência (data, partes, advogados, juiz quando mencionado),
+    Objeto da Audiência, Relato dos Fatos, Alegações das Partes,
+    Decisões e Despachos, Encaminhamentos e Prazos.
+    Use linguagem jurídica formal. Destaque prazos processuais.`,
+  juridico_entrevista: `Gere uma ATA de Entrevista Jurídica com as seções:
+    Dados da Entrevista (data, partes presentes, objetivo),
+    Relato do Cliente, Fatos Relevantes, Documentos Mencionados,
+    Orientações Prestadas, Próximas Providências e Prazos.
+    Use linguagem jurídica formal. Mantenha confidencialidade.`,
+  rh_entrevista: `Gere uma ATA de Entrevista de RH com as seções:
+    Dados da Entrevista (candidato, cargo, entrevistador, data),
+    Perfil do Candidato, Competências Avaliadas, Pontos Fortes,
+    Pontos de Desenvolvimento, Alinhamento Cultural,
+    Avaliação Geral e Recomendação (aprovado/reprovado/segunda fase).
+    Use linguagem profissional e objetiva.`,
+  rh_pdi: `Gere uma ATA de PDI (Plano de Desenvolvimento Individual) com:
+    Dados do Colaborador (nome, cargo, gestor, data),
+    Avaliação de Performance Atual, Objetivos de Desenvolvimento,
+    Competências a Desenvolver, Ações e Iniciativas Planejadas,
+    Recursos Necessários, Metas e Indicadores, Próxima Revisão.
+    Use linguagem motivacional e orientada a crescimento.`,
+  marketing_estrategia: `Gere uma ATA de Reunião de Estratégia de Marketing com:
+    Contexto e Objetivos da Reunião, Análise de Performance (métricas mencionadas),
+    Estratégias Discutidas, Decisões Aprovadas, Campanhas e Iniciativas,
+    Budget e Recursos Alocados, Responsáveis e Prazos, KPIs e Metas.
+    Destaque números, percentuais e metas mencionados.`,
+  marketing_planejamento: `Gere uma ATA de Planejamento de Marketing com:
+    Objetivo do Planejamento, Análise de Mercado e Concorrência,
+    Público-Alvo Definido, Canais e Estratégias, Calendário de Ações,
+    Orçamento Previsto, Responsáveis por Área, Próximos Marcos.
+    Use linguagem orientada a resultados.`,
+  engenharia_projetos: `Gere uma ATA de Reunião de Projeto de Engenharia com:
+    Status do Projeto (cronograma, orçamento, escopo),
+    Itens em Progresso, Bloqueios e Riscos Identificados,
+    Decisões Técnicas Tomadas, Mudanças de Escopo,
+    Ações e Responsáveis, Próximos Entregáveis e Prazos.
+    Destaque riscos e bloqueios com clareza.`,
+  engenharia_obra: `Gere uma ATA de Reunião de Obra com:
+    Dados da Obra (nome, localização, data, participantes),
+    Status de Execução por Frente de Trabalho, Ocorrências e Não-Conformidades,
+    Medições e Avanço Físico, Pendências e Condicionantes,
+    Decisões e Providências, Próxima Vistoria.
+    Use linguagem técnica de engenharia civil.`,
+  ti_sprint: `Gere uma ATA de Sprint/Cerimônia Ágil com:
+    Tipo de Cerimônia (Planning/Review/Retrospective/Daily),
+    Sprint Atual e Objetivo, Itens Discutidos/Demonstrados,
+    Velocity e Métricas, Impedimentos Identificados,
+    Decisões e Ajustes, Action Items para o Time,
+    Comprometimento do Próximo Sprint.
+    Use terminologia ágil (story points, backlog, etc.).`,
+  financeiro: `Gere uma ATA de Reunião Financeira com:
+    Pauta Financeira, Análise de Resultados (receita, despesas, margem),
+    Indicadores Financeiros Discutidos (DRE, fluxo de caixa, EBITDA),
+    Decisões de Investimento ou Corte, Previsões e Projeções,
+    Aprovações Orçamentárias, Responsáveis e Prazos.
+    Destaque todos os valores monetários e percentuais.`,
+  comercial: `Gere uma ATA de Reunião Comercial com:
+    Pipeline e Status das Oportunidades, Métricas de Vendas
+    (conversão, ticket médio, CAC, metas x realizado),
+    Contas Estratégicas Discutidas, Objeções e Como Superá-las,
+    Estratégias de Abordagem Definidas, Metas por Vendedor,
+    Próximas Ações e Follow-ups.
+    Destaque números, percentuais e valores de negócio.`,
+}
+
 // Section prompts for custom template AI generation
 const SECTION_PROMPTS: Record<string, string> = {
   identificacao: '', // handled as info table
@@ -500,12 +571,50 @@ Deno.serve(async (req) => {
     const metaMatch = summaryContent.match(/^<!-- depth:\w+ -->\n/)
     if (metaMatch) summaryContent = summaryContent.slice(metaMatch[0].length)
 
-    // Generate content based on custom template or legacy flow
+    // Generate content based on custom template, type-specific prompt, or legacy flow
     let finalMarkdown: string
     if (customSections) {
       // Generate AI content for custom sections
       const aiContent = await generateCustomContent(customSections, meeting.transcription, summaryContent)
       finalMarkdown = buildCustomMarkdown(customSections, aiContent, meeting.transcription)
+    } else if (template && TEMPLATE_PROMPTS[template]) {
+      // Generate AI content using type-specific prompt
+      const templatePrompt = TEMPLATE_PROMPTS[template]
+      const geminiPrompt = `Você é um especialista em documentação de reuniões.
+
+${templatePrompt}
+
+Baseie-se EXCLUSIVAMENTE no conteúdo da transcrição/resumo abaixo.
+Não invente informações que não foram mencionadas.
+Formate em Markdown com títulos ## para cada seção.
+Seja objetivo e profissional.
+
+CONTEÚDO DA REUNIÃO:
+${meeting.transcription?.slice(0, 8000) || summaryContent?.slice(0, 4000) || '(não disponível)'}`
+
+      const apiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY')
+      if (!apiKey) throw new Error('GOOGLE_GEMINI_API_KEY not configured')
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: geminiPrompt }] }],
+            generationConfig: { temperature: 0.3, maxOutputTokens: 4000 },
+          }),
+        }
+      )
+
+      if (!response.ok) {
+        const errText = await response.text()
+        console.error('Gemini error:', errText)
+        throw new Error('Erro ao gerar conteúdo com IA')
+      }
+
+      const result = await response.json()
+      finalMarkdown = result.candidates?.[0]?.content?.parts?.[0]?.text || summaryContent
     } else {
       finalMarkdown = summaryContent
     }

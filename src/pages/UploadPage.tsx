@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Upload, Mic, ClipboardPaste, CheckCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -16,6 +16,7 @@ import { UsageBanner } from '@/components/UsageBanner';
 import { useUsage } from '@/hooks/useUsage';
 import { useAtaTemplates } from '@/hooks/useAtaTemplates';
 import { eventFirstTranscription, trackUploadStarted, trackFirstTranscription } from '@/lib/gtag';
+import { MEETING_TEMPLATES, MEETING_TEMPLATE_GROUPS } from '@/lib/meetingTemplates';
 
 const tabs = [
   { id: 'upload' as const, label: 'Upload', icon: Upload },
@@ -44,6 +45,7 @@ export default function UploadPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
   const [selectedAtaTemplateId, setSelectedAtaTemplateId] = useState('__default__');
+  const [meetingType, setMeetingType] = useState('geral');
 
   const limitReached = usage.isAtLimit;
 
@@ -73,13 +75,14 @@ export default function UploadPage() {
       try {
         const defaultTitle = title || 'Transcrição colada';
         const participantsList = participants ? participants.split(',').map(p => p.trim()).filter(Boolean) : [];
-        const { error } = await supabase.from('Meeting').insert({
+      const { error } = await supabase.from('Meeting').insert({
           userId: user.id, title: defaultTitle, fileName: 'texto-colado.txt',
           fileSize: new Blob([pastedText]).size, cloudStoragePath: '', status: 'completed',
           transcription: pastedText, visibility: 'private', description: description || null,
           meetingDate: meetingDate ? new Date(meetingDate).toISOString() : null,
           meetingTime: meetingTime || null, location: location || null,
           responsible: responsible || null, participants: participantsList, routineId: routineId || null,
+          ataTemplate: meetingType,
         });
         if (error) throw error;
         toast.success('Transcrição salva!');
@@ -141,6 +144,7 @@ export default function UploadPage() {
         routineId: routineId || null, createdAt: now, updatedAt: now,
         fileExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         ataTemplateId: selectedAtaTemplateId !== '__default__' && selectedAtaTemplateId !== '__customize__' ? selectedAtaTemplateId : null,
+        ataTemplate: meetingType,
       });
       if (insertError) throw new Error(`Erro ao criar reunião: ${insertError.message}`);
       setUploadProgress(70); setStatusMessage('Processando transcrição...');
@@ -258,6 +262,25 @@ export default function UploadPage() {
 
             <div className="space-y-4">
               <h3 className="font-semibold text-foreground text-sm">Detalhes da Reunião (Opcional)</h3>
+
+              <div>
+                <label className="text-sm font-medium text-foreground">Tipo de Reunião</label>
+                <p className="text-xs text-muted-foreground mb-1">Melhora a qualidade da ATA gerada pela IA</p>
+                <Select value={meetingType} onValueChange={setMeetingType} disabled={uploading}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o tipo de reunião" /></SelectTrigger>
+                  <SelectContent>
+                    {MEETING_TEMPLATE_GROUPS.map(group => (
+                      <SelectGroup key={group}>
+                        <SelectLabel>{group}</SelectLabel>
+                        {MEETING_TEMPLATES.filter(t => t.group === group).map(t => (
+                          <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                        ))}
+                      </SelectGroup>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="grid sm:grid-cols-2 gap-4">
                 <div><label className="text-xs text-muted-foreground mb-1 block">Título</label>
                   <Input placeholder="Ex: Sprint Planning" value={title} onChange={e => setTitle(e.target.value)} disabled={uploading} /></div>
