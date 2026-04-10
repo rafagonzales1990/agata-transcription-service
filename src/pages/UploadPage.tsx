@@ -121,9 +121,10 @@ export default function UploadPage() {
           transcription: pastedText, visibility: 'private', description: description || null,
           meetingDate: meetingDate ? new Date(meetingDate).toISOString() : null,
           meetingTime: meetingTime || null, location: location || null,
-          responsible: responsible || null, participants: participantsList, routineId: routineId || null,
-          ataTemplate: meetingType,
-        });
+           responsible: responsible || null, participants: participantsList, routineId: routineId || null,
+           ataTemplate: meetingType,
+           projectId: selectedProjectId !== '__none__' ? selectedProjectId : null,
+         });
         if (error) throw error;
         toast.success('Transcrição salva!');
         navigate('/meetings');
@@ -196,6 +197,7 @@ export default function UploadPage() {
         fileExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         ataTemplateId: selectedAtaTemplateId !== '__default__' && selectedAtaTemplateId !== '__customize__' ? selectedAtaTemplateId : null,
         ataTemplate: meetingType,
+        projectId: selectedProjectId !== '__none__' ? selectedProjectId : null,
       });
       if (insertError) throw new Error(`Erro ao criar reunião: ${insertError.message}`);
       setUploadProgress(70); setStatusMessage('Processando transcrição...');
