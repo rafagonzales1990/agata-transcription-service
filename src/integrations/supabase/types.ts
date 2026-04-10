@@ -359,6 +359,7 @@ export type Database = {
           meetingDate: string | null
           meetingTime: string | null
           participants: string[]
+          projectId: string | null
           responsible: string | null
           routineId: string | null
           status: string
@@ -392,6 +393,7 @@ export type Database = {
           meetingDate?: string | null
           meetingTime?: string | null
           participants?: string[]
+          projectId?: string | null
           responsible?: string | null
           routineId?: string | null
           status?: string
@@ -425,6 +427,7 @@ export type Database = {
           meetingDate?: string | null
           meetingTime?: string | null
           participants?: string[]
+          projectId?: string | null
           responsible?: string | null
           routineId?: string | null
           status?: string
@@ -442,6 +445,13 @@ export type Database = {
             columns: ["ataTemplateId"]
             isOneToOne: false
             referencedRelation: "AtaTemplate"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Meeting_projectId_fkey"
+            columns: ["projectId"]
+            isOneToOne: false
+            referencedRelation: "Project"
             referencedColumns: ["id"]
           },
           {
@@ -598,6 +608,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      Project: {
+        Row: {
+          color: string
+          createdAt: string
+          id: string
+          name: string
+          teamId: string | null
+          updatedAt: string
+          userId: string
+        }
+        Insert: {
+          color?: string
+          createdAt?: string
+          id?: string
+          name: string
+          teamId?: string | null
+          updatedAt?: string
+          userId: string
+        }
+        Update: {
+          color?: string
+          createdAt?: string
+          id?: string
+          name?: string
+          teamId?: string | null
+          updatedAt?: string
+          userId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "Project_userId_fkey"
+            columns: ["userId"]
+            isOneToOne: false
+            referencedRelation: "User"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       Routine: {
         Row: {

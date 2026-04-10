@@ -17,6 +17,7 @@ import { UsageBanner } from '@/components/UsageBanner';
 import { useUsage } from '@/hooks/useUsage';
 import { useAtaTemplates } from '@/hooks/useAtaTemplates';
 import { useRecorder } from '@/hooks/useRecorder';
+import { useProjects } from '@/hooks/useProjects';
 import { eventFirstTranscription, trackUploadStarted, trackFirstTranscription } from '@/lib/gtag';
 import { MEETING_TEMPLATES, MEETING_TEMPLATE_GROUPS } from '@/lib/meetingTemplates';
 
@@ -48,6 +49,7 @@ export default function UploadPage() {
   const routineId = searchParams.get('routineId');
   const usage = useUsage();
   const { templates: ataTemplates, defaultTemplate } = useAtaTemplates();
+  const { projects } = useProjects();
   const recorder = useRecorder();
   const [activeTab, setActiveTab] = useState<'upload' | 'record' | 'paste'>('upload');
   const [file, setFile] = useState<File | null>(null);
@@ -65,6 +67,7 @@ export default function UploadPage() {
   const [statusMessage, setStatusMessage] = useState('');
   const [selectedAtaTemplateId, setSelectedAtaTemplateId] = useState('__default__');
   const [meetingType, setMeetingType] = useState('geral');
+  const [selectedProjectId, setSelectedProjectId] = useState('__none__');
   const [durationModalOpen, setDurationModalOpen] = useState(false);
   const [detectedDuration, setDetectedDuration] = useState(0);
 
@@ -118,9 +121,10 @@ export default function UploadPage() {
           transcription: pastedText, visibility: 'private', description: description || null,
           meetingDate: meetingDate ? new Date(meetingDate).toISOString() : null,
           meetingTime: meetingTime || null, location: location || null,
-          responsible: responsible || null, participants: participantsList, routineId: routineId || null,
-          ataTemplate: meetingType,
-        });
+           responsible: responsible || null, participants: participantsList, routineId: routineId || null,
+           ataTemplate: meetingType,
+           projectId: selectedProjectId !== '__none__' ? selectedProjectId : null,
+         });
         if (error) throw error;
         toast.success('Transcrição salva!');
         navigate('/meetings');
@@ -193,6 +197,7 @@ export default function UploadPage() {
         fileExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         ataTemplateId: selectedAtaTemplateId !== '__default__' && selectedAtaTemplateId !== '__customize__' ? selectedAtaTemplateId : null,
         ataTemplate: meetingType,
+        projectId: selectedProjectId !== '__none__' ? selectedProjectId : null,
       });
       if (insertError) throw new Error(`Erro ao criar reunião: ${insertError.message}`);
       setUploadProgress(70); setStatusMessage('Processando transcrição...');
@@ -387,6 +392,27 @@ export default function UploadPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {projects.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium text-foreground">Projeto</label>
+                  <p className="text-xs text-muted-foreground mb-1">Organize reuniões por projeto ou cliente</p>
+                  <Select value={selectedProjectId} onValueChange={setSelectedProjectId} disabled={uploading}>
+                    <SelectTrigger><SelectValue placeholder="Selecione um projeto" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Nenhum</SelectItem>
+                      {projects.map(p => (
+                        <SelectItem key={p.id} value={p.id}>
+                          <span className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: p.color }} />
+                            {p.name}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="grid sm:grid-cols-2 gap-4">
                 <div><label className="text-xs text-muted-foreground mb-1 block">Título</label>
