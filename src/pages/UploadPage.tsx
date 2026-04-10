@@ -67,6 +67,7 @@ export default function UploadPage() {
   const [statusMessage, setStatusMessage] = useState('');
   const [selectedAtaTemplateId, setSelectedAtaTemplateId] = useState('__default__');
   const [meetingType, setMeetingType] = useState('geral');
+  const [selectedProjectId, setSelectedProjectId] = useState('__none__');
   const [durationModalOpen, setDurationModalOpen] = useState(false);
   const [detectedDuration, setDetectedDuration] = useState(0);
 
