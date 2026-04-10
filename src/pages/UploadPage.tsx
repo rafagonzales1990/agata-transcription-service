@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { Upload, Mic, ClipboardPaste, CheckCircle, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Upload, Mic, ClipboardPaste, CheckCircle, Loader2, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,6 +18,22 @@ import { useUsage } from '@/hooks/useUsage';
 import { useAtaTemplates } from '@/hooks/useAtaTemplates';
 import { eventFirstTranscription, trackUploadStarted, trackFirstTranscription } from '@/lib/gtag';
 import { MEETING_TEMPLATES, MEETING_TEMPLATE_GROUPS } from '@/lib/meetingTemplates';
+
+const getAudioDuration = (file: File): Promise<number> => {
+  return new Promise((resolve) => {
+    const audio = new Audio();
+    const url = URL.createObjectURL(file);
+    audio.onloadedmetadata = () => {
+      URL.revokeObjectURL(url);
+      resolve(Math.ceil(audio.duration / 60)); // minutes
+    };
+    audio.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(0); // unknown duration, allow upload
+    };
+    audio.src = url;
+  });
+};
 
 const tabs = [
   { id: 'upload' as const, label: 'Upload', icon: Upload },
