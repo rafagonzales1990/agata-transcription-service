@@ -278,15 +278,74 @@ export default function UploadPage() {
             )}
 
             {activeTab === 'record' && (
-              <div className="text-center py-12">
-                <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-                  <Mic className="h-10 w-10 text-primary" />
-                </div>
-                <p className="font-medium text-foreground mb-2">Gravação de Áudio</p>
-                <p className="text-sm text-muted-foreground mb-4">Clique para iniciar a gravação</p>
-                <Button className="bg-primary hover:bg-emerald-600 text-primary-foreground" onClick={() => toast.info('Gravação será implementada em breve')}>
-                  <Mic className="h-4 w-4 mr-2" /> Iniciar Gravação
-                </Button>
+              <div className="py-8">
+                {recorder.state === 'idle' && (
+                  <div className="space-y-6">
+                    <div className="text-center">
+                      <p className="font-medium text-foreground mb-1">Selecione a fonte de áudio</p>
+                      <p className="text-sm text-muted-foreground">Escolha como deseja capturar o áudio da reunião</p>
+                    </div>
+                    <div className={cn('grid gap-4', recorder.isMobile ? 'grid-cols-1 max-w-xs mx-auto' : 'grid-cols-2')}>
+                      {/* Option A: Mic only */}
+                      <button
+                        onClick={() => recorder.start('mic')}
+                        disabled={uploading}
+                        className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary hover:bg-accent transition-colors"
+                      >
+                        <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Mic className="h-7 w-7 text-primary" />
+                        </div>
+                        <span className="font-medium text-foreground">Microfone</span>
+                        <span className="text-xs text-muted-foreground text-center">Reuniões presenciais ou pelo celular</span>
+                      </button>
+                      {/* Option B: Mic + Tab audio (desktop only) */}
+                      {!recorder.isMobile && (
+                        <button
+                          onClick={() => recorder.start('mic+tab')}
+                          disabled={uploading}
+                          className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary hover:bg-accent transition-colors"
+                        >
+                          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Headphones className="h-7 w-7 text-primary" />
+                          </div>
+                          <span className="font-medium text-foreground">Microfone + Áudio da reunião</span>
+                          <span className="text-xs text-muted-foreground text-center">Reuniões online no Chrome ou Edge</span>
+                          <span className="text-[10px] text-muted-foreground/70 text-center">Seu navegador pedirá para selecionar a aba da reunião</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {recorder.state === 'recording' && (
+                  <div className="flex flex-col items-center gap-6">
+                    <div className="relative">
+                      <div className="w-24 h-24 rounded-full bg-destructive/10 flex items-center justify-center animate-pulse">
+                        <div className="w-4 h-4 rounded-full bg-destructive" />
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-3xl font-mono font-bold text-foreground">{recorder.formattedTime}</p>
+                      <p className="text-sm text-muted-foreground mt-1">Gravando...</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Button
+                        variant="destructive"
+                        size="lg"
+                        onClick={recorder.stop}
+                      >
+                        <Square className="h-4 w-4 mr-2 fill-current" />
+                        Parar e Transcrever
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={recorder.cancel}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
