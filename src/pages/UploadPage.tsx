@@ -47,6 +47,7 @@ export default function UploadPage() {
   const [searchParams] = useSearchParams();
   const routineId = searchParams.get('routineId');
   const usage = useUsage();
+  const { templates: ataTemplates, defaultTemplate } = useAtaTemplates();
   const recorder = useRecorder();
   const [activeTab, setActiveTab] = useState<'upload' | 'record' | 'paste'>('upload');
   const [file, setFile] = useState<File | null>(null);
