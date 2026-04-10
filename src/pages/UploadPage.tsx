@@ -234,7 +234,7 @@ export default function UploadPage() {
           <div className="text-sm text-emerald-900">
             Sabia que você pode gravar reuniões diretamente do Chrome?{' '}
             Instale a extensão Ágata e transcreva sem sair da reunião.{' '}
-            <a href="https://chrome.google.com/webstore/detail/agata-transcription" target="_blank" rel="noopener noreferrer" className="font-semibold text-emerald-700 hover:underline">
+            <a href="https://chromewebstore.google.com/detail/hhefgnokghkmeekjjpaipjmfhnhbnpjb" target="_blank" rel="noopener noreferrer" className="font-semibold text-emerald-700 hover:underline">
               Instalar extensão →
             </a>
           </div>
