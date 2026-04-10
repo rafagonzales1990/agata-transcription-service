@@ -52,27 +52,6 @@ export default function LoginPage() {
       }
 
       if (msg.includes('invalid login credentials') || msg.includes('invalid_credentials')) {
-        // Check if this email belongs to a migrated user via edge function (bypasses RLS)
-        try {
-          const { data: checkData } = await supabase.functions.invoke('check-migrated-user', {
-            body: { email },
-          });
-
-          if (checkData?.isMigrated) {
-            const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-              redirectTo: `${window.location.origin}/auth/reset-password`,
-            });
-
-            if (!resetError) {
-              setShowResetNotice(true);
-              setLoading(false);
-              return;
-            }
-          }
-        } catch {
-          // If edge function fails, fall through to generic error
-        }
-
         toast.error('E-mail ou senha incorretos. Tente novamente.');
       } else if (msg.includes('too many requests')) {
         toast.error('Muitas tentativas. Aguarde alguns minutos e tente novamente.');
