@@ -71,6 +71,21 @@ export default function UploadPage() {
   const limitReached = usage.isAtLimit;
   const remainingMinutes = Math.max(0, usage.limits.maxDurationMinutes - usage.totalMinutesTranscribed);
 
+  // When recording finishes, feed file into upload flow
+  useEffect(() => {
+    if (recorder.resultFile) {
+      setFile(recorder.resultFile);
+      setActiveTab('upload');
+      toast.success('Gravação finalizada! Iniciando transcrição...');
+      recorder.reset();
+    }
+  }, [recorder.resultFile]);
+
+  // Show recorder errors
+  useEffect(() => {
+    if (recorder.error) toast.error(recorder.error);
+  }, [recorder.error]);
+
   const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); }, []);
   const handleDragLeave = useCallback(() => setIsDragging(false), []);
   const handleDrop = useCallback((e: React.DragEvent) => {
