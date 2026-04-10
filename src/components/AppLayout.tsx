@@ -5,7 +5,7 @@ import {
   LayoutDashboard, FileText, Upload, FolderOpen, Settings,
   Repeat, Sparkles, LogOut, Menu, X, User, CreditCard,
   ChevronDown, Shield, Users, HelpCircle, Puzzle, ExternalLink,
-  Sun, Moon,
+  Sun, Moon, Building2,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -133,6 +133,21 @@ export function AppLayout({ children }: AppLayoutProps) {
       </nav>
 
       <div className="p-3 border-t border-border space-y-2">
+        {(isEnterprise || isAdmin) && (
+          <Link
+            to="/enterprise/admin"
+            onClick={onNavigate}
+            className={cn(
+              'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
+              location.pathname.startsWith('/enterprise/admin')
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
+                : 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
+            )}
+          >
+            <Building2 className="h-5 w-5" />
+            Painel Admin
+          </Link>
+        )}
         {isAdmin && (
           <Link
             to="/admin"
