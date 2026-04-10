@@ -131,7 +131,7 @@ export default function DashboardPage() {
                 <p className="font-semibold text-base">🧩 Extensão Chrome disponível!</p>
                 <p className="text-sm text-white/80">Grave reuniões diretamente do Meet, Zoom e Teams. Um clique para transcrever.</p>
               </div>
-              <a href="https://chrome.google.com/webstore/detail/agata-transcription" target="_blank" rel="noopener noreferrer">
+              <a href="https://chromewebstore.google.com/detail/hhefgnokghkmeekjjpaipjmfhnhbnpjb" target="_blank" rel="noopener noreferrer">
                 <Button className="bg-white text-black hover:bg-white/90 font-semibold whitespace-nowrap shadow-md">
                   Instalar extensão →
                 </Button>

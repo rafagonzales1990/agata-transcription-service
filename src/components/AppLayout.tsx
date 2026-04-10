@@ -157,7 +157,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </Link>
         )}
         <a
-          href="https://chrome.google.com/webstore/detail/agata-transcription"
+          href="https://chromewebstore.google.com/detail/hhefgnokghkmeekjjpaipjmfhnhbnpjb"
           target="_blank"
           rel="noopener noreferrer"
           className={cn('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors', inactiveClasses)}

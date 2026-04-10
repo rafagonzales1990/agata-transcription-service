@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { CheckCircle, ExternalLink, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const CHROME_STORE_URL = 'https://chrome.google.com/webstore/detail/agata-transcription';
+const CHROME_STORE_URL = 'https://chromewebstore.google.com/detail/hhefgnokghkmeekjjpaipjmfhnhbnpjb';
 
 const faqs = [
   {
