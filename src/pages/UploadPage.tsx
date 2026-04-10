@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { Upload, Mic, ClipboardPaste, CheckCircle, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Upload, Mic, ClipboardPaste, CheckCircle, Loader2, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,6 +18,22 @@ import { useUsage } from '@/hooks/useUsage';
 import { useAtaTemplates } from '@/hooks/useAtaTemplates';
 import { eventFirstTranscription, trackUploadStarted, trackFirstTranscription } from '@/lib/gtag';
 import { MEETING_TEMPLATES, MEETING_TEMPLATE_GROUPS } from '@/lib/meetingTemplates';
+
+const getAudioDuration = (file: File): Promise<number> => {
+  return new Promise((resolve) => {
+    const audio = new Audio();
+    const url = URL.createObjectURL(file);
+    audio.onloadedmetadata = () => {
+      URL.revokeObjectURL(url);
+      resolve(Math.ceil(audio.duration / 60)); // minutes
+    };
+    audio.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(0); // unknown duration, allow upload
+    };
+    audio.src = url;
+  });
+};
 
 const tabs = [
   { id: 'upload' as const, label: 'Upload', icon: Upload },
@@ -46,8 +63,11 @@ export default function UploadPage() {
   const [statusMessage, setStatusMessage] = useState('');
   const [selectedAtaTemplateId, setSelectedAtaTemplateId] = useState('__default__');
   const [meetingType, setMeetingType] = useState('geral');
+  const [durationModalOpen, setDurationModalOpen] = useState(false);
+  const [detectedDuration, setDetectedDuration] = useState(0);
 
   const limitReached = usage.isAtLimit;
+  const remainingMinutes = Math.max(0, usage.limits.maxDurationMinutes - usage.totalMinutesTranscribed);
 
   const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); }, []);
   const handleDragLeave = useCallback(() => setIsDragging(false), []);
@@ -95,6 +115,17 @@ export default function UploadPage() {
 
     if (activeTab === 'upload' && !file) return;
     if (file && file.size > 500 * 1024 * 1024) { toast.error('Arquivo muito grande. O limite é 500MB.'); setUploading(false); return; }
+
+    // Pre-upload duration check against plan limits
+    if (file && usage.limits.maxDurationMinutes < 999999) {
+      const durationMin = await getAudioDuration(file);
+      if (durationMin > 0 && durationMin > remainingMinutes) {
+        setDetectedDuration(durationMin);
+        setDurationModalOpen(true);
+        return;
+      }
+    }
+
     if (file && file.size > 100 * 1024 * 1024) toast.info('Arquivo grande (acima de 100MB). A transcrição pode levar alguns minutos.');
 
     setUploading(true); setUploadProgress(0); setStatusMessage('Enviando arquivo...');
@@ -329,6 +360,40 @@ export default function UploadPage() {
         used={usage.transcriptionsUsed}
         max={usage.limits.maxTranscriptions}
       />
+
+      <Dialog open={durationModalOpen} onOpenChange={setDurationModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Reunião muito longa para seu plano
+            </DialogTitle>
+            <DialogDescription className="space-y-3 pt-2">
+              <p>
+                Duração detectada: <strong>{detectedDuration} min</strong><br />
+                Limite do plano ({usage.limits.planName}): <strong>{usage.limits.maxDurationMinutes} min/mês</strong><br />
+                Minutos restantes: <strong>{remainingMinutes} min</strong>
+              </p>
+              <p>
+                Você pode dividir a gravação em{' '}
+                <strong>{Math.ceil(detectedDuration / Math.max(1, remainingMinutes))} partes</strong>{' '}
+                de até <strong>{remainingMinutes} min</strong> e transcrever cada uma separadamente.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Dica: use um editor de áudio gratuito como Audacity ou o recurso de corte do VLC para dividir o arquivo.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDurationModalOpen(false)}>
+              Entendi, vou dividir
+            </Button>
+            <Button onClick={() => navigate('/plans')}>
+              Ver planos
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

@@ -66,6 +66,8 @@ export function useUsage(): UsageData {
       const transcriptionsUsed = isCurrentMonth ? (usageRes.data?.transcriptionsUsed || 0) : 0;
       const totalMinutesTranscribed = isCurrentMonth ? (usageRes.data?.totalMinutesTranscribed || 0) : 0;
 
+      // Plan.maxDurationMinutes = null means unlimited (Enterprise).
+      // PLAN_LIMITS fallback is only used when the Plan row is missing from DB.
       const maxT = plan?.maxTranscriptions ?? PLAN_LIMITS[planId]?.maxTranscriptions ?? 3;
       const maxM = plan?.maxDurationMinutes ?? PLAN_LIMITS[planId]?.maxDurationMinutes ?? 60;
       const planName = plan?.name || 'Gratuito';

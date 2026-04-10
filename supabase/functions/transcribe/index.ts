@@ -105,6 +105,47 @@ Deno.serve(async (req) => {
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
+
+      // Plan limit enforcement: check minutes used vs plan limit
+      const currentMonth = new Date().toISOString().slice(0, 7)
+      const { data: usageData } = await supabase
+        .from('Usage')
+        .select('totalMinutesTranscribed, currentMonth')
+        .eq('userId', meetingOwner.userId)
+        .maybeSingle()
+
+      const { data: userData } = await supabase
+        .from('User')
+        .select('planId')
+        .eq('id', meetingOwner.userId)
+        .maybeSingle()
+
+      const planId = userData?.planId || 'basic'
+      const { data: planData } = await supabase
+        .from('Plan')
+        .select('maxDurationMinutes')
+        .eq('id', planId)
+        .maybeSingle()
+
+      // null maxDurationMinutes = unlimited (Enterprise)
+      if (planData?.maxDurationMinutes != null) {
+        const minutesUsed = (usageData?.currentMonth === currentMonth)
+          ? (usageData?.totalMinutesTranscribed || 0)
+          : 0
+
+        if (minutesUsed >= planData.maxDurationMinutes) {
+          await supabase.from('Meeting').update({
+            status: 'failed',
+            errorMessage: 'Limite de minutos do plano atingido',
+            updatedAt: new Date().toISOString(),
+          }).eq('id', meetingId)
+
+          return new Response(
+            JSON.stringify({ error: 'PLAN_LIMIT_EXCEEDED', message: 'Limite de minutos do plano atingido' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+      }
     }
 
     // Download file from storage
