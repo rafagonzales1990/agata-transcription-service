@@ -63,8 +63,11 @@ export default function UploadPage() {
   const [statusMessage, setStatusMessage] = useState('');
   const [selectedAtaTemplateId, setSelectedAtaTemplateId] = useState('__default__');
   const [meetingType, setMeetingType] = useState('geral');
+  const [durationModalOpen, setDurationModalOpen] = useState(false);
+  const [detectedDuration, setDetectedDuration] = useState(0);
 
   const limitReached = usage.isAtLimit;
+  const remainingMinutes = Math.max(0, usage.limits.maxDurationMinutes - usage.totalMinutesTranscribed);
 
   const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); }, []);
   const handleDragLeave = useCallback(() => setIsDragging(false), []);
