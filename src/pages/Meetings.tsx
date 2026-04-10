@@ -12,10 +12,15 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
-import { FileText, FolderOpen, Loader2, CheckCircle, AlertCircle, Clock, Search, Trash2, Pencil, XCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { FileText, FolderOpen, Loader2, CheckCircle, AlertCircle, Clock, Search, Trash2, Pencil, XCircle, Plus, MoreHorizontal, FolderKanban } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useProjects, type Project } from '@/hooks/useProjects';
 
 interface Meeting {
   id: string;
@@ -29,6 +34,7 @@ interface Meeting {
   meetingTime: string | null;
   location: string | null;
   responsible: string | null;
+  projectId: string | null;
 }
 
 const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: typeof CheckCircle }> = {
@@ -38,10 +44,13 @@ const statusConfig: Record<string, { label: string; variant: 'default' | 'second
   failed: { label: 'Falhou', variant: 'destructive', icon: AlertCircle },
 };
 
+const PROJECT_COLORS = ['#059669', '#2563eb', '#7c3aed', '#dc2626', '#ea580c', '#db2777'];
+
 type SortOption = 'newest' | 'oldest' | 'title_asc';
 type DateRange = 'all' | '7' | '30' | '90';
 
 export default function MeetingsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -52,6 +61,25 @@ export default function MeetingsPage() {
   const [editMeeting, setEditMeeting] = useState<Meeting | null>(null);
   const [editForm, setEditForm] = useState({ title: '', meetingDate: '', meetingTime: '', location: '', responsible: '', participants: '' });
 
+  // Project state
+  const { projects, createProject, renameProject, deleteProject } = useProjects();
+  const selectedProjectId = searchParams.get('project') || 'all';
+  const [showNewProject, setShowNewProject] = useState(false);
+  const [newProjectName, setNewProjectName] = useState('');
+  const [newProjectColor, setNewProjectColor] = useState(PROJECT_COLORS[0]);
+  const [renameDialogProject, setRenameDialogProject] = useState<Project | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [assignMenuMeetingId, setAssignMenuMeetingId] = useState<string | null>(null);
+
+  const setProjectFilter = (id: string) => {
+    if (id === 'all') {
+      searchParams.delete('project');
+    } else {
+      searchParams.set('project', id);
+    }
+    setSearchParams(searchParams, { replace: true });
+  };
+
   const fetchMeetings = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     const user = session?.user;
@@ -59,7 +87,7 @@ export default function MeetingsPage() {
 
     const { data, error } = await supabase
       .from('Meeting')
-      .select('id, title, fileName, status, createdAt, summary, participants, meetingDate, meetingTime, location, responsible')
+      .select('id, title, fileName, status, createdAt, summary, participants, meetingDate, meetingTime, location, responsible, projectId')
       .eq('userId', user.id)
       .order('createdAt', { ascending: false });
 
@@ -114,13 +142,52 @@ export default function MeetingsPage() {
     setEditMeeting(null);
   };
 
-  const hasActiveFilters = search || statusFilter !== 'all' || dateRange !== 'all' || sortBy !== 'newest';
+  const handleCreateProject = async () => {
+    if (!newProjectName.trim()) return;
+    const p = await createProject(newProjectName.trim(), newProjectColor);
+    if (p) {
+      toast.success('Projeto criado');
+      setNewProjectName('');
+      setNewProjectColor(PROJECT_COLORS[0]);
+      setShowNewProject(false);
+    }
+  };
+
+  const handleRenameProject = async () => {
+    if (!renameDialogProject || !renameValue.trim()) return;
+    const ok = await renameProject(renameDialogProject.id, renameValue.trim());
+    if (ok) toast.success('Projeto renomeado');
+    setRenameDialogProject(null);
+  };
+
+  const handleDeleteProject = async (id: string) => {
+    await deleteProject(id);
+    if (selectedProjectId === id) setProjectFilter('all');
+  };
+
+  const handleAssignProject = async (meetingId: string, projectId: string | null) => {
+    const { error } = await supabase.from('Meeting').update({
+      projectId,
+      updatedAt: new Date().toISOString(),
+    }).eq('id', meetingId);
+
+    if (error) {
+      toast.error('Erro ao mover reunião');
+    } else {
+      setMeetings(prev => prev.map(m => m.id === meetingId ? { ...m, projectId } : m));
+      toast.success(projectId ? 'Reunião movida para projeto' : 'Reunião removida do projeto');
+    }
+    setAssignMenuMeetingId(null);
+  };
+
+  const hasActiveFilters = search || statusFilter !== 'all' || dateRange !== 'all' || sortBy !== 'newest' || selectedProjectId !== 'all';
 
   const clearFilters = () => {
     setSearch('');
     setStatusFilter('all');
     setDateRange('all');
     setSortBy('newest');
+    setProjectFilter('all');
   };
 
   const filtered = useMemo(() => {
@@ -128,6 +195,7 @@ export default function MeetingsPage() {
     const q = search.toLowerCase();
 
     let result = meetings.filter(m => {
+      if (selectedProjectId !== 'all' && m.projectId !== selectedProjectId) return false;
       if (statusFilter !== 'all' && m.status !== statusFilter) return false;
 
       if (dateRange !== 'all') {
@@ -153,7 +221,9 @@ export default function MeetingsPage() {
     });
 
     return result;
-  }, [meetings, search, statusFilter, dateRange, sortBy]);
+  }, [meetings, search, statusFilter, dateRange, sortBy, selectedProjectId]);
+
+  const getProjectForMeeting = (projectId: string | null) => projects.find(p => p.id === projectId);
 
   return (
     <AppLayout>
@@ -168,6 +238,86 @@ export default function MeetingsPage() {
               Nova Transcrição
             </Button>
           </Link>
+        </div>
+
+        {/* Project chips */}
+        <div className="flex flex-wrap items-center gap-2">
+          <FolderKanban className="h-4 w-4 text-muted-foreground shrink-0" />
+          <button
+            onClick={() => setProjectFilter('all')}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+              selectedProjectId === 'all'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            }`}
+          >
+            Todos
+          </button>
+          {projects.map(p => (
+            <div key={p.id} className="flex items-center gap-0.5">
+              <button
+                onClick={() => setProjectFilter(p.id)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                  selectedProjectId === p.id
+                    ? 'text-white'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                }`}
+                style={selectedProjectId === p.id ? { backgroundColor: p.color } : undefined}
+              >
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
+                {p.name}
+              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="p-0.5 rounded hover:bg-muted/80 text-muted-foreground">
+                    <MoreHorizontal className="h-3 w-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem onClick={() => { setRenameDialogProject(p); setRenameValue(p.name); }}>
+                    Renomear
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteProject(p.id)}>
+                    Excluir
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          ))}
+
+          {showNewProject ? (
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1">
+                {PROJECT_COLORS.map(c => (
+                  <button
+                    key={c}
+                    onClick={() => setNewProjectColor(c)}
+                    className={`w-5 h-5 rounded-full border-2 transition-all ${newProjectColor === c ? 'border-foreground scale-110' : 'border-transparent'}`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+              <Input
+                value={newProjectName}
+                onChange={e => setNewProjectName(e.target.value)}
+                placeholder="Nome do projeto"
+                className="h-7 text-xs w-36"
+                autoFocus
+                onKeyDown={e => { if (e.key === 'Enter') handleCreateProject(); if (e.key === 'Escape') setShowNewProject(false); }}
+              />
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={handleCreateProject}>Criar</Button>
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowNewProject(false)}>
+                <XCircle className="h-3 w-3" />
+              </Button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowNewProject(true)}
+              className="px-3 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground hover:bg-muted/80 flex items-center gap-1"
+            >
+              <Plus className="h-3 w-3" /> Novo Projeto
+            </button>
+          )}
         </div>
 
         {/* Search */}
@@ -263,6 +413,7 @@ export default function MeetingsPage() {
               const date = meeting.meetingDate
                 ? new Date(meeting.meetingDate).toLocaleDateString('pt-BR')
                 : new Date(meeting.createdAt).toLocaleDateString('pt-BR');
+              const project = getProjectForMeeting(meeting.projectId);
 
               return (
                 <Card key={meeting.id} className="hover:border-primary/50 transition-colors">
@@ -272,7 +423,17 @@ export default function MeetingsPage() {
                         <FileText className="h-5 w-5 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-foreground truncate">{meeting.title}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-foreground truncate">{meeting.title}</p>
+                          {project && (
+                            <span
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-white shrink-0"
+                              style={{ backgroundColor: project.color }}
+                            >
+                              {project.name}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground">{date} · {meeting.fileName}</p>
                       </div>
                     </Link>
@@ -280,6 +441,34 @@ export default function MeetingsPage() {
                       <StatusIcon className="h-3 w-3" />
                       {cfg.label}
                     </Badge>
+
+                    {/* Assign to project */}
+                    <Popover open={assignMenuMeetingId === meeting.id} onOpenChange={(open) => setAssignMenuMeetingId(open ? meeting.id : null)}>
+                      <PopoverTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Mover para projeto">
+                          <FolderKanban className="h-3.5 w-3.5" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-48 p-1" align="end">
+                        <button
+                          onClick={() => handleAssignProject(meeting.id, null)}
+                          className={`w-full text-left px-3 py-1.5 rounded text-xs hover:bg-muted transition-colors ${!meeting.projectId ? 'font-semibold' : ''}`}
+                        >
+                          Sem projeto
+                        </button>
+                        {projects.map(p => (
+                          <button
+                            key={p.id}
+                            onClick={() => handleAssignProject(meeting.id, p.id)}
+                            className={`w-full text-left px-3 py-1.5 rounded text-xs hover:bg-muted transition-colors flex items-center gap-2 ${meeting.projectId === p.id ? 'font-semibold' : ''}`}
+                          >
+                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
+                            {p.name}
+                          </button>
+                        ))}
+                      </PopoverContent>
+                    </Popover>
+
                     <div className="flex gap-1 shrink-0">
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(meeting)}>
                         <Pencil className="h-3.5 w-3.5" />
@@ -351,6 +540,26 @@ export default function MeetingsPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditMeeting(null)}>Cancelar</Button>
             <Button className="bg-primary text-primary-foreground" onClick={handleEditSave}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename Project Dialog */}
+      <Dialog open={!!renameDialogProject} onOpenChange={() => setRenameDialogProject(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Renomear Projeto</DialogTitle>
+          </DialogHeader>
+          <Input
+            value={renameValue}
+            onChange={e => setRenameValue(e.target.value)}
+            placeholder="Novo nome"
+            autoFocus
+            onKeyDown={e => { if (e.key === 'Enter') handleRenameProject(); }}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameDialogProject(null)}>Cancelar</Button>
+            <Button className="bg-primary text-primary-foreground" onClick={handleRenameProject}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
