@@ -13,7 +13,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showResetNotice, setShowResetNotice] = useState(false);
   const [emailNotConfirmed, setEmailNotConfirmed] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSent, setResendSent] = useState(false);
@@ -66,43 +65,6 @@ export default function LoginPage() {
     setLoading(false);
   };
 
-  if (showResetNotice) {
-    return (
-      <div className="min-h-screen bg-muted/30 flex items-center justify-center px-4">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <Link to="/" className="inline-flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
-                <Sparkles className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <span className="text-2xl font-bold text-foreground">Ágata</span>
-            </Link>
-          </div>
-
-          <Card>
-            <CardHeader className="text-center">
-              <CardTitle>Bem-vindo de volta! 👋</CardTitle>
-              <CardDescription>
-                Detectamos que sua conta foi migrada para nosso novo sistema.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground text-center">
-                Enviamos um link para <strong>{email}</strong> para você criar uma nova senha. 
-                Suas reuniões e transcrições continuam disponíveis!
-              </p>
-              <Button
-                className="w-full bg-primary hover:bg-emerald-600 text-primary-foreground"
-                onClick={() => setShowResetNotice(false)}
-              >
-                Voltar ao login
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-muted/30 flex items-center justify-center px-4">
