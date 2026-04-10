@@ -145,7 +145,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             )}
           >
             <Shield className="h-5 w-5" />
-            Painel Admin
+            Painel Dev
           </Link>
         )}
         {!isPaid && (

@@ -26,12 +26,11 @@
  */
 
 export const appVersion = {
-  version: 'v0.10.3',
+  version: 'v0.10.4',
   releaseDate: '2026-04-10',
   environmentLabel: (import.meta.env.MODE === 'production' ? 'production' : 'dev') as string,
   changelog: [
-    'Organização de reuniões por projeto/cliente',
-    'Filtro por projeto na lista de reuniões',
-    'Seletor de projeto ao criar nova transcrição',
+    'Painel Admin Enterprise com gestão de time e assinatura',
+    'Renomeação do painel admin para Painel Dev',
   ],
 } as const;
