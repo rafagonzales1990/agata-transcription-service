@@ -40,6 +40,7 @@ const Privacy = lazy(() => import("./pages/Privacy"));
 const Demo = lazy(() => import("./pages/Demo"));
 const AdminLeads = lazy(() => import("./pages/AdminLeads"));
 const SharedMeeting = lazy(() => import("./pages/SharedMeeting"));
+const EnterpriseAdmin = lazy(() => import("./pages/EnterpriseAdmin"));
 
 const queryClient = new QueryClient();
 
@@ -123,6 +124,7 @@ const App = () => (
               <Route path="/demo" element={<Demo />} />
               <Route path="/shared/:token" element={<SharedMeeting />} />
               <Route path="/admin/leads" element={<ProtectedRoute><AdminLeads /></ProtectedRoute>} />
+              <Route path="/enterprise/admin" element={<ProtectedRoute><EnterpriseAdmin /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>

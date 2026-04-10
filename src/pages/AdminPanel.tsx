@@ -557,7 +557,7 @@ export default function AdminPanel() {
       <div className="sticky top-0 z-40 bg-card border-b border-border px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <LogoIcon size={32} />
-          <h1 className="text-lg font-bold text-foreground">Admin Console</h1>
+          <h1 className="text-lg font-bold text-foreground">Dev Console</h1>
           <VersionBadge showChangelog={false} className="ml-2" />
         </div>
           <div className="flex items-center gap-2">
