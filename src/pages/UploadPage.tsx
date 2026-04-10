@@ -360,6 +360,40 @@ export default function UploadPage() {
         used={usage.transcriptionsUsed}
         max={usage.limits.maxTranscriptions}
       />
+
+      <Dialog open={durationModalOpen} onOpenChange={setDurationModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Reunião muito longa para seu plano
+            </DialogTitle>
+            <DialogDescription className="space-y-3 pt-2">
+              <p>
+                Duração detectada: <strong>{detectedDuration} min</strong><br />
+                Limite do plano ({usage.limits.planName}): <strong>{usage.limits.maxDurationMinutes} min/mês</strong><br />
+                Minutos restantes: <strong>{remainingMinutes} min</strong>
+              </p>
+              <p>
+                Você pode dividir a gravação em{' '}
+                <strong>{Math.ceil(detectedDuration / Math.max(1, remainingMinutes))} partes</strong>{' '}
+                de até <strong>{remainingMinutes} min</strong> e transcrever cada uma separadamente.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Dica: use um editor de áudio gratuito como Audacity ou o recurso de corte do VLC para dividir o arquivo.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDurationModalOpen(false)}>
+              Entendi, vou dividir
+            </Button>
+            <Button onClick={() => navigate('/plans')}>
+              Ver planos
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
