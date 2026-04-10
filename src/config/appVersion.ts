@@ -26,13 +26,12 @@
  */
 
 export const appVersion = {
-  version: 'v0.10.2',
-  releaseDate: '2026-04-09',
+  version: 'v0.10.3',
+  releaseDate: '2026-04-10',
   environmentLabel: (import.meta.env.MODE === 'production' ? 'production' : 'dev') as string,
   changelog: [
-    'Gerador de e-mail de follow-up automático após transcrição',
-    'Tom formal ou informal configurável',
-    'Edição do assunto e corpo antes de enviar',
-    'Copiar ou abrir direto no cliente de e-mail',
+    'Organização de reuniões por projeto/cliente',
+    'Filtro por projeto na lista de reuniões',
+    'Seletor de projeto ao criar nova transcrição',
   ],
 } as const;
