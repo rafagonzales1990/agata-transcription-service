@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
-import { FileAudio, Upload, TrendingUp, Clock, Zap, FolderOpen, X } from 'lucide-react';
+import { FileAudio, Upload, TrendingUp, Clock, Zap, FolderOpen, X, Mic } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,6 +13,8 @@ import { OnboardingWelcome } from '@/components/OnboardingWelcome';
 import { UsageBanner } from '@/components/UsageBanner';
 import { useUsage } from '@/hooks/useUsage';
 import { toast } from 'sonner';
+
+const isMobile = typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0;
 
 export default function DashboardPage() {
   const { profile } = useAuth();
@@ -34,7 +36,16 @@ export default function DashboardPage() {
 
       const meetingCount = count || 0;
       setTotalMeetings(meetingCount);
-      if (meetingCount === 0) setShowOnboarding(true);
+      if (meetingCount === 0) {
+        if (isMobile) {
+          if (!sessionStorage.getItem('mobile_welcome_shown')) {
+            sessionStorage.setItem('mobile_welcome_shown', '1');
+            toast.info('Bem-vindo! Toque em Nova Transcrição para começar.');
+          }
+        } else {
+          setShowOnboarding(true);
+        }
+      }
       if (meetingCount === 1 && !sessionStorage.getItem('first_transcription_toast')) {
         sessionStorage.setItem('first_transcription_toast', '1');
         toast.success('🎉 Primeira reunião transcrita! Explore o resumo e a ATA.');
@@ -70,6 +81,86 @@ export default function DashboardPage() {
       subtext: 'plans',
     },
   ];
+
+  if (isMobile) {
+    return (
+      <AppLayout>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-lg font-bold text-white">Olá, {userName} 👋</p>
+              <p className="text-xs text-muted-foreground">
+                {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+              </p>
+            </div>
+          </div>
+
+          <UsageBanner isNearLimit={usage.isNearLimit} isAtLimit={usage.isAtLimit} planId={usage.limits.planId} />
+
+          <div className="grid grid-cols-2 gap-3">
+            {stats.map((stat, i) => (
+              <Card key={i} className={`border-l-4 ${stat.border} rounded-xl`}>
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs text-muted-foreground truncate">{stat.label}</p>
+                    <stat.icon className={`h-3.5 w-3.5 ${stat.iconColor} shrink-0`} />
+                  </div>
+                  {stat.value === null ? (
+                    <Skeleton className="h-7 w-16" />
+                  ) : (
+                    <>
+                      <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+                      {stat.showProgress && (stat.progressValue ?? 0) >= 80 && (
+                        <Progress value={stat.progressValue} className={`h-1.5 mt-1.5 ${(stat.progressValue ?? 0) >= 100 ? '[&>div]:bg-red-500' : '[&>div]:bg-amber-500'}`} />
+                      )}
+                      {stat.subtext === 'plans' && (
+                        <Link to="/plans" className="text-xs text-primary hover:underline mt-1 inline-block">Ver planos</Link>
+                      )}
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <Link to="/upload" className="block">
+            <button
+              className="w-full py-5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-lg flex items-center justify-center gap-3 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={usage.isAtLimit}
+            >
+              {usage.isAtLimit ? (
+                'Limite atingido'
+              ) : (
+                <>
+                  <Mic className="h-6 w-6" />
+                  Nova Transcrição
+                  <span className="text-sm font-normal opacity-80">Gravar ou fazer upload</span>
+                </>
+              )}
+            </button>
+          </Link>
+
+          <div className="flex gap-2">
+            <Link to="/meetings" className="flex-1">
+              <Button variant="outline" className="w-full text-xs py-3 rounded-xl h-auto">
+                <FileAudio className="h-4 w-4 mr-1" /> Reuniões
+              </Button>
+            </Link>
+            <Link to="/documents" className="flex-1">
+              <Button variant="outline" className="w-full text-xs py-3 rounded-xl h-auto">
+                <FolderOpen className="h-4 w-4 mr-1" /> Documentos
+              </Button>
+            </Link>
+            <Link to="/plans" className="flex-1">
+              <Button variant="outline" className="w-full text-xs py-3 rounded-xl h-auto">
+                <Zap className="h-4 w-4 mr-1" /> Planos
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
