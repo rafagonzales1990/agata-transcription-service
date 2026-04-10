@@ -393,6 +393,27 @@ export default function UploadPage() {
                 </Select>
               </div>
 
+              {projects.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium text-foreground">Projeto</label>
+                  <p className="text-xs text-muted-foreground mb-1">Organize reuniões por projeto ou cliente</p>
+                  <Select value={selectedProjectId} onValueChange={setSelectedProjectId} disabled={uploading}>
+                    <SelectTrigger><SelectValue placeholder="Selecione um projeto" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Nenhum</SelectItem>
+                      {projects.map(p => (
+                        <SelectItem key={p.id} value={p.id}>
+                          <span className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: p.color }} />
+                            {p.name}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="grid sm:grid-cols-2 gap-4">
                 <div><label className="text-xs text-muted-foreground mb-1 block">Título</label>
                   <Input placeholder="Ex: Sprint Planning" value={title} onChange={e => setTitle(e.target.value)} disabled={uploading} /></div>
