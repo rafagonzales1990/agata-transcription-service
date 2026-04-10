@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Upload, Mic, ClipboardPaste, CheckCircle, Loader2, AlertTriangle } from 'lucide-react';
+import { Upload, Mic, ClipboardPaste, CheckCircle, Loader2, AlertTriangle, Headphones, Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,6 +16,7 @@ import { LimitReachedDialog } from '@/components/LimitReachedDialog';
 import { UsageBanner } from '@/components/UsageBanner';
 import { useUsage } from '@/hooks/useUsage';
 import { useAtaTemplates } from '@/hooks/useAtaTemplates';
+import { useRecorder } from '@/hooks/useRecorder';
 import { eventFirstTranscription, trackUploadStarted, trackFirstTranscription } from '@/lib/gtag';
 import { MEETING_TEMPLATES, MEETING_TEMPLATE_GROUPS } from '@/lib/meetingTemplates';
 
