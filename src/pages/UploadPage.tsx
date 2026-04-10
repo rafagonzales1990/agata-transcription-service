@@ -115,6 +115,17 @@ export default function UploadPage() {
 
     if (activeTab === 'upload' && !file) return;
     if (file && file.size > 500 * 1024 * 1024) { toast.error('Arquivo muito grande. O limite é 500MB.'); setUploading(false); return; }
+
+    // Pre-upload duration check against plan limits
+    if (file && usage.limits.maxDurationMinutes < 999999) {
+      const durationMin = await getAudioDuration(file);
+      if (durationMin > 0 && durationMin > remainingMinutes) {
+        setDetectedDuration(durationMin);
+        setDurationModalOpen(true);
+        return;
+      }
+    }
+
     if (file && file.size > 100 * 1024 * 1024) toast.info('Arquivo grande (acima de 100MB). A transcrição pode levar alguns minutos.');
 
     setUploading(true); setUploadProgress(0); setStatusMessage('Enviando arquivo...');
