@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -9,14 +9,30 @@ import {
 import { LandingHeader } from '@/components/landing/LandingHeader';
 import { HeroSection } from '@/components/landing/HeroSection';
 
-const FeaturesSection = lazy(() => import('@/components/landing/FeaturesSection').then(m => ({ default: m.FeaturesSection })));
-const DifferentiationSection = lazy(() => import('@/components/landing/DifferentiationSection').then(m => ({ default: m.DifferentiationSection })));
-const ComparisonSection = lazy(() => import('@/components/landing/ComparisonSection').then(m => ({ default: m.ComparisonSection })));
-const ChromeExtensionSection = lazy(() => import('@/components/landing/ChromeExtensionSection').then(m => ({ default: m.ChromeExtensionSection })));
-const PlansSection = lazy(() => import('@/components/landing/PlansSection').then(m => ({ default: m.PlansSection })));
-const UseCasesSection = lazy(() => import('@/components/landing/UseCasesSection').then(m => ({ default: m.UseCasesSection })));
-const FinalCTASection = lazy(() => import('@/components/landing/FinalCTASection').then(m => ({ default: m.FinalCTASection })));
-const LandingFooter = lazy(() => import('@/components/landing/LandingFooter').then(m => ({ default: m.LandingFooter })));
+const lazyRetry = (componentImport: () => Promise<any>) =>
+  new Promise<any>((resolve, reject) => {
+    const hasRefreshed = JSON.parse(
+      sessionStorage.getItem('retry-lazy-refreshed') || 'false'
+    );
+    componentImport().then(resolve).catch((error) => {
+      if (!hasRefreshed) {
+        sessionStorage.setItem('retry-lazy-refreshed', 'true');
+        window.location.reload();
+      } else {
+        sessionStorage.removeItem('retry-lazy-refreshed');
+        reject(error);
+      }
+    });
+  });
+
+const FeaturesSection = lazy(() => lazyRetry(() => import('@/components/landing/FeaturesSection').then(m => ({ default: m.FeaturesSection }))));
+const DifferentiationSection = lazy(() => lazyRetry(() => import('@/components/landing/DifferentiationSection').then(m => ({ default: m.DifferentiationSection }))));
+const ComparisonSection = lazy(() => lazyRetry(() => import('@/components/landing/ComparisonSection').then(m => ({ default: m.ComparisonSection }))));
+const ChromeExtensionSection = lazy(() => lazyRetry(() => import('@/components/landing/ChromeExtensionSection').then(m => ({ default: m.ChromeExtensionSection }))));
+const PlansSection = lazy(() => lazyRetry(() => import('@/components/landing/PlansSection').then(m => ({ default: m.PlansSection }))));
+const UseCasesSection = lazy(() => lazyRetry(() => import('@/components/landing/UseCasesSection').then(m => ({ default: m.UseCasesSection }))));
+const FinalCTASection = lazy(() => lazyRetry(() => import('@/components/landing/FinalCTASection').then(m => ({ default: m.FinalCTASection }))));
+const LandingFooter = lazy(() => lazyRetry(() => import('@/components/landing/LandingFooter').then(m => ({ default: m.LandingFooter }))));
 
 const metrics = [
   { number: '95%+', label: 'Precisão em PT-BR', icon: <BadgeCheck className="h-5 w-5" /> },
@@ -42,6 +58,10 @@ const faqs = [
 
 export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  useEffect(() => {
+    sessionStorage.removeItem('retry-lazy-refreshed');
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
