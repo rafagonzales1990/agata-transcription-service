@@ -586,8 +586,8 @@ export default function AdminPanel() {
             <Button variant="outline" size="sm" onClick={() => navigate('/admin/leads')}>
               Leads Demo
             </Button>
-            <Button variant="outline" size="sm" onClick={() => refreshUsers()}>
-              <RefreshCw className="h-4 w-4 mr-1" /> Refresh
+            <Button variant="outline" size="sm" className="text-white hover:text-white" onClick={() => refreshUsers()}>
+              <RefreshCw className="h-4 w-4 mr-1 text-white" /> Refresh
             </Button>
             <Button variant="outline" size="sm" className="text-foreground hover:text-foreground" onClick={() => { setInviteForm({ email: '', name: '', planId: 'basic' }); setInviteOpen(true); }}>
               <Mail className="h-4 w-4 mr-1 text-white" /> Convidar Usuário
