@@ -306,6 +306,9 @@ export default function AdminPanel() {
   const [assignGroupOpen, setAssignGroupOpen] = useState(false);
   const [giftOpen, setGiftOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteForm, setInviteForm] = useState({ email: '', name: '', planId: 'basic' });
+  const [inviteLoading, setInviteLoading] = useState(false);
 
   // New user form
   const [formName, setFormName] = useState('');
