@@ -84,6 +84,8 @@ export default function UploadPage() {
   const [selectedProjectId, setSelectedProjectId] = useState('__none__');
   const [durationModalOpen, setDurationModalOpen] = useState(false);
   const [detectedDuration, setDetectedDuration] = useState(0);
+  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
 
   const limitReached = usage.isAtLimit;
   const remainingMinutes = Math.max(0, usage.limits.maxDurationMinutes - usage.totalMinutesTranscribed);
