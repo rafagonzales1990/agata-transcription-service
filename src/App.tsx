@@ -124,6 +124,7 @@ const App = () => (
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/demo" element={<Demo />} />
               <Route path="/shared/:token" element={<SharedMeeting />} />
+              <Route path="/desktop-auth" element={<DesktopAuth />} />
               <Route path="/admin/leads" element={<ProtectedRoute><AdminLeads /></ProtectedRoute>} />
               <Route path="/enterprise/admin" element={<ProtectedRoute><EnterpriseAdmin /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
