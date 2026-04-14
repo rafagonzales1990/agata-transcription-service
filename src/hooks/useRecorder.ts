@@ -73,23 +73,40 @@ export function useRecorder() {
         try {
           const displayStream = await navigator.mediaDevices.getDisplayMedia({
             audio: true,
-            video: false,
+            video: {
+              width: 1,
+              height: 1,
+              frameRate: 1,
+            },
           });
+          // Stop video track immediately — we only want audio
+          displayStream.getVideoTracks().forEach(t => t.stop());
           streamsRef.current.push(displayStream);
 
-          // Mix both audio streams
-          const ctx = new AudioContext();
-          await ctx.resume(); // CRITICAL: fix suspended AudioContext in Chrome
-          const dest = ctx.createMediaStreamDestination();
-          ctx.createMediaStreamSource(micStream).connect(dest);
-          ctx.createMediaStreamSource(displayStream).connect(dest);
-          finalStream = dest.stream;
-          streamsRef.current.push(finalStream);
+          if (displayStream.getAudioTracks().length === 0) {
+            // No audio track — fall back to mic only silently
+            displayStream.getTracks().forEach(t => t.stop());
+            const ctx = new AudioContext();
+            await ctx.resume();
+            const dest = ctx.createMediaStreamDestination();
+            ctx.createMediaStreamSource(micStream).connect(dest);
+            finalStream = dest.stream;
+            streamsRef.current.push(finalStream);
+          } else {
+            // Mix both audio streams
+            const ctx = new AudioContext();
+            await ctx.resume();
+            const dest = ctx.createMediaStreamDestination();
+            ctx.createMediaStreamSource(micStream).connect(dest);
+            ctx.createMediaStreamSource(displayStream).connect(dest);
+            finalStream = dest.stream;
+            streamsRef.current.push(finalStream);
 
-          // If user stops screen share, stop recording
-          displayStream.getAudioTracks()[0]?.addEventListener('ended', () => {
-            stop();
-          });
+            // If user stops screen share, stop recording
+            displayStream.getAudioTracks()[0]?.addEventListener('ended', () => {
+              stop();
+            });
+          }
         } catch {
           // User cancelled display media — fall back to mic only via AudioContext
           const ctx = new AudioContext();
