@@ -14,7 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   RefreshCw, Plus, Pencil, Trash2, Shield, X, Copy, ChevronDown,
-  DollarSign, Users, Clock, Zap, TrendingUp, BarChart3, FileAudio, Loader2, FolderOpen, Gift, Database,
+  DollarSign, Users, Clock, Zap, TrendingUp, BarChart3, FileAudio, Loader2, FolderOpen, Gift, Database, Mail,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -306,6 +306,9 @@ export default function AdminPanel() {
   const [assignGroupOpen, setAssignGroupOpen] = useState(false);
   const [giftOpen, setGiftOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteForm, setInviteForm] = useState({ email: '', name: '', planId: 'basic' });
+  const [inviteLoading, setInviteLoading] = useState(false);
 
   // New user form
   const [formName, setFormName] = useState('');
@@ -496,6 +499,25 @@ export default function AdminPanel() {
     setShowEditGroup(g);
   };
 
+  const handleInviteUser = async () => {
+    if (!inviteForm.email) { toast.error('Email é obrigatório'); return; }
+    setInviteLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-invite-user', {
+        body: { email: inviteForm.email, name: inviteForm.name, planId: inviteForm.planId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(`Convite enviado para ${inviteForm.email}!`);
+      setInviteOpen(false);
+      setInviteForm({ email: '', name: '', planId: 'basic' });
+    } catch (e: any) {
+      toast.error(e.message || 'Erro ao enviar convite');
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
   const copyToClipboard = (text: string) => { navigator.clipboard.writeText(text); toast.success('Copiado!'); };
 
   // ── Loading ───────────────────────────────────────────────
@@ -566,6 +588,9 @@ export default function AdminPanel() {
             </Button>
             <Button variant="outline" size="sm" onClick={() => refreshUsers()}>
               <RefreshCw className="h-4 w-4 mr-1" /> Refresh
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => { setInviteForm({ email: '', name: '', planId: 'basic' }); setInviteOpen(true); }}>
+              <Mail className="h-4 w-4 mr-1" /> Convidar Usuário
             </Button>
             <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => { setFormName(''); setFormEmail(''); setFormPassword(''); setFormPlan('basic'); setShowNewUser(true); }}>
               <Plus className="h-4 w-4 mr-1" /> Novo Usuário
@@ -1004,6 +1029,43 @@ export default function AdminPanel() {
             </div>
           </div>
           <DialogFooter><Button onClick={updateGroup}>Salvar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invite User Dialog */}
+      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Convidar Usuário</DialogTitle>
+            <DialogDescription>Envie um convite por email. O usuário será criado ao aceitar.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-xs">Email *</Label>
+              <Input className="h-9 text-sm mt-1" type="email" placeholder="usuario@empresa.com" value={inviteForm.email}
+                onChange={e => setInviteForm({ ...inviteForm, email: e.target.value })} />
+            </div>
+            <div>
+              <Label className="text-xs">Nome (opcional)</Label>
+              <Input className="h-9 text-sm mt-1" placeholder="Nome do usuário" value={inviteForm.name}
+                onChange={e => setInviteForm({ ...inviteForm, name: e.target.value })} />
+            </div>
+            <div>
+              <Label className="text-xs">Plano inicial</Label>
+              <Select value={inviteForm.planId} onValueChange={v => setInviteForm({ ...inviteForm, planId: v })}>
+                <SelectTrigger className="h-9 text-sm mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(PLAN_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setInviteOpen(false)}>Cancelar</Button>
+            <Button size="sm" onClick={handleInviteUser} disabled={inviteLoading || !inviteForm.email}>
+              {inviteLoading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Enviar Convite
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
