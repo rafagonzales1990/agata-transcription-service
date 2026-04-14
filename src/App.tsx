@@ -41,6 +41,7 @@ const Demo = lazy(() => import("./pages/Demo"));
 const AdminLeads = lazy(() => import("./pages/AdminLeads"));
 const SharedMeeting = lazy(() => import("./pages/SharedMeeting"));
 const EnterpriseAdmin = lazy(() => import("./pages/EnterpriseAdmin"));
+const DesktopAuth = lazy(() => import("./pages/DesktopAuth"));
 
 const queryClient = new QueryClient();
 
