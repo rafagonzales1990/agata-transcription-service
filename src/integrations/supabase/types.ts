@@ -510,7 +510,7 @@ export type Database = {
           description: string
           features: string[]
           id: string
-          maxDurationMinutes: number
+          maxDurationMinutes: number | null
           maxTranscriptions: number
           name: string
           popular: boolean
@@ -526,7 +526,7 @@ export type Database = {
           description: string
           features?: string[]
           id: string
-          maxDurationMinutes: number
+          maxDurationMinutes?: number | null
           maxTranscriptions: number
           name: string
           popular?: boolean
@@ -542,7 +542,7 @@ export type Database = {
           description?: string
           features?: string[]
           id?: string
-          maxDurationMinutes?: number
+          maxDurationMinutes?: number | null
           maxTranscriptions?: number
           name?: string
           popular?: boolean

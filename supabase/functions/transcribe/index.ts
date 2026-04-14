@@ -14,7 +14,10 @@ async function transcribeChunk(
   chunkIndex: number,
   totalChunks: number
 ): Promise<string> {
-  const prompt = `Transcreva este áudio completamente em português brasileiro.
+  const prompt = `No início da sua resposta, antes da transcrição, adicione uma linha:
+DURACAO_SEGUNDOS: [número inteiro de segundos do áudio]
+
+Depois transcreva este áudio completamente em português brasileiro.
        Inclua marcações de quem está falando quando possível.
        Mantenha a transcrição fiel ao que foi dito, sem resumir.
        Após a transcrição completa, adicione:
@@ -238,7 +241,10 @@ Deno.serve(async (req) => {
 
       await new Promise(resolve => setTimeout(resolve, 3000))
 
-      const prompt = `Transcreva este áudio completamente em português brasileiro.
+      const prompt = `No início da sua resposta, antes da transcrição, adicione uma linha:
+DURACAO_SEGUNDOS: [número inteiro de segundos do áudio]
+
+Depois transcreva este áudio completamente em português brasileiro.
          Inclua marcações de quem está falando quando possível.
          Mantenha a transcrição fiel ao que foi dito, sem resumir.
          Após a transcrição completa, adicione:
@@ -274,6 +280,19 @@ Deno.serve(async (req) => {
       fullTranscriptionText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || ''
     }
 
+    // Parse real duration from Gemini response
+    let realDurationSeconds = 0
+    const durationMatch = fullTranscriptionText.match(/DURACAO_SEGUNDOS:\s*(\d+)/)
+    if (durationMatch) {
+      realDurationSeconds = parseInt(durationMatch[1], 10)
+      fullTranscriptionText = fullTranscriptionText
+        .replace(/DURACAO_SEGUNDOS:\s*\d+\n?/, '').trim()
+    }
+
+    const actualMinutes = realDurationSeconds > 0
+      ? Math.max(1, Math.ceil(realDurationSeconds / 60))
+      : Math.max(1, Math.round(totalBytes / 16000 / 60))
+
     // Parse summary and action items
     let transcription = fullTranscriptionText
     let summary = null
@@ -294,38 +313,38 @@ Deno.serve(async (req) => {
     }
 
     // Update Meeting with transcription
-    const { data: meetingData } = await supabase.from('Meeting').select('userId').eq('id', meetingId).single()
+    const { data: meetingData } = await supabase.from('Meeting').select('userId').eq('id', meetingId).maybeSingle()
     
     await supabase.from('Meeting').update({
       status: 'completed',
       transcription,
       summary,
       actionItems,
+      fileDuration: realDurationSeconds > 0 ? realDurationSeconds : null,
       updatedAt: new Date().toISOString(),
     }).eq('id', meetingId)
 
     // Update usage counter (single source of truth)
     if (meetingData?.userId) {
       const currentMonth = new Date().toISOString().slice(0, 7)
-      const estimatedMinutes = Math.max(1, Math.round(totalBytes / 16000 / 60))
 
       const { data: existingUsage } = await supabase
         .from('Usage')
         .select('id, transcriptionsUsed, totalMinutesTranscribed, currentMonth')
         .eq('userId', meetingData.userId)
-        .single()
+        .maybeSingle()
 
       if (existingUsage) {
         if (existingUsage.currentMonth === currentMonth) {
           await supabase.from('Usage').update({
             transcriptionsUsed: (existingUsage.transcriptionsUsed || 0) + 1,
-            totalMinutesTranscribed: (existingUsage.totalMinutesTranscribed || 0) + estimatedMinutes,
+            totalMinutesTranscribed: (existingUsage.totalMinutesTranscribed || 0) + actualMinutes,
             updatedAt: new Date().toISOString(),
           }).eq('id', existingUsage.id)
         } else {
           await supabase.from('Usage').update({
             transcriptionsUsed: 1,
-            totalMinutesTranscribed: estimatedMinutes,
+            totalMinutesTranscribed: actualMinutes,
             currentMonth: currentMonth,
             updatedAt: new Date().toISOString(),
           }).eq('id', existingUsage.id)
@@ -335,7 +354,7 @@ Deno.serve(async (req) => {
           userId: meetingData.userId,
           transcriptionsUsed: 1,
           currentMonth: currentMonth,
-          totalMinutesTranscribed: estimatedMinutes,
+          totalMinutesTranscribed: actualMinutes,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         })
@@ -349,7 +368,7 @@ Deno.serve(async (req) => {
           meetingId,
           userId: meetingData.userId,
           provider: 'gemini',
-          durationSecs: Math.round(totalBytes / 16000),
+          durationSecs: realDurationSeconds > 0 ? realDurationSeconds : Math.round(totalBytes / 16000),
           fileSizeBytes: totalBytes,
           chunks: 1,
           costCents: 0,
