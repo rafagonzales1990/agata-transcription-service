@@ -583,7 +583,7 @@ export default function AdminPanel() {
           <VersionBadge showChangelog={false} className="ml-2" />
         </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => navigate('/admin/leads')}>
+            <Button variant="outline" size="sm" className="text-white hover:text-white" onClick={() => navigate('/admin/leads')}>
               Leads Demo
             </Button>
             <Button variant="outline" size="sm" className="text-white hover:text-white" onClick={() => refreshUsers()}>
