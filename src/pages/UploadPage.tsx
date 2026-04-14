@@ -84,6 +84,8 @@ export default function UploadPage() {
   const [selectedProjectId, setSelectedProjectId] = useState('__none__');
   const [durationModalOpen, setDurationModalOpen] = useState(false);
   const [detectedDuration, setDetectedDuration] = useState(0);
+  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
 
   const limitReached = usage.isAtLimit;
   const remainingMinutes = Math.max(0, usage.limits.maxDurationMinutes - usage.totalMinutesTranscribed);
@@ -102,6 +104,18 @@ export default function UploadPage() {
   useEffect(() => {
     if (recorder.error) toast.error(recorder.error);
   }, [recorder.error]);
+
+  // Load audio devices when record tab is active
+  useEffect(() => {
+    if (activeTab === 'record') {
+      recorder.getAudioDevices().then(devices => {
+        setAudioDevices(devices);
+        if (devices.length > 0 && !selectedDeviceId) {
+          setSelectedDeviceId(devices[0].deviceId);
+        }
+      });
+    }
+  }, [activeTab]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); }, []);
   const handleDragLeave = useCallback(() => setIsDragging(false), []);
@@ -304,10 +318,28 @@ export default function UploadPage() {
                       <p className="font-medium text-foreground mb-1">Selecione a fonte de áudio</p>
                       <p className="text-sm text-muted-foreground">Escolha como deseja capturar o áudio da reunião</p>
                     </div>
+
+                    {audioDevices.length > 1 && (
+                      <div className="max-w-sm mx-auto">
+                        <label className="text-xs text-muted-foreground mb-1 block">Microfone</label>
+                        <select
+                          value={selectedDeviceId}
+                          onChange={(e) => setSelectedDeviceId(e.target.value)}
+                          className="w-full px-3 py-2 rounded-md border border-border bg-card text-foreground text-sm"
+                        >
+                          {audioDevices.map((d) => (
+                            <option key={d.deviceId} value={d.deviceId}>
+                              {d.label || `Microfone ${d.deviceId.slice(0, 8)}`}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
                     <div className={cn('grid gap-4', recorder.isMobile ? 'grid-cols-1 max-w-xs mx-auto' : 'grid-cols-2')}>
                       {/* Option A: Mic only */}
                       <button
-                        onClick={() => recorder.start('mic')}
+                        onClick={() => recorder.start('mic', selectedDeviceId || undefined)}
                         disabled={uploading}
                         className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary hover:bg-accent transition-colors"
                       >
@@ -320,7 +352,7 @@ export default function UploadPage() {
                       {/* Option B: Mic + Tab audio (desktop only) */}
                       {!recorder.isMobile && (
                         <button
-                          onClick={() => recorder.start('mic+tab')}
+                          onClick={() => recorder.start('mic+tab', selectedDeviceId || undefined)}
                           disabled={uploading}
                           className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary hover:bg-accent transition-colors"
                         >

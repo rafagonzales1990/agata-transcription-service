@@ -31,7 +31,19 @@ export function useRecorder() {
     return () => window.removeEventListener('beforeunload', handler);
   }, [state]);
 
-  const start = useCallback(async (source: RecordingSource) => {
+  const getAudioDevices = useCallback(async (): Promise<MediaDeviceInfo[]> => {
+    try {
+      // Must request permission first to get device labels
+      await navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(s => s.getTracks().forEach(t => t.stop()));
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      return devices.filter(d => d.kind === 'audioinput');
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const start = useCallback(async (source: RecordingSource, deviceId?: string) => {
     setError(null);
     setResultFile(null);
     chunksRef.current = [];
@@ -46,14 +58,16 @@ export function useRecorder() {
 
       let micStream: MediaStream;
       try {
-        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        micStream = await navigator.mediaDevices.getUserMedia({
+          audio: deviceId ? { deviceId: { exact: deviceId } } : true,
+        });
       } catch {
         setError('Permita o acesso ao microfone nas configurações do navegador');
         return;
       }
       streamsRef.current.push(micStream);
 
-      let finalStream = micStream;
+      let finalStream: MediaStream;
 
       if (source === 'mic+tab') {
         try {
@@ -65,6 +79,7 @@ export function useRecorder() {
 
           // Mix both audio streams
           const ctx = new AudioContext();
+          await ctx.resume(); // CRITICAL: fix suspended AudioContext in Chrome
           const dest = ctx.createMediaStreamDestination();
           ctx.createMediaStreamSource(micStream).connect(dest);
           ctx.createMediaStreamSource(displayStream).connect(dest);
@@ -76,8 +91,22 @@ export function useRecorder() {
             stop();
           });
         } catch {
-          // User cancelled display media — fall back to mic only silently
+          // User cancelled display media — fall back to mic only via AudioContext
+          const ctx = new AudioContext();
+          await ctx.resume();
+          const dest = ctx.createMediaStreamDestination();
+          ctx.createMediaStreamSource(micStream).connect(dest);
+          finalStream = dest.stream;
+          streamsRef.current.push(finalStream);
         }
+      } else {
+        // Mic-only: wrap in AudioContext to ensure active stream
+        const ctx = new AudioContext();
+        await ctx.resume();
+        const dest = ctx.createMediaStreamDestination();
+        ctx.createMediaStreamSource(micStream).connect(dest);
+        finalStream = dest.stream;
+        streamsRef.current.push(finalStream);
       }
 
       // Pick best supported mime type
@@ -98,6 +127,15 @@ export function useRecorder() {
         const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
         const blob = new Blob(chunksRef.current, { type: mimeType });
         const file = new File([blob], `gravacao-reuniao.${ext}`, { type: mimeType });
+
+        // Auto-save backup to disk
+        const backupUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = backupUrl;
+        a.download = `agata-backup-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.${ext}`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(backupUrl), 1000);
+
         setResultFile(file);
         setState('stopped');
         cleanup();
@@ -159,5 +197,6 @@ export function useRecorder() {
     stop,
     cancel,
     reset,
+    getAudioDevices,
   };
 }
