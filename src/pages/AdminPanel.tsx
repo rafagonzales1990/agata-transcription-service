@@ -499,6 +499,25 @@ export default function AdminPanel() {
     setShowEditGroup(g);
   };
 
+  const handleInviteUser = async () => {
+    if (!inviteForm.email) { toast.error('Email é obrigatório'); return; }
+    setInviteLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-invite-user', {
+        body: { email: inviteForm.email, name: inviteForm.name, planId: inviteForm.planId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success(`Convite enviado para ${inviteForm.email}!`);
+      setInviteOpen(false);
+      setInviteForm({ email: '', name: '', planId: 'basic' });
+    } catch (e: any) {
+      toast.error(e.message || 'Erro ao enviar convite');
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
   const copyToClipboard = (text: string) => { navigator.clipboard.writeText(text); toast.success('Copiado!'); };
 
   // ── Loading ───────────────────────────────────────────────
