@@ -589,6 +589,9 @@ export default function AdminPanel() {
             <Button variant="outline" size="sm" onClick={() => refreshUsers()}>
               <RefreshCw className="h-4 w-4 mr-1" /> Refresh
             </Button>
+            <Button variant="outline" size="sm" onClick={() => { setInviteForm({ email: '', name: '', planId: 'basic' }); setInviteOpen(true); }}>
+              <Mail className="h-4 w-4 mr-1" /> Convidar Usuário
+            </Button>
             <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => { setFormName(''); setFormEmail(''); setFormPassword(''); setFormPlan('basic'); setShowNewUser(true); }}>
               <Plus className="h-4 w-4 mr-1" /> Novo Usuário
             </Button>
@@ -1026,6 +1029,43 @@ export default function AdminPanel() {
             </div>
           </div>
           <DialogFooter><Button onClick={updateGroup}>Salvar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invite User Dialog */}
+      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Convidar Usuário</DialogTitle>
+            <DialogDescription>Envie um convite por email. O usuário será criado ao aceitar.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-xs">Email *</Label>
+              <Input className="h-9 text-sm mt-1" type="email" placeholder="usuario@empresa.com" value={inviteForm.email}
+                onChange={e => setInviteForm({ ...inviteForm, email: e.target.value })} />
+            </div>
+            <div>
+              <Label className="text-xs">Nome (opcional)</Label>
+              <Input className="h-9 text-sm mt-1" placeholder="Nome do usuário" value={inviteForm.name}
+                onChange={e => setInviteForm({ ...inviteForm, name: e.target.value })} />
+            </div>
+            <div>
+              <Label className="text-xs">Plano inicial</Label>
+              <Select value={inviteForm.planId} onValueChange={v => setInviteForm({ ...inviteForm, planId: v })}>
+                <SelectTrigger className="h-9 text-sm mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(PLAN_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setInviteOpen(false)}>Cancelar</Button>
+            <Button size="sm" onClick={handleInviteUser} disabled={inviteLoading || !inviteForm.email}>
+              {inviteLoading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Enviar Convite
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
