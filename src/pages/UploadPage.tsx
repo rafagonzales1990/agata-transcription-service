@@ -105,6 +105,18 @@ export default function UploadPage() {
     if (recorder.error) toast.error(recorder.error);
   }, [recorder.error]);
 
+  // Load audio devices when record tab is active
+  useEffect(() => {
+    if (activeTab === 'record') {
+      recorder.getAudioDevices().then(devices => {
+        setAudioDevices(devices);
+        if (devices.length > 0 && !selectedDeviceId) {
+          setSelectedDeviceId(devices[0].deviceId);
+        }
+      });
+    }
+  }, [activeTab]);
+
   const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); }, []);
   const handleDragLeave = useCallback(() => setIsDragging(false), []);
   const handleDrop = useCallback((e: React.DragEvent) => {
