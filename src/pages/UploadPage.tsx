@@ -25,14 +25,28 @@ const getAudioDuration = (file: File): Promise<number> => {
   return new Promise((resolve) => {
     const audio = new Audio();
     const url = URL.createObjectURL(file);
+
     audio.onloadedmetadata = () => {
       URL.revokeObjectURL(url);
-      resolve(Math.ceil(audio.duration / 60)); // minutes
+      const duration = audio.duration;
+      if (!isFinite(duration) || isNaN(duration) || duration <= 0) {
+        resolve(0); // unknown duration, skip limit check
+      } else {
+        resolve(Math.ceil(duration / 60));
+      }
     };
+
     audio.onerror = () => {
       URL.revokeObjectURL(url);
-      resolve(0); // unknown duration, allow upload
+      resolve(0);
     };
+
+    // Timeout fallback — some files never fire onloadedmetadata
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      resolve(0);
+    }, 3000);
+
     audio.src = url;
   });
 };
