@@ -90,7 +90,7 @@ function BrowserMockup() {
 export function ChromeExtensionSection() {
   const features = [
     'Captura microfone + áudio dos participantes',
-    'Funciona no Google Meet, Zoom e Microsoft Teams',
+    'Funciona no Google Meet, Zoom e Microsoft Teams (via web)',
     'Sincroniza automaticamente com sua conta Ágata',
     'Botão opcional para avisar participantes sobre a gravação',
   ];
@@ -130,7 +130,7 @@ export function ChromeExtensionSection() {
             <div className="space-y-3 pt-2">
               <a href={CHROME_STORE_URL} target="_blank" rel="noopener noreferrer">
                 <Button size="lg" className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg shadow-emerald-500/25 text-base px-8">
-                  Adicionar ao Chrome — É grátis
+                  Adicionar ao Chrome&nbsp;— É grátis
                   <ExternalLink className="h-4 w-4 ml-2" />
                 </Button>
               </a>
