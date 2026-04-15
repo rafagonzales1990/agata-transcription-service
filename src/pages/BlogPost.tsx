@@ -212,7 +212,7 @@ export default function BlogPostPage() {
               </p>
               <Link to="/auth/signup">
                 <Button size="lg" className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white">
-                  Teste Grátis por 30 Dias <ArrowRight className="ml-2 h-5 w-5" />
+                  Teste Grátis por 14 Dias <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
               <p className="text-xs text-gray-500 mt-3">Sem cartão de crédito necessário</p>
