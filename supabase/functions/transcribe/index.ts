@@ -6,15 +6,7 @@ const corsHeaders = {
 }
 
 const MAX_CHUNK_BYTES = 18 * 1024 * 1024
-
-async function transcribeChunk(
-  base64Data: string,
-  mimeType: string,
-  geminiApiKey: string,
-  chunkIndex: number,
-  totalChunks: number
-): Promise<string> {
-  const prompt = `No início da sua resposta, antes da transcrição, adicione uma linha:
+const TRANSCRIPTION_PROMPT = `No início da sua resposta, antes da transcrição, adicione uma linha:
 DURACAO_SEGUNDOS: [número inteiro de segundos do áudio]
 
 Depois transcreva este áudio completamente em português brasileiro.
@@ -26,6 +18,28 @@ Depois transcreva este áudio completamente em português brasileiro.
        ## Itens de Ação
        (tarefas e compromissos mencionados, um por linha)`
 
+function removePromptLeaks(text: string): string {
+  return text
+    .replace(/DURACAO_SEGUNDOS:\s*\d+\n?/i, '')
+    .replace(/^.*DURACAO_SEGUNDOS.*\n?/gim, '')
+    .replace(/^No início da sua resposta, antes da transcrição, adicione uma linha:\s*\n?/gim, '')
+    .replace(/^Depois transcreva este áudio completamente em português brasileiro\.?\s*\n?/gim, '')
+    .replace(/^Transcreva este áudio completamente em português brasileiro\.?\s*\n?/gim, '')
+    .replace(/^Inclua marcações de quem está falando quando possível\.?\s*\n?/gim, '')
+    .replace(/^Mantenha a transcrição fiel ao que foi dito, sem resumir\.?\s*\n?/gim, '')
+    .replace(/^Após a transcrição completa, adicione:\s*\n?/gim, '')
+    .replace(/^\(resumo executivo dos pontos principais\)\s*\n?/gim, '')
+    .replace(/^\(tarefas e compromissos mencionados, um por linha\)\s*\n?/gim, '')
+    .trim()
+}
+
+async function transcribeChunk(
+  base64Data: string,
+  mimeType: string,
+  geminiApiKey: string,
+  chunkIndex: number,
+  totalChunks: number
+): Promise<string> {
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
     {
@@ -35,7 +49,7 @@ Depois transcreva este áudio completamente em português brasileiro.
         contents: [{
           parts: [
             { inline_data: { mime_type: mimeType, data: base64Data } },
-            { text: prompt }
+            { text: TRANSCRIPTION_PROMPT }
           ]
         }],
         generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
@@ -241,18 +255,6 @@ Deno.serve(async (req) => {
 
       await new Promise(resolve => setTimeout(resolve, 3000))
 
-      const prompt = `No início da sua resposta, antes da transcrição, adicione uma linha:
-DURACAO_SEGUNDOS: [número inteiro de segundos do áudio]
-
-Depois transcreva este áudio completamente em português brasileiro.
-         Inclua marcações de quem está falando quando possível.
-         Mantenha a transcrição fiel ao que foi dito, sem resumir.
-         Após a transcrição completa, adicione:
-         ## Resumo
-         (resumo executivo dos pontos principais)
-         ## Itens de Ação
-         (tarefas e compromissos mencionados, um por linha)`
-
       const geminiResponse = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
         {
@@ -262,7 +264,7 @@ Depois transcreva este áudio completamente em português brasileiro.
             contents: [{
               parts: [
                 { file_data: { mime_type: mimeType, file_uri: fileUri } },
-                { text: prompt }
+                { text: TRANSCRIPTION_PROMPT }
               ]
             }],
             generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
@@ -285,9 +287,14 @@ Depois transcreva este áudio completamente em português brasileiro.
     const durationMatch = fullTranscriptionText.match(/DURACAO_SEGUNDOS:\s*(\d+)/)
     if (durationMatch) {
       realDurationSeconds = parseInt(durationMatch[1], 10)
-      fullTranscriptionText = fullTranscriptionText
-        .replace(/DURACAO_SEGUNDOS:\s*\d+\n?/, '').trim()
     }
+
+    fullTranscriptionText = removePromptLeaks(
+      fullTranscriptionText
+        .replace(/DURACAO_SEGUNDOS:\s*\d+\n?/i, '')
+        .replace(/^.*DURACAO_SEGUNDOS.*\n?/gim, '')
+        .trim()
+    )
 
     const actualMinutes = realDurationSeconds > 0
       ? Math.max(1, Math.ceil(realDurationSeconds / 60))
