@@ -59,7 +59,7 @@ export default function SettingsAtaTemplates() {
             <CardContent className="p-6 flex items-center gap-4">
               <Lock className="h-8 w-8 text-amber-600 shrink-0" />
               <div>
-                <p className="font-medium text-foreground">Personalize seus modelos de ATA com o plano Inteligente ou superior</p>
+                <p className="font-medium text-foreground">Personalize seus modelos de ATA com o plano Essencial ou superior</p>
                 <p className="text-sm text-muted-foreground mt-1">Escolha as seções, renomeie rótulos e adicione instruções para a IA.</p>
                 <Link to="/plans">
                   <Button size="sm" className="mt-3">Ver planos</Button>

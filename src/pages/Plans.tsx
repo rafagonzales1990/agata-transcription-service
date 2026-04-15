@@ -24,8 +24,8 @@ interface Plan {
 }
 
 const ANNUAL_SAVINGS: Record<string, { monthlyTotal: number; annualTotal: number; savings: number }> = {
-  inteligente: { monthlyTotal: 780_00, annualTotal: 588_00, savings: 192_00 },
-  automacao:   { monthlyTotal: 2340_00, annualTotal: 1764_00, savings: 576_00 },
+  inteligente: { monthlyTotal: 588_00, annualTotal: 444_00, savings: 144_00 },
+  automacao:   { monthlyTotal: 2196_00, annualTotal: 1644_00, savings: 552_00 },
   enterprise:  { monthlyTotal: 7800_00, annualTotal: 5880_00, savings: 1920_00 },
 };
 
@@ -244,8 +244,8 @@ export default function PlansPage() {
               </div>
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-6 mt-3">
                 {[
-                  { id: 'inteligente', label: 'Inteligente · R$540/ano', detail: '(R$45/mês · 31% off)' },
-                  { id: 'automacao', label: 'Automação · R$1.620/ano', detail: '(R$135/mês · 31% off)' },
+                  { id: 'inteligente', label: 'Essencial · R$444/ano', detail: '(R$37/mês · 24% off)' },
+                  { id: 'automacao', label: 'Pro · R$1.644/ano', detail: '(R$137/mês · 25% off)' },
                   { id: 'enterprise', label: 'Enterprise · R$5.400/ano', detail: '(R$450/mês · 31% off)' },
                 ].map((item) => {
                   const isCurrent = currentPlanId === item.id;

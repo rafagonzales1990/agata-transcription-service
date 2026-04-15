@@ -8,14 +8,14 @@ const corsHeaders = {
 
 const STRIPE_PRICES: Record<string, { monthly: string; annual: string; annual_upfront: string }> = {
   inteligente: {
-    monthly:        'price_1TK4xHFadSjglwHID3WeaHDI',
-    annual:         'price_1TK4xKFadSjglwHIaCOMlfyN',
-    annual_upfront: 'price_1TK4xNFadSjglwHIXmEy416v',
+    monthly:        'price_1TMZz0FadSjglwHIm3THKpZZ',
+    annual:         'price_1TMZz4FadSjglwHIOr1pi7x9',
+    annual_upfront: 'price_1TMZz8FadSjglwHIgaJHAA2u',
   },
   automacao: {
-    monthly:        'price_1TK4xQFadSjglwHIOFVCAAxV',
-    annual:         'price_1TK4xTFadSjglwHITH5wnFqr',
-    annual_upfront: 'price_1TK4xWFadSjglwHI04DUDKAl',
+    monthly:        'price_1TMZzBFadSjglwHIKxVdb4y1',
+    annual:         'price_1TMZzEFadSjglwHI3p7GhXRb',
+    annual_upfront: 'price_1TMZzIFadSjglwHIUlksn0FY',
   },
   enterprise: {
     monthly:        'price_1TK4xaFadSjglwHIggSyDPti',

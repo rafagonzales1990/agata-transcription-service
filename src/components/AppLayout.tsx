@@ -94,7 +94,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const authUser = profile;
 
   const initial = profile?.name?.charAt(0)?.toUpperCase() || profile?.email?.charAt(0)?.toUpperCase() || '?';
-  const planLabel = profile?.plan_id === 'enterprise' ? 'Enterprise' : profile?.plan_id === 'automacao' ? 'Automação' : profile?.plan_id === 'inteligente' ? 'Inteligente' : 'Gratuito';
+  const planLabel = profile?.plan_id === 'enterprise' ? 'Enterprise' : profile?.plan_id === 'automacao' ? 'Pro' : profile?.plan_id === 'inteligente' ? 'Essencial' : 'Gratuito';
   const isEnterprise = profile?.plan_id === 'enterprise';
   const isPaid = ['inteligente', 'automacao', 'enterprise'].includes(profile?.plan_id || '');
 
@@ -304,7 +304,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           <div className="mx-4 md:mx-8 mt-3 px-4 py-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-sm text-amber-800 dark:text-amber-300 flex items-center gap-2">
             <span>🎁</span>
             <span>
-              Você está com acesso <strong>{profile.gift_plan_id === 'enterprise' ? 'Enterprise' : profile.gift_plan_id === 'automacao' ? 'Automação' : 'Inteligente'}</strong> até{' '}
+              Você está com acesso <strong>{profile.gift_plan_id === 'enterprise' ? 'Enterprise' : profile.gift_plan_id === 'automacao' ? 'Pro' : 'Essencial'}</strong> até{' '}
               <strong>{new Date(profile.gift_ends_at).toLocaleDateString('pt-BR')}</strong> — Aproveite!
             </span>
           </div>
