@@ -74,8 +74,8 @@ Deno.serve(async (req) => {
 
             // Send payment confirmed email
             const planNames: Record<string, string> = {
-              inteligente: 'Inteligente',
-              automacao: 'Automação',
+              inteligente: 'Essencial',
+              automacao: 'Pro',
               enterprise: 'Enterprise',
             }
             const { data: nameData } = await supabase

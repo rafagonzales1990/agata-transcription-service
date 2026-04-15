@@ -742,7 +742,7 @@ export default function MeetingDetail() {
                 <div className="text-center py-6 space-y-3">
                   <Lock className="h-8 w-8 mx-auto text-muted-foreground opacity-40" />
                   <p className="text-sm text-muted-foreground">
-                    Follow-up automático disponível no plano Inteligente ou superior
+                    Follow-up automático disponível no plano Essencial ou superior
                   </p>
                   <Button size="sm" variant="outline" onClick={() => navigate('/plans')}>
                     Ver planos →

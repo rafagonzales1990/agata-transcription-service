@@ -32,7 +32,7 @@ const PLAN_COLORS: Record<string, string> = {
   enterprise: 'bg-purple-100 text-purple-700',
 };
 const PLAN_LABELS: Record<string, string> = {
-  basic: 'Gratuito', inteligente: 'Inteligente', automacao: 'Automação', enterprise: 'Enterprise',
+  basic: 'Gratuito', inteligente: 'Essencial', automacao: 'Pro', enterprise: 'Enterprise',
 };
 const COLOR_PRESETS = ['#10B981', '#3B82F6', '#EF4444', '#F59E0B', '#8B5CF6', '#06B6D4', '#EC4899', '#64748B'];
 
@@ -199,8 +199,8 @@ function GiftPlanDialog({ open, onOpenChange, user, onConfirm }: {
             <Select value={selectedPlan} onValueChange={setSelectedPlan}>
               <SelectTrigger className="h-9 text-sm mt-1"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="inteligente">Inteligente</SelectItem>
-                <SelectItem value="automacao">Automação</SelectItem>
+                <SelectItem value="inteligente">Essencial</SelectItem>
+                <SelectItem value="automacao">Pro</SelectItem>
                 <SelectItem value="enterprise">Enterprise</SelectItem>
               </SelectContent>
             </Select>
