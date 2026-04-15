@@ -21,7 +21,7 @@ export function HeroSection() {
 
             <p className="text-lg text-muted-foreground mb-8 max-w-xl leading-relaxed">
               Ágata Transcription transforma reuniões em transcrição, resumo executivo e ata em PDF/Word. 
-              Feito para empresas que trabalham em português. Ideal para jurídico, RH, marketing, engenharia e financeiro.
+              Feito para empresas que trabalham em português.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 mb-6">
