@@ -207,7 +207,7 @@ export default function SignupPage() {
         <Card>
           <CardHeader className="text-center">
             <CardTitle>Criar Conta Grátis</CardTitle>
-            <CardDescription>30 dias grátis, sem cartão de crédito</CardDescription>
+            <CardDescription>14 dias grátis, sem cartão de crédito</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSignup} className="space-y-4">
@@ -252,7 +252,7 @@ export default function SignupPage() {
             </form>
 
             <div className="mt-4 space-y-2">
-              {['30 dias grátis', '5 transcrições incluídas', 'Sem cartão de crédito'].map((item) => (
+              {['14 dias grátis', '5 transcrições incluídas', 'Sem cartão de crédito'].map((item) => (
                 <div key={item} className="flex items-center gap-2 text-xs text-muted-foreground">
                   <CheckCircle className="h-3 w-3 text-primary" />
                   {item}

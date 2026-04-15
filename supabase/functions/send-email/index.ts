@@ -41,7 +41,7 @@ function btn(text: string, href: string): string {
 function welcomeTemplate(name: string): string {
   return baseLayout(`
 <h1 style="margin:0 0 16px;font-size:22px;color:#111827">Olá, ${name}! 👋</h1>
-<p style="color:#4b5563;line-height:1.6;margin:0 0 20px">Sua conta na Ágata Transcription está pronta. Você tem <strong>30 dias de trial grátis</strong> para explorar tudo.</p>
+<p style="color:#4b5563;line-height:1.6;margin:0 0 20px">Sua conta na Ágata Transcription está pronta. Você tem <strong>14 dias de trial grátis</strong> para explorar tudo.</p>
 <p style="color:#111827;font-weight:600;margin:0 0 12px">O que você pode fazer agora:</p>
 <ul style="color:#4b5563;line-height:2;padding-left:20px;margin:0 0 20px">
 <li>Transcrever reuniões em PT-BR automaticamente</li>
@@ -103,7 +103,7 @@ function demoReadyTemplate(name: string, summaryPreview: string): string {
 </div>
 <p style="color:#4b5563;line-height:1.6;margin:0 0 20px;text-align:center">Crie sua conta grátis para salvar suas transcrições, gerar ATAs em PDF/Word e aproveitar todos os recursos.</p>
 <div style="text-align:center">${btn('Começar teste grátis →', BASE_URL + '/auth/signup')}</div>
-<p style="text-align:center;color:#9ca3af;font-size:13px;margin-top:16px">30 dias grátis · Sem cartão de crédito</p>`)
+<p style="text-align:center;color:#9ca3af;font-size:13px;margin-top:16px">14 dias grátis · Sem cartão de crédito</p>`)
 }
 
 function demoFollowup24hTemplate(name: string, persona: string | null): string {
@@ -115,7 +115,7 @@ function demoFollowup24hTemplate(name: string, persona: string | null): string {
 <h1 style="margin:0 0 16px;font-size:22px;color:#111827;text-align:center">Seu resumo está esperando, ${name}</h1>
 <p style="color:#4b5563;line-height:1.6;margin:0 0 20px;text-align:center">Você testou a Ágata e viu como funciona${personaText}. Agora crie sua conta para salvar reuniões, gerar ATAs em PDF e acompanhar o histórico do seu time.</p>
 <div style="text-align:center">${btn('Criar conta grátis →', BASE_URL + '/auth/signup')}</div>
-<p style="text-align:center;color:#9ca3af;font-size:13px;margin-top:16px">30 dias grátis · 5 transcrições incluídas · Sem cartão</p>`)
+<p style="text-align:center;color:#9ca3af;font-size:13px;margin-top:16px">14 dias grátis · 5 transcrições incluídas · Sem cartão</p>`)
 }
 
 function demoFollowup72hTemplate(name: string, persona: string | null): string {
@@ -129,7 +129,7 @@ function demoFollowup72hTemplate(name: string, persona: string | null): string {
 <h1 style="margin:0 0 16px;font-size:22px;color:#111827;text-align:center">Última chamada, ${name} 🔔</h1>
 <p style="color:#4b5563;line-height:1.6;margin:0 0 16px;text-align:center">Times como o seu estão usando a Ágata para:</p>
 <ul style="color:#4b5563;line-height:2;padding-left:20px;margin:0 0 20px">${useCases}</ul>
-<p style="color:#4b5563;line-height:1.6;margin:0 0 20px;text-align:center">Comece seu teste grátis de 30 dias e veja a diferença na produtividade.</p>
+<p style="color:#4b5563;line-height:1.6;margin:0 0 20px;text-align:center">Comece seu teste grátis de 14 dias e veja a diferença na produtividade.</p>
 <div style="text-align:center">${btn('Começar teste grátis →', BASE_URL + '/auth/signup')}</div>`)
 }
 

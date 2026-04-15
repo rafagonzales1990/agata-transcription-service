@@ -57,7 +57,7 @@ const FAQS = [
   { q: 'Funciona com áudio em português?', a: 'Sim, 100% otimizado para português brasileiro com alta precisão.' },
   { q: 'Posso usar para reuniões jurídicas?', a: 'Sim! Profissionais do direito usam para transcrever audiências, reuniões e alinhamentos.' },
   { q: 'Preciso instalar algo?', a: 'Não. Tudo funciona no navegador, sem instalação.' },
-  { q: 'Existe teste grátis?', a: 'Sim, 30 dias de teste grátis com 5 transcrições incluídas, sem cartão de crédito.' },
+  { q: 'Existe teste grátis?', a: 'Sim, 14 dias de teste grátis com 5 transcrições incluídas, sem cartão de crédito.' },
 ];
 
 // ── Helpers ────────────────────────────────────────────────

@@ -9,7 +9,7 @@ const plans = [
   {
     name: 'Gratuito',
     price: 'R$ 0',
-    period: '/30 dias',
+    period: '/14 dias',
     description: 'Experimente sem compromisso',
     features: ['5 transcrições no período', 'Até 15min por áudio', 'Resumo com IA', 'Ata em PDF'],
     cta: 'Começar Grátis',
