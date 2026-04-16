@@ -1,4 +1,5 @@
 import { ReactNode, useCallback, useEffect, useState } from 'react';
+import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
@@ -46,6 +47,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [userCpf, setUserCpf] = useState<string | null | undefined>(undefined);
+  const { canInstall, handleInstall } = usePWAInstall();
 
   const fetchCpfAndAdmin = useCallback(async () => {
     try {
@@ -211,6 +213,15 @@ export function AppLayout({ children }: AppLayoutProps) {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        {canInstall && (
+          <button
+            onClick={handleInstall}
+            className={cn('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors w-full text-left', inactiveClasses)}
+          >
+            <Download className="h-4 w-4" />
+            Instalar app
+          </button>
+        )}
         <Link
           to="/settings"
           onClick={onNavigate}

@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
-import { FileAudio, Upload, TrendingUp, Clock, Zap, FolderOpen, X, Mic, Monitor, CloudUpload, Globe } from 'lucide-react';
+import { FileAudio, Upload, TrendingUp, Clock, Zap, FolderOpen, X, Mic, Monitor, CloudUpload, Globe, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { OnboardingWelcome } from '@/components/OnboardingWelcome';
 import { UsageBanner } from '@/components/UsageBanner';
 import { useUsage } from '@/hooks/useUsage';
+import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { toast } from 'sonner';
 
 const isMobile = typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0;
@@ -23,6 +24,8 @@ export default function DashboardPage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const usage = useUsage();
+  const { canInstall, handleInstall } = usePWAInstall();
+  const [installDismissed, setInstallDismissed] = useState(() => localStorage.getItem('pwa_install_dismissed') === '1');
 
   useEffect(() => {
     async function fetchMeetings() {
@@ -157,6 +160,23 @@ export default function DashboardPage() {
               </Button>
             </Link>
           </div>
+
+          {canInstall && !installDismissed && (
+            <div className="rounded-xl border border-border bg-card p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-foreground">Instale o Ágata no seu celular</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Acesse mais rápido, funciona como app nativo</p>
+                </div>
+                <button onClick={() => { setInstallDismissed(true); localStorage.setItem('pwa_install_dismissed', '1'); }} className="text-muted-foreground hover:text-foreground">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <Button onClick={handleInstall} className="w-full mt-3 bg-primary text-primary-foreground">
+                <Download className="h-4 w-4 mr-2" /> Instalar app
+              </Button>
+            </div>
+          )}
         </div>
       </AppLayout>
     );
