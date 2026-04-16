@@ -361,6 +361,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       {needsCpf && authUser && (
         <CpfRequiredModal userId={authUser.user_id} onSaved={fetchCpfAndAdmin} />
       )}
+      <PWAInstallModal open={pwaModalOpen} onOpenChange={setPwaModalOpen} />
     </div>
   );
 }
