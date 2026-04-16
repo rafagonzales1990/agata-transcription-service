@@ -131,7 +131,7 @@ function HelpCenterContent() {
     <div className="max-w-3xl mx-auto">
       {/* Header */}
       <div className="text-center mb-10">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-sm font-medium mb-4">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
           <HelpCircle className="h-4 w-4" />
           Central de Ajuda
         </div>
@@ -165,13 +165,13 @@ function HelpCenterContent() {
           {filteredSections.map((section) => (
             <div key={section.title}>
               <div className="flex items-center gap-2 mb-4">
-                <span className="text-emerald-600 dark:text-emerald-400">{section.icon}</span>
+                <span className="text-primary">{section.icon}</span>
                 <h2 className="text-xl font-semibold text-foreground">{section.title}</h2>
               </div>
-              <Accordion type="single" collapsible className="border rounded-lg">
+              <Accordion type="single" collapsible className="border border-border rounded-lg bg-card">
                 {section.items.map((item, idx) => (
-                  <AccordionItem key={idx} value={`${section.title}-${idx}`} className="last:border-b-0">
-                    <AccordionTrigger className="px-4 text-left hover:no-underline hover:text-emerald-600 dark:hover:text-emerald-400">
+                  <AccordionItem key={idx} value={`${section.title}-${idx}`} className="last:border-b-0 border-border">
+                    <AccordionTrigger className="px-4 text-left text-foreground hover:no-underline hover:text-primary">
                       {item.question}
                     </AccordionTrigger>
                     <AccordionContent className="px-4 text-muted-foreground leading-relaxed">
@@ -186,8 +186,8 @@ function HelpCenterContent() {
       )}
 
       {/* Contact CTA */}
-      <div className="mt-12 p-8 rounded-2xl bg-muted/50 border text-center">
-        <Mail className="h-8 w-8 text-emerald-600 dark:text-emerald-400 mx-auto mb-3" />
+      <div className="mt-12 p-8 rounded-2xl bg-card border border-border text-center">
+        <Mail className="h-8 w-8 text-primary mx-auto mb-3" />
         <h3 className="text-lg font-semibold text-foreground mb-2">
           Não encontrou sua resposta?
         </h3>
@@ -195,7 +195,7 @@ function HelpCenterContent() {
           Entre em contato com nosso suporte e responderemos em até 24 horas.
         </p>
         <a href="mailto:suporte@agatatranscription.com">
-          <Button className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white">
+          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
             <Mail className="h-4 w-4 mr-2" />
             suporte@agatatranscription.com
           </Button>
@@ -208,8 +208,8 @@ function HelpCenterContent() {
 // Public version with its own header/footer
 function PublicHelpCenter() {
   return (
-    <div className="min-h-screen bg-white dark:bg-background">
-      <header className="bg-white dark:bg-background border-b sticky top-0 z-50">
+    <div className="min-h-screen bg-background">
+      <header className="bg-background border-b border-border sticky top-0 z-50">
         <div className="container mx-auto px-4">
           <div className="flex h-16 items-center justify-between">
             <Link to="/" className="flex items-center space-x-2">
