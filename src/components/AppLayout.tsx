@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard, FileText, Upload, FolderOpen, Settings,
   Repeat, Sparkles, LogOut, Menu, X, User, CreditCard,
-  ChevronDown, Shield, Users, HelpCircle, Puzzle, ExternalLink,
-  Sun, Moon, Building2,
+  ChevronDown, Shield, Users, HelpCircle, ExternalLink,
+  Sun, Moon, Building2, Download, Monitor, Globe,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,

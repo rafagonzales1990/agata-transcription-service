@@ -252,6 +252,44 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-border bg-card p-5">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-secondary"><Monitor className="h-5 w-5 text-primary" /></div>
+              <h3 className="font-semibold text-foreground">App Desktop</h3>
+            </div>
+            <p className="text-sm text-muted-foreground mb-3">Grave reuniões do Teams, Zoom e Meet diretamente no seu PC</p>
+            <div className="flex flex-wrap gap-2 mb-4">
+              <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-primary"><Mic className="h-3 w-3" /> Mic + Sistema</span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-primary"><CloudUpload className="h-3 w-3" /> Backup automático</span>
+            </div>
+            <a href="https://github.com/rafagonzales1990/agata-desktop/releases/latest/download/Agata-Transcription-1.0.4-Windows.exe">
+              <Button className="w-full bg-primary text-primary-foreground">⬇ Baixar para Windows</Button>
+            </a>
+            <p className="text-xs text-muted-foreground mt-2 text-center">v1.0.4 · Sem instalação · Windows 10/11</p>
+            <div className="text-center mt-2">
+              <span className="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">🍎 Mac — em breve</span>
+            </div>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="rounded-xl border border-border bg-card p-5">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-secondary"><Globe className="h-5 w-5 text-primary" /></div>
+              <h3 className="font-semibold text-foreground">Extensão Chrome</h3>
+            </div>
+            <p className="text-sm text-muted-foreground mb-3">Grave reuniões diretamente do Meet, Zoom e Teams. Um clique para transcrever.</p>
+            <div className="flex flex-wrap gap-2 mb-4">
+              <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-primary">Google Meet</span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-primary">Zoom</span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-primary">Teams</span>
+            </div>
+            <a href="https://chromewebstore.google.com/detail/hhefgnokghkmeekjjpaipjmfhnhbnpjb" target="_blank" rel="noopener noreferrer">
+              <Button className="w-full bg-primary text-primary-foreground">Adicionar ao Chrome →</Button>
+            </a>
+            <p className="text-xs text-muted-foreground mt-2 text-center">Grátis · Funciona em qualquer site</p>
+          </motion.div>
+        </div>
       </div>
     </AppLayout>
   );
