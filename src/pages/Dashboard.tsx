@@ -253,7 +253,7 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="hidden lg:grid md:grid-cols-2 gap-4">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-lg bg-secondary"><Monitor className="h-5 w-5 text-primary" /></div>
