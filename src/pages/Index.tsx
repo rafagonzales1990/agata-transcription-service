@@ -108,6 +108,7 @@ export default function LandingPage() {
       <Suspense fallback={null}>
         <FeaturesSection />
         <ChromeExtensionSection />
+        <DesktopAppSection />
         <DifferentiationSection />
         <ComparisonSection />
         <PlansSection />
