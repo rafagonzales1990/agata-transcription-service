@@ -1,16 +1,16 @@
 /**
  * Ágata Transcription — App Version (Single Source of Truth)
  *
+ * Versioning:
+ *   Web App:   v1.1.x
+ *   Desktop:   v1.0.x
+ *   Extension: v1.0.x
+ *
  * Semantic Versioning rules for Ágata:
  *
- * PATCH (v0.9.1): bug fixes, small improvements, no breaking changes
- *   Ex: "Tabela PDF quebrada", "Botão Stripe falhou", "Upload travou"
- *
- * MINOR (v0.10.0): new features, backward compatible
- *   Ex: "Página de planos ativa", "Download Word", "Chunking 20MB"
- *
- * MAJOR (v1.0.0): breaking changes, new architecture, major refactor
- *   Ex: "Migração Supabase completa", "Billing Stripe v2", "Multi-tenant"
+ * PATCH (v1.1.1): bug fixes, small improvements, no breaking changes
+ * MINOR (v1.2.0): new features, backward compatible
+ * MAJOR (v2.0.0): breaking changes, new architecture, major refactor
  *
  * ── Release flow ──
  * 1. Finish changes in Lovable
@@ -18,19 +18,15 @@
  * 3. Add 1-3 bullets to changelog
  * 4. Test in preview
  * 5. Publish
- *
- * ── Future automation ──
- * - Read version from package.json via import.meta.env
- * - Inject git commit hash at build time (VITE_COMMIT_SHA)
- * - Use CI/CD to auto-bump on merge to main
  */
 
 export const appVersion = {
-  version: 'v0.10.4',
-  releaseDate: '2026-04-10',
+  version: 'v1.1.0',
+  releaseDate: '2026-04-16',
   environmentLabel: (import.meta.env.MODE === 'production' ? 'production' : 'dev') as string,
   changelog: [
-    'Painel Admin Enterprise com gestão de time e assinatura',
-    'Renomeação do painel admin para Painel Dev',
+    'PWA: modal de instalação com instruções Android/iOS',
+    'Service worker com auto-update e versionamento',
+    'Nova versão estável v1.1.0',
   ],
 } as const;
