@@ -34,7 +34,7 @@ export function DesktopAppSection() {
           </div>
 
           <Button asChild size="lg" className="text-base px-8">
-            <a href="https://github.com/rafagonzales1990/agata-desktop/releases/latest/download/Agata-Transcription-1.0.4-Windows.exe">
+            <a href="https://github.com/rafagonzales1990/agata-desktop/releases/latest/download/Agata-Transcription-1.0.4-Windows.exe" target="_blank" rel="noopener noreferrer">
               ⬇ Baixar para Windows — Grátis
             </a>
           </Button>
