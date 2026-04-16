@@ -47,6 +47,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [userCpf, setUserCpf] = useState<string | null | undefined>(undefined);
+  const { canInstall, handleInstall } = usePWAInstall();
 
   const fetchCpfAndAdmin = useCallback(async () => {
     try {
