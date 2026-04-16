@@ -1,4 +1,5 @@
-const CACHE_NAME = 'agata-v1';
+const SW_VERSION = '1.0.1';
+const CACHE_NAME = 'agata-v1.0.1';
 const APP_SHELL = [
   '/',
   '/index.html',
