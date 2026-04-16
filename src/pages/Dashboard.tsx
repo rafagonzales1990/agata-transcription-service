@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
-import { FileAudio, Upload, TrendingUp, Clock, Zap, FolderOpen, X, Mic } from 'lucide-react';
+import { FileAudio, Upload, TrendingUp, Clock, Zap, FolderOpen, X, Mic, Monitor, CloudUpload, Chrome } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
