@@ -6,7 +6,7 @@ import {
   LayoutDashboard, FileText, Upload, FolderOpen, Settings,
   Repeat, Sparkles, LogOut, Menu, X, User, CreditCard,
   ChevronDown, Shield, Users, HelpCircle, ExternalLink,
-  Sun, Moon, Building2, Download, Monitor, Globe,
+  Sun, Moon, Building2, Download, Monitor, Globe, Smartphone,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -24,6 +24,7 @@ import { HelpModal } from '@/components/HelpModal';
 import { supabase } from '@/integrations/supabase/client';
 import { CpfRequiredModal } from '@/components/CpfRequiredModal';
 import { useTheme } from '@/hooks/useTheme';
+import { PWAInstallModal } from '@/components/PWAInstallModal';
 
 const menuItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -47,7 +48,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [userCpf, setUserCpf] = useState<string | null | undefined>(undefined);
-  const { canInstall, handleInstall } = usePWAInstall();
+  const [pwaModalOpen, setPwaModalOpen] = useState(false);
 
   const fetchCpfAndAdmin = useCallback(async () => {
     try {
@@ -173,55 +174,57 @@ export function AppLayout({ children }: AppLayoutProps) {
             </button>
           </Link>
         )}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className={cn('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors w-full text-left', inactiveClasses)}>
-              <Download className="h-4 w-4" />
-              Downloads
-              <ChevronDown className="h-3 w-3 ml-auto opacity-50" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="right" align="start" className="w-56">
-            <DropdownMenuItem asChild>
-              <a href="https://github.com/rafagonzales1990/agata-desktop/releases/latest/download/Agata-Transcription-1.0.4-Windows.exe" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                <Monitor className="h-4 w-4" />
-                <div>
-                  <p className="text-sm font-medium">Windows</p>
-                  <p className="text-xs text-muted-foreground">v1.0.4 · Desktop App</p>
-                </div>
-              </a>
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled className="opacity-50">
-              <span className="flex items-center gap-2">
-                <span className="text-base">🍎</span>
-                <div>
-                  <p className="text-sm font-medium">Mac</p>
-                  <p className="text-xs text-muted-foreground">Em breve</p>
-                </div>
-              </span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <a href="https://chromewebstore.google.com/detail/hhefgnokghkmeekjjpaipjmfhnhbnpjb" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                <Globe className="h-4 w-4" />
-                <div>
-                  <p className="text-sm font-medium">Extensão Chrome</p>
-                  <p className="text-xs text-muted-foreground">Meet, Zoom & Teams</p>
-                </div>
-                <ExternalLink className="h-3 w-3 ml-auto opacity-50" />
-              </a>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        {canInstall && (
-          <button
-            onClick={handleInstall}
-            className={cn('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors w-full text-left', inactiveClasses)}
-          >
-            <Download className="h-4 w-4" />
-            Instalar app
-          </button>
-        )}
+        {/* Mobile/tablet: show install button instead of Downloads */}
+        <button
+          onClick={() => { onNavigate?.(); setPwaModalOpen(true); }}
+          className={cn('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors w-full text-left lg:hidden', inactiveClasses)}
+        >
+          <Smartphone className="h-4 w-4" />
+          Instalar no Celular
+        </button>
+        {/* Desktop: show Downloads dropdown */}
+        <div className="hidden lg:block">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className={cn('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors w-full text-left', inactiveClasses)}>
+                <Download className="h-4 w-4" />
+                Downloads
+                <ChevronDown className="h-3 w-3 ml-auto opacity-50" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="right" align="start" className="w-56">
+              <DropdownMenuItem asChild>
+                <a href="https://github.com/rafagonzales1990/agata-desktop/releases/latest/download/Agata-Transcription-1.0.4-Windows.exe" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                  <Monitor className="h-4 w-4" />
+                  <div>
+                    <p className="text-sm font-medium">Windows</p>
+                    <p className="text-xs text-muted-foreground">v1.0.4 · Desktop App</p>
+                  </div>
+                </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled className="opacity-50">
+                <span className="flex items-center gap-2">
+                  <span className="text-base">🍎</span>
+                  <div>
+                    <p className="text-sm font-medium">Mac</p>
+                    <p className="text-xs text-muted-foreground">Em breve</p>
+                  </div>
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <a href="https://chromewebstore.google.com/detail/hhefgnokghkmeekjjpaipjmfhnhbnpjb" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  <div>
+                    <p className="text-sm font-medium">Extensão Chrome</p>
+                    <p className="text-xs text-muted-foreground">Meet, Zoom & Teams</p>
+                  </div>
+                  <ExternalLink className="h-3 w-3 ml-auto opacity-50" />
+                </a>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
         <Link
           to="/settings"
           onClick={onNavigate}
