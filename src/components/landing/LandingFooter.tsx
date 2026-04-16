@@ -15,6 +15,7 @@ export function LandingFooter() {
           <Link to="/privacy" className="hover:text-foreground transition-colors">Política de Privacidade</Link>
           <Link to="/legal/lgpd" className="hover:text-foreground transition-colors">Política LGPD</Link>
           <Link to="/blog" className="hover:text-foreground transition-colors">Blog</Link>
+          <Link to="/ajuda" className="hover:text-foreground transition-colors">Ajuda</Link>
         </div>
         <div className="flex flex-col items-center md:items-end gap-1">
           <p className="text-xs text-muted-foreground">© 2025 Ágata Transcription. Todos os direitos reservados.</p>
