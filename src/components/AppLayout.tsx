@@ -171,16 +171,46 @@ export function AppLayout({ children }: AppLayoutProps) {
             </button>
           </Link>
         )}
-        <a
-          href="https://chromewebstore.google.com/detail/hhefgnokghkmeekjjpaipjmfhnhbnpjb"
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors', inactiveClasses)}
-        >
-          <Puzzle className="h-4 w-4" />
-          Extensão Chrome
-          <ExternalLink className="h-3 w-3 ml-auto opacity-50" />
-        </a>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className={cn('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors w-full text-left', inactiveClasses)}>
+              <Download className="h-4 w-4" />
+              Downloads
+              <ChevronDown className="h-3 w-3 ml-auto opacity-50" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" align="start" className="w-56">
+            <DropdownMenuItem asChild>
+              <a href="https://github.com/rafagonzales1990/agata-desktop/releases/latest/download/Agata-Transcription-1.0.4-Windows.exe" className="flex items-center gap-2">
+                <Monitor className="h-4 w-4" />
+                <div>
+                  <p className="text-sm font-medium">Windows</p>
+                  <p className="text-xs text-muted-foreground">v1.0.4 · Desktop App</p>
+                </div>
+              </a>
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled className="opacity-50">
+              <span className="flex items-center gap-2">
+                <span className="text-base">🍎</span>
+                <div>
+                  <p className="text-sm font-medium">Mac</p>
+                  <p className="text-xs text-muted-foreground">Em breve</p>
+                </div>
+              </span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <a href="https://chromewebstore.google.com/detail/hhefgnokghkmeekjjpaipjmfhnhbnpjb" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                <Globe className="h-4 w-4" />
+                <div>
+                  <p className="text-sm font-medium">Extensão Chrome</p>
+                  <p className="text-xs text-muted-foreground">Meet, Zoom & Teams</p>
+                </div>
+                <ExternalLink className="h-3 w-3 ml-auto opacity-50" />
+              </a>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Link
           to="/settings"
           onClick={onNavigate}
