@@ -160,6 +160,23 @@ export default function DashboardPage() {
               </Button>
             </Link>
           </div>
+
+          {canInstall && !installDismissed && (
+            <div className="rounded-xl border border-border bg-card p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-foreground">Instale o Ágata no seu celular</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Acesse mais rápido, funciona como app nativo</p>
+                </div>
+                <button onClick={() => { setInstallDismissed(true); localStorage.setItem('pwa_install_dismissed', '1'); }} className="text-muted-foreground hover:text-foreground">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <Button onClick={handleInstall} className="w-full mt-3 bg-primary text-primary-foreground">
+                <Download className="h-4 w-4 mr-2" /> Instalar app
+              </Button>
+            </div>
+          )}
         </div>
       </AppLayout>
     );
