@@ -226,7 +226,7 @@ export default function DashboardPage() {
 
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="rounded-xl border border-border bg-card p-5">
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-secondary"><Chrome className="h-5 w-5 text-primary" /></div>
+              <div className="p-2 rounded-lg bg-secondary"><Globe className="h-5 w-5 text-primary" /></div>
               <h3 className="font-semibold text-foreground">Extensão Chrome</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-3">Grave reuniões diretamente do Meet, Zoom e Teams. Um clique para transcrever.</p>
