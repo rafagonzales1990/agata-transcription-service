@@ -19,7 +19,7 @@ import { PWAInstallButton } from '@/components/PWAInstallButton';
 import { VersionBadge } from '@/components/VersionBadge';
 import { TrialAds } from '@/components/TrialAds';
 import { TrialUpgradeBanners } from '@/components/TrialUpgradeBanners';
-import { HelpModal } from '@/components/HelpModal';
+
 import { supabase } from '@/integrations/supabase/client';
 import { CpfRequiredModal } from '@/components/CpfRequiredModal';
 import { useTheme } from '@/hooks/useTheme';
@@ -235,12 +235,17 @@ export function AppLayout({ children }: AppLayoutProps) {
           <Settings className="h-4 w-4" />
           Configurações
         </Link>
-        <HelpModal>
-          <button className={cn('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors w-full text-left', inactiveClasses)}>
-            <HelpCircle className="h-4 w-4" />
-            Como usar o Ágata
-          </button>
-        </HelpModal>
+        <Link
+          to="/ajuda"
+          onClick={onNavigate}
+          className={cn(
+            'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all',
+            isActive('/ajuda') ? activeClasses : inactiveClasses
+          )}
+        >
+          <HelpCircle className="h-4 w-4" />
+          Ajuda
+        </Link>
         <button
           onClick={() => { onNavigate?.(); handleLogout(); }}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-foreground/70 hover:bg-destructive/10 hover:text-destructive transition-colors w-full text-left"

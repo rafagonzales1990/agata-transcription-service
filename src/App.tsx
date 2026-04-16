@@ -42,6 +42,7 @@ const AdminLeads = lazy(() => import("./pages/AdminLeads"));
 const SharedMeeting = lazy(() => import("./pages/SharedMeeting"));
 const EnterpriseAdmin = lazy(() => import("./pages/EnterpriseAdmin"));
 const DesktopAuth = lazy(() => import("./pages/DesktopAuth"));
+const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 
 const queryClient = new QueryClient();
 
@@ -122,6 +123,7 @@ const App = () => (
               <Route path="/demo" element={<Demo />} />
               <Route path="/shared/:token" element={<SharedMeeting />} />
               <Route path="/desktop-auth" element={<DesktopAuth />} />
+              <Route path="/ajuda" element={<HelpCenter />} />
               <Route path="/admin/leads" element={<ProtectedRoute><AdminLeads /></ProtectedRoute>} />
               <Route path="/enterprise/admin" element={<ProtectedRoute><EnterpriseAdmin /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
