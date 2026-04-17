@@ -7,7 +7,7 @@ const corsHeaders = {
 
 const CHUNK_SIZE = 500       // words per chunk
 const CHUNK_OVERLAP = 50     // word overlap between chunks
-const EMBED_MODEL = 'text-embedding-004'
+const EMBED_MODEL = 'embedding-001'
 
 function chunkText(text: string, size = CHUNK_SIZE, overlap = CHUNK_OVERLAP): string[] {
   const words = text.split(/\s+/).filter(Boolean)
