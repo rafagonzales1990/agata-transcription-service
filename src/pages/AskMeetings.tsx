@@ -49,6 +49,14 @@ export default function AskMeetings() {
   const [hasMeetings, setHasMeetings] = useState<boolean | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Embeddings backfill state
+  const [backfill, setBackfill] = useState<{
+    status: 'idle' | 'running' | 'done';
+    total: number;
+    current: number;
+  }>({ status: 'idle', total: 0, current: 0 });
+  const backfillStartedRef = useRef(false);
+
   const planId = profile?.plan_id || 'basic';
   const isPaid = ['inteligente', 'automacao', 'enterprise'].includes(planId);
 
@@ -61,6 +69,63 @@ export default function AskMeetings() {
       .eq('status', 'completed')
       .then(({ count }) => setHasMeetings((count || 0) > 0));
   }, [user]);
+
+  // Auto-backfill embeddings on mount for completed meetings missing them
+  useEffect(() => {
+    if (!user || !isPaid || backfillStartedRef.current) return;
+    backfillStartedRef.current = true;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const { data: meetings, error: mErr } = await supabase
+          .from('Meeting')
+          .select('id')
+          .eq('userId', user.id)
+          .eq('status', 'completed')
+          .not('transcription', 'is', null);
+        if (mErr || !meetings || meetings.length === 0) return;
+
+        const { data: embedded, error: eErr } = await supabase
+          .from('MeetingEmbedding')
+          .select('meetingId')
+          .eq('userId', user.id);
+        if (eErr) return;
+
+        const embeddedIds = new Set((embedded || []).map((r: any) => r.meetingId));
+        const missing = meetings.filter((m: any) => !embeddedIds.has(m.id));
+        if (missing.length === 0 || cancelled) return;
+
+        setBackfill({ status: 'running', total: missing.length, current: 0 });
+
+        for (let i = 0; i < missing.length; i++) {
+          if (cancelled) return;
+          try {
+            await supabase.functions.invoke('generate-embeddings', {
+              body: { meetingId: missing[i].id, userId: user.id },
+            });
+          } catch (e) {
+            console.error('backfill error', missing[i].id, e);
+          }
+          if (cancelled) return;
+          setBackfill((b) => ({ ...b, current: i + 1 }));
+        }
+
+        if (cancelled) return;
+        setBackfill({ status: 'done', total: missing.length, current: missing.length });
+        setTimeout(() => {
+          if (!cancelled) setBackfill({ status: 'idle', total: 0, current: 0 });
+        }, 3000);
+      } catch (e) {
+        console.error('backfill fatal', e);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, isPaid]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
