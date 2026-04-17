@@ -43,6 +43,7 @@ const SharedMeeting = lazy(() => import("./pages/SharedMeeting"));
 const EnterpriseAdmin = lazy(() => import("./pages/EnterpriseAdmin"));
 const DesktopAuth = lazy(() => import("./pages/DesktopAuth"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
+const AskMeetings = lazy(() => import("./pages/AskMeetings"));
 
 const queryClient = new QueryClient();
 
@@ -102,6 +103,7 @@ const App = () => (
               <Route path="/upload" element={<ProtectedRoute><UploadPage /></ProtectedRoute>} />
               <Route path="/meetings" element={<ProtectedRoute><Meetings /></ProtectedRoute>} />
               <Route path="/meetings/:id" element={<ProtectedRoute><MeetingDetail /></ProtectedRoute>} />
+              <Route path="/ask" element={<ProtectedRoute><AskMeetings /></ProtectedRoute>} />
               <Route path="/routines" element={<ProtectedRoute><Routines /></ProtectedRoute>} />
               <Route path="/routines/:id" element={<ProtectedRoute><RoutineDetail /></ProtectedRoute>} />
               <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
