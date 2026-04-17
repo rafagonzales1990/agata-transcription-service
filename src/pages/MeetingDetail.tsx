@@ -849,8 +849,10 @@ export default function MeetingDetail() {
               <ul className="space-y-2">
                 {meeting.actionItems.map((item, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm">
-                    <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                    {item}
+                    <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                    <div className="markdown-rendered flex-1 [&_p]:m-0">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{item}</ReactMarkdown>
+                    </div>
                   </li>
                 ))}
               </ul>
