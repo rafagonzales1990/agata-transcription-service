@@ -5,12 +5,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const EMBED_MODEL = 'models/embedding-001'
+const EMBED_MODEL = 'text-embedding-004'
 const CHAT_MODEL = 'gemini-2.5-flash'
 
 async function embedText(text: string, apiKey: string): Promise<number[]> {
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/${EMBED_MODEL}:embedContent`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${EMBED_MODEL}:embedContent`,
     {
       method: 'POST',
       headers: {
@@ -18,7 +18,7 @@ async function embedText(text: string, apiKey: string): Promise<number[]> {
         'x-goog-api-key': apiKey,
       },
       body: JSON.stringify({
-        model: EMBED_MODEL,
+        model: `models/${EMBED_MODEL}`,
         content: { parts: [{ text }] },
       }),
     }
