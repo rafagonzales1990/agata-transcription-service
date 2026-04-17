@@ -24,7 +24,7 @@ function chunkText(text: string, size = CHUNK_SIZE, overlap = CHUNK_OVERLAP): st
 
 async function embedChunk(text: string, apiKey: string): Promise<number[]> {
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${EMBED_MODEL}:embedContent`,
+    `https://generativelanguage.googleapis.com/v1/models/${EMBED_MODEL}:embedContent`,
     {
       method: 'POST',
       headers: {
