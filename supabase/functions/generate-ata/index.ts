@@ -580,11 +580,32 @@ Deno.serve(async (req) => {
     } else if (template && TEMPLATE_PROMPTS[template]) {
       // Generate AI content using type-specific prompt
       const templatePrompt = TEMPLATE_PROMPTS[template]
+
+      // Format meeting metadata for the prompt (so the model uses real values)
+      const meetingDateForPrompt = meeting.meetingDate
+        ? new Date(meeting.meetingDate).toLocaleDateString('pt-BR')
+        : new Date().toLocaleDateString('pt-BR')
+      const meetingTimeForPrompt = meeting.meetingTime
+        || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      const meetingLocationForPrompt = meeting.location || 'Reunião Online'
+      const meetingResponsibleForPrompt = meeting.responsible || 'Não especificado'
+      const meetingParticipantsForPrompt = meeting.participants?.length
+        ? meeting.participants.join(', ')
+        : 'Não especificados'
+
       const geminiPrompt = `Você é um especialista em documentação de reuniões.
 
 ${templatePrompt}
 
-Baseie-se EXCLUSIVAMENTE no conteúdo da transcrição/resumo abaixo.
+DADOS REAIS DA REUNIÃO (use EXATAMENTE estes valores quando precisar referenciar data, hora, local, responsável ou participantes — NÃO use placeholders como "[Data da Reunião - Não especificada]"):
+- Título: ${meeting.title}
+- Data: ${meetingDateForPrompt}
+- Horário: ${meetingTimeForPrompt}
+- Local: ${meetingLocationForPrompt}
+- Responsável: ${meetingResponsibleForPrompt}
+- Participantes: ${meetingParticipantsForPrompt}
+
+Baseie-se EXCLUSIVAMENTE no conteúdo da transcrição/resumo abaixo para o conteúdo substantivo.
 Não invente informações que não foram mencionadas.
 Formate em Markdown com títulos ## para cada seção.
 Seja objetivo e profissional.
@@ -602,7 +623,7 @@ ${meeting.transcription?.slice(0, 8000) || summaryContent?.slice(0, 4000) || '(n
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts: [{ text: geminiPrompt }] }],
-            generationConfig: { temperature: 0.3, maxOutputTokens: 4000 },
+            generationConfig: { temperature: 0.3, maxOutputTokens: 8192 },
           }),
         }
       )
