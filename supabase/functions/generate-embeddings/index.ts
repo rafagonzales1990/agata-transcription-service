@@ -7,7 +7,7 @@ const corsHeaders = {
 
 const CHUNK_SIZE = 500       // words per chunk
 const CHUNK_OVERLAP = 50     // word overlap between chunks
-const EMBED_MODEL = 'embedding-001'
+const EMBED_MODEL = 'gemini-embedding-001'
 
 function chunkText(text: string, size = CHUNK_SIZE, overlap = CHUNK_OVERLAP): string[] {
   const words = text.split(/\s+/).filter(Boolean)
@@ -35,6 +35,7 @@ async function embedChunk(text: string, apiKey: string): Promise<number[]> {
         model: `models/${EMBED_MODEL}`,
         content: { parts: [{ text }] },
         taskType: 'RETRIEVAL_DOCUMENT',
+        outputDimensionality: 768,
       }),
     }
   )
