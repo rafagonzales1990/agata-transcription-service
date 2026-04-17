@@ -67,7 +67,7 @@ async function transcribeChunk(
   chunkIndex: number,
   totalChunks: number
 ): Promise<string> {
-  const response = await fetch(
+  const response = await fetchWithRetry(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
     {
       method: 'POST',
