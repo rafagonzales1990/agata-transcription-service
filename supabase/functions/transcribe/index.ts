@@ -282,7 +282,7 @@ Deno.serve(async (req) => {
 
       await new Promise(resolve => setTimeout(resolve, 3000))
 
-      const geminiResponse = await fetch(
+      const geminiResponse = await fetchWithRetry(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
         {
           method: 'POST',
