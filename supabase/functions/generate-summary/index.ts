@@ -92,9 +92,9 @@ ${transcription}`,
 }
 
 const maxTokens: Record<string, number> = {
-  executivo: 1500,
-  detalhado: 3000,
-  ata_completa: 5000,
+  executivo: 4000,
+  detalhado: 8192,
+  ata_completa: 8192,
 }
 
 Deno.serve(async (req) => {

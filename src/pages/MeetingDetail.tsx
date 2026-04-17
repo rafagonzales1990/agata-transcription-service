@@ -390,14 +390,38 @@ export default function MeetingDetail() {
 </body>
 </html>`;
 
-      const printWindow = window.open("", "_blank");
-      if (printWindow) {
-        printWindow.document.open();
-        printWindow.document.write(fullHtml);
-        printWindow.document.close();
-        printWindow.onload = () => setTimeout(() => printWindow.print(), 500);
+      // Use a Blob URL — more reliable than document.write for triggering print()
+      const blob = new Blob([fullHtml], { type: "text/html;charset=utf-8" });
+      const blobUrl = URL.createObjectURL(blob);
+
+      const printWindow = window.open(blobUrl, "_blank");
+      if (!printWindow) {
+        URL.revokeObjectURL(blobUrl);
+        toast.error("Pop-up bloqueado. Permita pop-ups para este site e tente novamente.");
+        return;
       }
-      toast.success("ATA gerada! Use Ctrl+P para salvar como PDF.");
+
+      // Trigger print as soon as the window finishes loading the Blob URL.
+      // Use both `load` and a timeout fallback because some browsers don't fire
+      // load reliably for blob: URLs in cross-origin contexts.
+      const triggerPrint = () => {
+        try {
+          printWindow.focus();
+          printWindow.print();
+        } catch (e) {
+          console.error("Print failed:", e);
+        }
+      };
+
+      printWindow.addEventListener("load", () => {
+        setTimeout(triggerPrint, 300);
+      });
+      // Fallback in case the load event doesn't fire
+      setTimeout(triggerPrint, 1500);
+      // Clean up the blob URL after a while
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+
+      toast.success("ATA gerada! Use Ctrl+P / Cmd+P se a janela de impressão não abrir automaticamente.");
     } catch (err: any) {
       toast.error(err.message || "Erro ao gerar PDF");
     } finally {
