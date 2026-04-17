@@ -5,7 +5,34 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const MAX_CHUNK_BYTES = 18 * 1024 * 1024
+const MAX_CHUNK_BYTES = 4 * 1024 * 1024
+
+async function fetchWithRetry(
+  url: string,
+  init: RequestInit,
+  maxRetries = 3,
+  retryDelayMs = 2000
+): Promise<Response> {
+  let lastError: unknown = null
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, init)
+      if (response.status === 503 || response.status === 429) {
+        if (attempt === maxRetries) return response
+        console.warn(`Gemini ${response.status}, retry ${attempt + 1}/${maxRetries} in ${retryDelayMs}ms`)
+        await new Promise(r => setTimeout(r, retryDelayMs))
+        continue
+      }
+      return response
+    } catch (err) {
+      lastError = err
+      if (attempt === maxRetries) throw err
+      console.warn(`Gemini fetch error, retry ${attempt + 1}/${maxRetries}:`, err)
+      await new Promise(r => setTimeout(r, retryDelayMs))
+    }
+  }
+  throw lastError ?? new Error('fetchWithRetry exhausted')
+}
 const TRANSCRIPTION_PROMPT = `No início da sua resposta, antes da transcrição, adicione uma linha:
 DURACAO_SEGUNDOS: [número inteiro de segundos do áudio]
 
@@ -40,7 +67,7 @@ async function transcribeChunk(
   chunkIndex: number,
   totalChunks: number
 ): Promise<string> {
-  const response = await fetch(
+  const response = await fetchWithRetry(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
     {
       method: 'POST',
@@ -255,7 +282,7 @@ Deno.serve(async (req) => {
 
       await new Promise(resolve => setTimeout(resolve, 3000))
 
-      const geminiResponse = await fetch(
+      const geminiResponse = await fetchWithRetry(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
         {
           method: 'POST',
