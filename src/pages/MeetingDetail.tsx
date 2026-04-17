@@ -583,8 +583,8 @@ export default function MeetingDetail() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap text-sm leading-relaxed max-h-[400px] overflow-y-auto">
-                {meeting.transcription}
+              <div className="markdown-rendered text-sm leading-relaxed max-h-[400px] overflow-y-auto">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{meeting.transcription}</ReactMarkdown>
               </div>
             </CardContent>
           </Card>
