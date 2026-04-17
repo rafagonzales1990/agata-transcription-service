@@ -90,7 +90,7 @@ export default function DashboardPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-lg font-bold text-white">Olá, {userName} 👋</p>
+              <p className="text-lg font-bold text-foreground">Olá, {userName} 👋</p>
               <p className="text-xs text-muted-foreground">
                 {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
               </p>
@@ -171,7 +171,7 @@ export default function DashboardPage() {
     <AppLayout>
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-white">Bem-vindo, {userName}!</h1>
+          <h1 className="text-3xl font-bold text-foreground">Bem-vindo, {userName}!</h1>
           <p className="text-muted-foreground mt-1">Gerencie suas transcrições de reuniões com inteligência artificial</p>
         </div>
 

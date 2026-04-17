@@ -638,14 +638,14 @@ export default function AdminPanel() {
           <VersionBadge showChangelog={false} className="ml-2" />
         </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="text-white hover:text-white" onClick={() => navigate('/admin/leads')}>
+            <Button variant="outline" size="sm" onClick={() => navigate('/admin/leads')}>
               Leads Demo
             </Button>
-            <Button variant="outline" size="sm" className="text-white hover:text-white" onClick={() => refreshUsers()}>
-              <RefreshCw className="h-4 w-4 mr-1 text-white" /> Refresh
+            <Button variant="outline" size="sm" onClick={() => refreshUsers()}>
+              <RefreshCw className="h-4 w-4 mr-1" /> Refresh
             </Button>
-            <Button variant="outline" size="sm" className="text-foreground hover:text-foreground" onClick={() => { setInviteForm({ email: '', name: '', planId: 'basic' }); setInviteOpen(true); }}>
-              <Mail className="h-4 w-4 mr-1 text-white" /> Convidar Usuário
+            <Button variant="outline" size="sm" onClick={() => { setInviteForm({ email: '', name: '', planId: 'basic' }); setInviteOpen(true); }}>
+              <Mail className="h-4 w-4 mr-1" /> Convidar Usuário
             </Button>
             <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => { setFormName(''); setFormEmail(''); setFormPassword(''); setFormPlan('basic'); setShowNewUser(true); }}>
               <Plus className="h-4 w-4 mr-1" /> Novo Usuário
