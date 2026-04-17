@@ -449,6 +449,17 @@ Deno.serve(async (req) => {
 
     console.log(`Transcription completed for meeting ${meetingId}`)
 
+    // Fire-and-forget: generate embeddings for semantic search ("Ask Me Anything")
+    if (meetingData?.userId) {
+      supabase.functions
+        .invoke('generate-embeddings', {
+          body: { meetingId, userId: meetingData.userId },
+        })
+        .catch((embedErr) => {
+          console.error('Failed to invoke generate-embeddings:', embedErr)
+        })
+    }
+
     return new Response(JSON.stringify({ success: true, meetingId }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
