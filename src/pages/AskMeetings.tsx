@@ -170,6 +170,37 @@ export default function AskMeetings() {
           </p>
         </header>
 
+        {/* Backfill banner */}
+        {backfill.status !== 'idle' && (
+          <div
+            className={cn(
+              'flex-shrink-0 mb-3 px-3 py-2 rounded-lg border text-xs flex items-center gap-2 transition-opacity',
+              backfill.status === 'running'
+                ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
+                : 'bg-emerald-100 dark:bg-emerald-950/50 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200'
+            )}
+            role="status"
+            aria-live="polite"
+          >
+            {backfill.status === 'running' ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                <span>
+                  Indexando {backfill.total} {backfill.total === 1 ? 'reunião' : 'reuniões'} para busca
+                  {backfill.current > 0 && ` (${backfill.current}/${backfill.total})`}... (não feche esta página)
+                </span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                <span>
+                  {backfill.total} {backfill.total === 1 ? 'reunião indexada' : 'reuniões indexadas'} com sucesso!
+                </span>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Messages */}
         <div
           ref={scrollRef}
