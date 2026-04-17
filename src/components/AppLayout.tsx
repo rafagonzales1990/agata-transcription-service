@@ -6,6 +6,7 @@ import {
   Repeat, Sparkles, LogOut, Menu, X, User, CreditCard,
   ChevronDown, Shield, Users, HelpCircle, ExternalLink,
   Sun, Moon, Building2, Download, Monitor, Globe, Smartphone,
+  MessageCircle,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -29,6 +30,7 @@ const menuItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Nova Transcrição', href: '/upload', icon: Upload },
   { label: 'Reuniões', href: '/meetings', icon: FileText },
+  { label: 'Perguntar às Reuniões', href: '/ask', icon: MessageCircle, requiresMeetings: true, paidOnly: true },
   { label: 'Rotinas', href: '/routines', icon: Repeat },
   { label: 'Documentos', href: '/documents', icon: FolderOpen },
   { label: 'Planos', href: '/plans', icon: CreditCard },
@@ -48,6 +50,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [userCpf, setUserCpf] = useState<string | null | undefined>(undefined);
   const [pwaModalOpen, setPwaModalOpen] = useState(false);
+  const [hasCompletedMeetings, setHasCompletedMeetings] = useState(false);
 
   const fetchCpfAndAdmin = useCallback(async () => {
     try {
@@ -81,6 +84,21 @@ export function AppLayout({ children }: AppLayoutProps) {
   useEffect(() => {
     fetchCpfAndAdmin();
   }, [fetchCpfAndAdmin]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+      const { count } = await supabase
+        .from('Meeting')
+        .select('id', { count: 'exact', head: true })
+        .eq('userId', session.user.id)
+        .eq('status', 'completed');
+      if (!cancelled) setHasCompletedMeetings((count || 0) > 0);
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const isActive = (path: string) => {
     if (path === '/dashboard') return location.pathname === path;
@@ -118,6 +136,8 @@ export function AppLayout({ children }: AppLayoutProps) {
       <nav className="flex-1 p-3 space-y-1">
         {menuItems
           .filter(item => !('enterpriseOnly' in item && item.enterpriseOnly) || isEnterprise)
+          .filter(item => !('requiresMeetings' in item && item.requiresMeetings) || hasCompletedMeetings)
+          .filter(item => !('paidOnly' in item && item.paidOnly) || isPaid)
           .map((item) => (
           <Link
             key={item.href}
