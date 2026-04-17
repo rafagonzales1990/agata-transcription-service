@@ -1,0 +1,1 @@
+ALTER TABLE public."Usage" ADD COLUMN IF NOT EXISTS "upgradeSuggestionSentMonth" text;

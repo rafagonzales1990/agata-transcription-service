@@ -868,6 +868,7 @@ export type Database = {
           totalMinutesTranscribed: number
           transcriptionsUsed: number
           updatedAt: string
+          upgradeSuggestionSentMonth: string | null
           userId: string
         }
         Insert: {
@@ -877,6 +878,7 @@ export type Database = {
           totalMinutesTranscribed?: number
           transcriptionsUsed?: number
           updatedAt?: string
+          upgradeSuggestionSentMonth?: string | null
           userId: string
         }
         Update: {
@@ -886,6 +888,7 @@ export type Database = {
           totalMinutesTranscribed?: number
           transcriptionsUsed?: number
           updatedAt?: string
+          upgradeSuggestionSentMonth?: string | null
           userId?: string
         }
         Relationships: [
