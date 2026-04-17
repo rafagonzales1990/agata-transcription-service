@@ -56,7 +56,7 @@ export function TrialBanner() {
 
   // State 2: Free restricted (trial expired or no trial)
   return (
-    <div className="px-4 py-2.5 text-sm flex items-center justify-between gap-4 bg-gray-100 text-gray-700 border-b border-gray-200">
+    <div className="px-4 py-2.5 text-sm flex items-center justify-between gap-4 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-b border-gray-200 dark:border-gray-700">
       <div className="flex items-center gap-2">
         <Lock className="h-4 w-4 shrink-0" />
         <span>

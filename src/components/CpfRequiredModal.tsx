@@ -74,17 +74,17 @@ export function CpfRequiredModal({ userId, onSaved }: CpfRequiredModalProps) {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[420px] mx-4 p-8 flex flex-col items-center gap-5">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-[420px] mx-4 p-8 flex flex-col items-center gap-5">
         <LogoIcon size={48} />
         <div className="text-center space-y-2">
-          <h2 className="text-xl font-bold text-gray-900">Complete seu cadastro</h2>
-          <p className="text-sm text-gray-500 leading-relaxed">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Complete seu cadastro</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
             Para garantir a segurança da plataforma e evitar uso indevido do período trial, precisamos confirmar sua identidade.
           </p>
         </div>
 
         <div className="w-full space-y-2">
-          <label htmlFor="cpf-input" className="text-sm font-medium text-gray-700">CPF</label>
+          <label htmlFor="cpf-input" className="text-sm font-medium text-gray-700 dark:text-gray-200">CPF</label>
           <input
             id="cpf-input"
             type="text"
@@ -94,9 +94,9 @@ export function CpfRequiredModal({ userId, onSaved }: CpfRequiredModalProps) {
             value={cpf}
             onChange={handleChange}
             onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-            className="w-full h-11 px-4 rounded-lg border border-gray-300 text-base focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition"
+            className="w-full h-11 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-base focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition"
           />
-          {error && <p className="text-sm text-red-600 leading-snug">{error}</p>}
+          {error && <p className="text-sm text-red-600 dark:text-red-400 leading-snug">{error}</p>}
         </div>
 
         <button
@@ -108,7 +108,7 @@ export function CpfRequiredModal({ userId, onSaved }: CpfRequiredModalProps) {
           {saving ? 'Salvando...' : 'Confirmar CPF'}
         </button>
 
-        <p className="text-xs text-gray-400 text-center">Seus dados são protegidos pela LGPD.</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 text-center">Seus dados são protegidos pela LGPD.</p>
       </div>
     </div>
   );
