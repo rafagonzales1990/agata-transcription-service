@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const EMBED_MODEL = 'text-embedding-004'
+const EMBED_MODEL = 'gemini-embedding-001'
 const CHAT_MODEL = 'gemini-2.5-flash'
 
 async function embedText(text: string, apiKey: string): Promise<number[]> {
@@ -20,6 +20,7 @@ async function embedText(text: string, apiKey: string): Promise<number[]> {
       body: JSON.stringify({
         model: `models/${EMBED_MODEL}`,
         content: { parts: [{ text }] },
+        taskType: 'RETRIEVAL_QUERY',
       }),
     }
   )
