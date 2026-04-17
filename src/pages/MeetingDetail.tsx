@@ -553,7 +553,7 @@ export default function MeetingDetail() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setShareOpen(true)} className="flex items-center gap-1.5 text-white hover:text-white">
+              <Button variant="outline" size="sm" onClick={() => setShareOpen(true)} className="flex items-center gap-1.5">
                 <Share2 className="h-3.5 w-3.5" /> Compartilhar
               </Button>
               <Badge variant={cfg.variant} className="shrink-0 flex items-center gap-1">
