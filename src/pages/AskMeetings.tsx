@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Send, Sparkles, MessageCircle, FileText, Calendar, Lock } from 'lucide-react';
+import { Send, Sparkles, MessageCircle, FileText, Calendar, Lock, Loader2, CheckCircle2 } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -49,6 +49,14 @@ export default function AskMeetings() {
   const [hasMeetings, setHasMeetings] = useState<boolean | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Embeddings backfill state
+  const [backfill, setBackfill] = useState<{
+    status: 'idle' | 'running' | 'done';
+    total: number;
+    current: number;
+  }>({ status: 'idle', total: 0, current: 0 });
+  const backfillStartedRef = useRef(false);
+
   const planId = profile?.plan_id || 'basic';
   const isPaid = ['inteligente', 'automacao', 'enterprise'].includes(planId);
 
@@ -61,6 +69,63 @@ export default function AskMeetings() {
       .eq('status', 'completed')
       .then(({ count }) => setHasMeetings((count || 0) > 0));
   }, [user]);
+
+  // Auto-backfill embeddings on mount for completed meetings missing them
+  useEffect(() => {
+    if (!user || !isPaid || backfillStartedRef.current) return;
+    backfillStartedRef.current = true;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const { data: meetings, error: mErr } = await supabase
+          .from('Meeting')
+          .select('id')
+          .eq('userId', user.id)
+          .eq('status', 'completed')
+          .not('transcription', 'is', null);
+        if (mErr || !meetings || meetings.length === 0) return;
+
+        const { data: embedded, error: eErr } = await supabase
+          .from('MeetingEmbedding')
+          .select('meetingId')
+          .eq('userId', user.id);
+        if (eErr) return;
+
+        const embeddedIds = new Set((embedded || []).map((r: any) => r.meetingId));
+        const missing = meetings.filter((m: any) => !embeddedIds.has(m.id));
+        if (missing.length === 0 || cancelled) return;
+
+        setBackfill({ status: 'running', total: missing.length, current: 0 });
+
+        for (let i = 0; i < missing.length; i++) {
+          if (cancelled) return;
+          try {
+            await supabase.functions.invoke('generate-embeddings', {
+              body: { meetingId: missing[i].id, userId: user.id },
+            });
+          } catch (e) {
+            console.error('backfill error', missing[i].id, e);
+          }
+          if (cancelled) return;
+          setBackfill((b) => ({ ...b, current: i + 1 }));
+        }
+
+        if (cancelled) return;
+        setBackfill({ status: 'done', total: missing.length, current: missing.length });
+        setTimeout(() => {
+          if (!cancelled) setBackfill({ status: 'idle', total: 0, current: 0 });
+        }, 3000);
+      } catch (e) {
+        console.error('backfill fatal', e);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, isPaid]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -169,6 +234,37 @@ export default function AskMeetings() {
             Faça perguntas sobre suas reuniões transcritas
           </p>
         </header>
+
+        {/* Backfill banner */}
+        {backfill.status !== 'idle' && (
+          <div
+            className={cn(
+              'flex-shrink-0 mb-3 px-3 py-2 rounded-lg border text-xs flex items-center gap-2 transition-opacity',
+              backfill.status === 'running'
+                ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
+                : 'bg-emerald-100 dark:bg-emerald-950/50 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200'
+            )}
+            role="status"
+            aria-live="polite"
+          >
+            {backfill.status === 'running' ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                <span>
+                  Indexando {backfill.total} {backfill.total === 1 ? 'reunião' : 'reuniões'} para busca
+                  {backfill.current > 0 && ` (${backfill.current}/${backfill.total})`}... (não feche esta página)
+                </span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                <span>
+                  {backfill.total} {backfill.total === 1 ? 'reunião indexada' : 'reuniões indexadas'} com sucesso!
+                </span>
+              </>
+            )}
+          </div>
+        )}
 
         {/* Messages */}
         <div
