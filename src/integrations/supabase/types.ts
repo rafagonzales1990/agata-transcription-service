@@ -507,6 +507,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_meeting"
+            columns: ["meetingId"]
+            isOneToOne: false
+            referencedRelation: "Meeting"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "MeetingEmbedding_meetingId_fkey"
             columns: ["meetingId"]
             isOneToOne: false
