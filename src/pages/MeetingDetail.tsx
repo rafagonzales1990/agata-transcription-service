@@ -583,8 +583,8 @@ export default function MeetingDetail() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap text-sm leading-relaxed max-h-[400px] overflow-y-auto">
-                {meeting.transcription}
+              <div className="markdown-rendered text-sm leading-relaxed max-h-[400px] overflow-y-auto">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{meeting.transcription}</ReactMarkdown>
               </div>
             </CardContent>
           </Card>
@@ -849,8 +849,10 @@ export default function MeetingDetail() {
               <ul className="space-y-2">
                 {meeting.actionItems.map((item, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm">
-                    <span className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                    {item}
+                    <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                    <div className="markdown-rendered flex-1 [&_p]:m-0">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{item}</ReactMarkdown>
+                    </div>
                   </li>
                 ))}
               </ul>
