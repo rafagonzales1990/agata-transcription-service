@@ -19,67 +19,113 @@ Deno.serve(async (req) => {
   const errors: string[] = []
 
   try {
-    // Trial expiring in 7 days
-    const in7days = new Date(now)
-    in7days.setDate(in7days.getDate() + 7)
-    const in8days = new Date(now)
-    in8days.setDate(in8days.getDate() + 8)
+    // ============================================================
+    // 1) Trial expiring in 3-5 days (warn ~day 10 of 14-day trial)
+    // ============================================================
+    const in3days = new Date(now)
+    in3days.setDate(in3days.getDate() + 3)
+    const in5days = new Date(now)
+    in5days.setDate(in5days.getDate() + 5)
 
-    const { data: expiring } = await supabase
-      .from('User')
-      .select('id, email, name, trialEndsAt')
-      .eq('trialWarningEmailSent', false)
-      .gte('trialEndsAt', in7days.toISOString())
-      .lt('trialEndsAt', in8days.toISOString())
+    // Read from profiles.trial_ends_at (source of truth from handle_new_user)
+    const { data: expiringProfiles } = await supabase
+      .from('profiles')
+      .select('user_id, email, name, trial_ends_at')
+      .gte('trial_ends_at', in3days.toISOString())
+      .lt('trial_ends_at', in5days.toISOString())
 
-    for (const user of expiring || []) {
+    for (const profile of expiringProfiles || []) {
       try {
+        // Check if warning already sent (still tracked in User table)
+        const { data: user } = await supabase
+          .from('User')
+          .select('id, trialWarningEmailSent')
+          .eq('id', profile.user_id)
+          .maybeSingle()
+
+        if (!user || user.trialWarningEmailSent) continue
+
         await supabase.functions.invoke('send-email', {
-          body: { type: 'trial_expiring', to: user.email, data: { name: user.name || 'Usuário' } }
+          body: {
+            type: 'trial_expiring',
+            to: profile.email,
+            data: { name: profile.name || 'Usuário' },
+          },
         })
         await supabase.from('User').update({ trialWarningEmailSent: true }).eq('id', user.id)
         emailsSent++
       } catch (err) {
-        errors.push(`trial_expiring ${user.id}: ${String(err)}`)
+        errors.push(`trial_expiring ${profile.user_id}: ${String(err)}`)
       }
     }
 
-    // Trial expired today
-    const { data: expired } = await supabase
-      .from('User')
-      .select('id, email, name')
-      .eq('trialExpiredEmailSent', false)
-      .lt('trialEndsAt', now.toISOString())
-      .not('trialEndsAt', 'is', null)
+    // ============================================================
+    // 2) Trial expired — send email + auto-downgrade to basic
+    // ============================================================
+    const { data: expiredProfiles } = await supabase
+      .from('profiles')
+      .select('user_id, email, name, trial_ends_at, plan_id')
+      .lt('trial_ends_at', now.toISOString())
+      .not('trial_ends_at', 'is', null)
 
-    for (const user of expired || []) {
+    for (const profile of expiredProfiles || []) {
       try {
+        const { data: user } = await supabase
+          .from('User')
+          .select('id, trialExpiredEmailSent, planId')
+          .eq('id', profile.user_id)
+          .maybeSingle()
+
+        if (!user || user.trialExpiredEmailSent) continue
+
         await supabase.functions.invoke('send-email', {
-          body: { type: 'trial_expired', to: user.email, data: { name: user.name || 'Usuário' } }
+          body: {
+            type: 'trial_expired',
+            to: profile.email,
+            data: { name: profile.name || 'Usuário' },
+          },
         })
-        await supabase.from('User').update({ trialExpiredEmailSent: true }).eq('id', user.id)
+
+        // Mark email as sent
+        await supabase
+          .from('User')
+          .update({ trialExpiredEmailSent: true })
+          .eq('id', user.id)
+
+        // Auto-downgrade to basic in BOTH tables for consistency
+        // Only downgrade if user is not on a paid plan already
+        if (!user.planId || user.planId === 'basic' || user.planId === 'inteligente') {
+          await supabase.from('User').update({ planId: 'basic' }).eq('id', user.id)
+          await supabase.from('profiles').update({ plan_id: 'basic' }).eq('user_id', profile.user_id)
+        }
+
         emailsSent++
       } catch (err) {
-        errors.push(`trial_expired ${user.id}: ${String(err)}`)
+        errors.push(`trial_expired ${profile.user_id}: ${String(err)}`)
       }
     }
 
-    // Upgrade suggestion (at 80% of limit)
+    // ============================================================
+    // 3) Upgrade suggestion (at 80% of limit) — once per month
+    // ============================================================
     const currentMonth = now.toISOString().slice(0, 7)
     const { data: usages } = await supabase
       .from('Usage')
-      .select('userId, transcriptionsUsed')
+      .select('userId, transcriptionsUsed, upgradeSuggestionSentMonth')
       .eq('currentMonth', currentMonth)
 
     const planLimits: Record<string, number> = {
-      basic: 5, inteligente: 15, automacao: 30, enterprise: 100
+      basic: 5, inteligente: 15, automacao: 30, enterprise: 100,
     }
     const nextPlanNames: Record<string, string> = {
-      basic: 'Inteligente', inteligente: 'Automação', automacao: 'Enterprise'
+      basic: 'Inteligente', inteligente: 'Automação', automacao: 'Enterprise',
     }
 
     for (const usage of usages || []) {
       try {
+        // Skip if already sent this month
+        if (usage.upgradeSuggestionSentMonth === currentMonth) continue
+
         const { data: user } = await supabase
           .from('User')
           .select('email, name, planId')
@@ -89,6 +135,7 @@ Deno.serve(async (req) => {
         if (!user || user.planId === 'enterprise') continue
         const limit = planLimits[user.planId || 'basic'] || 5
         const pct = (usage.transcriptionsUsed / limit) * 100
+
         if (pct >= 80 && pct < 100) {
           await supabase.functions.invoke('send-email', {
             body: {
@@ -99,9 +146,17 @@ Deno.serve(async (req) => {
                 used: usage.transcriptionsUsed,
                 max: limit,
                 nextPlan: nextPlanNames[user.planId || 'basic'] || 'Inteligente',
-              }
-            }
+              },
+            },
           })
+
+          // Mark as sent for this month
+          await supabase
+            .from('Usage')
+            .update({ upgradeSuggestionSentMonth: currentMonth })
+            .eq('userId', usage.userId)
+            .eq('currentMonth', currentMonth)
+
           emailsSent++
         }
       } catch (err) {
