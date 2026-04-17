@@ -7,7 +7,7 @@ const corsHeaders = {
 
 const CHUNK_SIZE = 500       // words per chunk
 const CHUNK_OVERLAP = 50     // word overlap between chunks
-const EMBED_MODEL = 'models/embedding-001'
+const EMBED_MODEL = 'text-embedding-004'
 
 function chunkText(text: string, size = CHUNK_SIZE, overlap = CHUNK_OVERLAP): string[] {
   const words = text.split(/\s+/).filter(Boolean)
@@ -24,7 +24,7 @@ function chunkText(text: string, size = CHUNK_SIZE, overlap = CHUNK_OVERLAP): st
 
 async function embedChunk(text: string, apiKey: string): Promise<number[]> {
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/${EMBED_MODEL}:embedContent`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${EMBED_MODEL}:embedContent`,
     {
       method: 'POST',
       headers: {
@@ -32,7 +32,7 @@ async function embedChunk(text: string, apiKey: string): Promise<number[]> {
         'x-goog-api-key': apiKey,
       },
       body: JSON.stringify({
-        model: EMBED_MODEL,
+        model: `models/${EMBED_MODEL}`,
         content: { parts: [{ text }] },
       }),
     }
