@@ -325,6 +325,61 @@ export default function AdminPanel() {
   // Bulk
   const [bulkPlan, setBulkPlan] = useState('');
 
+  // Embeddings backfill
+  const [backfillRunning, setBackfillRunning] = useState(false);
+  const [backfillProgress, setBackfillProgress] = useState({ current: 0, total: 0, success: 0, errors: 0 });
+
+  const runEmbeddingsBackfill = async () => {
+    if (backfillRunning) return;
+    setBackfillRunning(true);
+    setBackfillProgress({ current: 0, total: 0, success: 0, errors: 0 });
+    try {
+      const { data: meetings, error } = await supabase
+        .from('Meeting')
+        .select('id, userId')
+        .eq('status', 'completed')
+        .not('transcription', 'is', null);
+
+      if (error) throw error;
+      const list = meetings || [];
+      if (list.length === 0) {
+        toast.info('Nenhuma reunião concluída para processar.');
+        setBackfillRunning(false);
+        return;
+      }
+
+      setBackfillProgress({ current: 0, total: list.length, success: 0, errors: 0 });
+      toast.info(`Gerando embeddings para ${list.length} reuniões...`);
+
+      let success = 0;
+      let errors = 0;
+      for (let i = 0; i < list.length; i++) {
+        const m = list[i];
+        try {
+          const { error: invokeErr } = await supabase.functions.invoke('generate-embeddings', {
+            body: { meetingId: m.id, userId: m.userId },
+          });
+          if (invokeErr) {
+            errors++;
+            console.error(`Backfill error for ${m.id}:`, invokeErr);
+          } else {
+            success++;
+          }
+        } catch (e) {
+          errors++;
+          console.error(`Backfill exception for ${m.id}:`, e);
+        }
+        setBackfillProgress({ current: i + 1, total: list.length, success, errors });
+      }
+
+      toast.success(`Backfill concluído: ${success} sucesso, ${errors} erros`);
+    } catch (e: any) {
+      toast.error(`Erro no backfill: ${e.message || 'desconhecido'}`);
+    } finally {
+      setBackfillRunning(false);
+    }
+  };
+
   useEffect(() => { checkAdmin(); }, [user]);
 
   const checkAdmin = async () => {
@@ -706,7 +761,7 @@ export default function AdminPanel() {
               <CardHeader>
                 <CardTitle className="text-base">Ações</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex flex-wrap gap-3 items-center">
                 <Button
                   variant="outline"
                   size="sm"
@@ -724,6 +779,25 @@ export default function AdminPanel() {
                   <Database className="h-4 w-4" />
                   Backup Manual
                 </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  disabled={backfillRunning}
+                  onClick={runEmbeddingsBackfill}
+                >
+                  {backfillRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                  {backfillRunning
+                    ? `Gerando embeddings ${backfillProgress.current}/${backfillProgress.total}...`
+                    : 'Gerar Embeddings'}
+                </Button>
+
+                {(backfillRunning || backfillProgress.total > 0) && (
+                  <span className="text-xs text-muted-foreground font-mono">
+                    ✓ {backfillProgress.success} · ✗ {backfillProgress.errors}
+                  </span>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
