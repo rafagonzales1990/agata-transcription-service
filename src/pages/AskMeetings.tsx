@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Send, Sparkles, MessageCircle, FileText, Calendar, Lock } from 'lucide-react';
+import { Send, Sparkles, MessageCircle, FileText, Calendar, Lock, Loader2, CheckCircle2 } from 'lucide-react';
 import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
