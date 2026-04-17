@@ -477,6 +477,44 @@ export type Database = {
           },
         ]
       }
+      MeetingEmbedding: {
+        Row: {
+          chunkIndex: number
+          chunkText: string
+          createdAt: string | null
+          embedding: string | null
+          id: string
+          meetingId: string
+          userId: string
+        }
+        Insert: {
+          chunkIndex?: number
+          chunkText: string
+          createdAt?: string | null
+          embedding?: string | null
+          id?: string
+          meetingId: string
+          userId: string
+        }
+        Update: {
+          chunkIndex?: number
+          chunkText?: string
+          createdAt?: string | null
+          embedding?: string | null
+          id?: string
+          meetingId?: string
+          userId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "MeetingEmbedding_meetingId_fkey"
+            columns: ["meetingId"]
+            isOneToOne: false
+            referencedRelation: "Meeting"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       MeetingShare: {
         Row: {
           createdAt: string
