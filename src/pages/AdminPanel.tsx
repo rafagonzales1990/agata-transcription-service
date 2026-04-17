@@ -761,7 +761,7 @@ export default function AdminPanel() {
               <CardHeader>
                 <CardTitle className="text-base">Ações</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex flex-wrap gap-3 items-center">
                 <Button
                   variant="outline"
                   size="sm"
@@ -779,6 +779,25 @@ export default function AdminPanel() {
                   <Database className="h-4 w-4" />
                   Backup Manual
                 </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  disabled={backfillRunning}
+                  onClick={runEmbeddingsBackfill}
+                >
+                  {backfillRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                  {backfillRunning
+                    ? `Gerando embeddings ${backfillProgress.current}/${backfillProgress.total}...`
+                    : 'Gerar Embeddings'}
+                </Button>
+
+                {(backfillRunning || backfillProgress.total > 0) && (
+                  <span className="text-xs text-muted-foreground font-mono">
+                    ✓ {backfillProgress.success} · ✗ {backfillProgress.errors}
+                  </span>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
