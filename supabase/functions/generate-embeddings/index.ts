@@ -7,7 +7,7 @@ const corsHeaders = {
 
 const CHUNK_SIZE = 500       // words per chunk
 const CHUNK_OVERLAP = 50     // word overlap between chunks
-const EMBED_MODEL = 'gemini-embedding-001'
+const EMBED_MODEL = 'text-embedding-004'
 
 function chunkText(text: string, size = CHUNK_SIZE, overlap = CHUNK_OVERLAP): string[] {
   const words = text.split(/\s+/).filter(Boolean)
@@ -107,6 +107,7 @@ Deno.serve(async (req) => {
     for (let i = 0; i < chunks.length; i++) {
       try {
         const embedding = await embedChunk(chunks[i], geminiApiKey)
+        console.log(`Chunk ${i}: embedding length = ${embedding.length}`)
         const { error: insertErr } = await supabase.from('MeetingEmbedding').insert({
           meetingId,
           userId,
@@ -118,6 +119,7 @@ Deno.serve(async (req) => {
           console.error(`Insert error chunk ${i}:`, insertErr)
         } else {
           inserted++
+          console.log(`✓ Inserted chunk ${i} for meeting ${meetingId}`)
         }
       } catch (chunkErr) {
         console.error(`Embedding error chunk ${i}:`, chunkErr)

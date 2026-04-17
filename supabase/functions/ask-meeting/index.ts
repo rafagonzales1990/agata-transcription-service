@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const EMBED_MODEL = 'gemini-embedding-001'
+const EMBED_MODEL = 'text-embedding-004'
 const CHAT_MODEL = 'gemini-2.5-flash'
 
 async function embedText(text: string, apiKey: string): Promise<number[]> {
@@ -104,6 +104,7 @@ Deno.serve(async (req) => {
 
     // 1) Embed the question
     const qEmbedding = await embedText(question, geminiApiKey)
+    console.log(`[ask-meeting] question embedding length: ${qEmbedding.length} | user: ${userId}`)
 
     // 2) Search via RPC (vector similarity)
     const supabase = createClient(supabaseUrl, serviceKey)
@@ -112,6 +113,16 @@ Deno.serve(async (req) => {
       match_user_id: userId,
       match_count: 5,
     })
+
+    console.log(`[ask-meeting] RPC returned ${matches?.length ?? 0} matches`)
+    if (matches && matches.length > 0) {
+      console.log(
+        `[ask-meeting] similarities:`,
+        (matches as Array<{ similarity: number; meetingId: string }>).map(
+          (m) => `${m.meetingId.slice(0, 8)}=${m.similarity.toFixed(4)}`
+        )
+      )
+    }
 
     if (rpcErr) {
       console.error('RPC error:', rpcErr)
