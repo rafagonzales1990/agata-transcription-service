@@ -27,6 +27,7 @@ import {
   Mail,
   Copy,
   Check,
+  MessageCircle,
 } from "lucide-react";
 import { ShareMeetingModal } from "@/components/ShareMeetingModal";
 import { supabase } from "@/integrations/supabase/client";
@@ -552,7 +553,17 @@ export default function MeetingDetail() {
                 {durationLabel && ` · ${durationLabel}`}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {meeting.status === "completed" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/ask?meetingId=${meeting.id}`)}
+                  className="flex items-center gap-1.5"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" /> Perguntar sobre esta reunião
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={() => setShareOpen(true)} className="flex items-center gap-1.5">
                 <Share2 className="h-3.5 w-3.5" /> Compartilhar
               </Button>
