@@ -1160,20 +1160,36 @@ export type Database = {
     Functions: {
       get_old_user_id: { Args: { _auth_uid: string }; Returns: string }
       is_admin: { Args: never; Returns: boolean }
-      match_meeting_embeddings: {
-        Args: {
-          match_count?: number
-          match_user_id: string
-          query_embedding: string
-        }
-        Returns: {
-          chunkText: string
-          createdAt: string
-          meetingId: string
-          similarity: number
-          title: string
-        }[]
-      }
+      match_meeting_embeddings:
+        | {
+            Args: {
+              match_count?: number
+              match_user_id: string
+              query_embedding: string
+            }
+            Returns: {
+              chunkText: string
+              createdAt: string
+              meetingId: string
+              similarity: number
+              title: string
+            }[]
+          }
+        | {
+            Args: {
+              filter_meeting_id?: string
+              match_count?: number
+              match_user_id: string
+              query_embedding: string
+            }
+            Returns: {
+              chunkText: string
+              createdAt: string
+              meetingId: string
+              similarity: number
+              title: string
+            }[]
+          }
     }
     Enums: {
       [_ in never]: never

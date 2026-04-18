@@ -79,6 +79,8 @@ Deno.serve(async (req) => {
     const body = await req.json()
     const question = (body.question || '').toString().trim()
     const userId = (body.userId || authUserId).toString()
+    const meetingIdFilter = body.meetingId ? body.meetingId.toString() : null
+    const routineIdFilter = body.routineId ? body.routineId.toString() : null
 
     if (!question) {
       return new Response(JSON.stringify({ error: 'question is required' }), {
@@ -107,13 +109,58 @@ Deno.serve(async (req) => {
     const qEmbedding = await embedText(question, geminiApiKey)
     console.log(`[ask-meeting] question embedding length: ${qEmbedding.length} | user: ${userId}`)
 
-    // 2) Search via RPC (vector similarity)
+    // 2) Resolve meetingId filter (single meeting or first from routine)
     const supabase = createClient(supabaseUrl, serviceKey)
-    const { data: matches, error: rpcErr } = await supabase.rpc('match_meeting_embeddings', {
-      query_embedding: qEmbedding as unknown as string,
-      match_user_id: userId,
-      match_count: 5,
-    })
+    let resolvedMeetingId: string | null = meetingIdFilter
+
+    // If routineId provided but no specific meeting, search across all meetings of that routine.
+    // Since the RPC supports a single meeting filter, we fetch matches per meeting and merge.
+    let matches: Array<{
+      chunkText: string
+      meetingId: string
+      title: string
+      createdAt: string
+      similarity: number
+    }> = []
+    let rpcErr: { message: string } | null = null
+
+    if (routineIdFilter && !meetingIdFilter) {
+      const { data: routineMeetings, error: rmErr } = await supabase
+        .from('Meeting')
+        .select('id')
+        .eq('userId', userId)
+        .eq('routineId', routineIdFilter)
+        .eq('status', 'completed')
+      if (rmErr) {
+        rpcErr = { message: rmErr.message }
+      } else {
+        const ids = (routineMeetings || []).map((m: { id: string }) => m.id)
+        const aggregated: typeof matches = []
+        for (const mid of ids) {
+          const { data: m, error: e } = await supabase.rpc('match_meeting_embeddings', {
+            query_embedding: qEmbedding as unknown as string,
+            match_user_id: userId,
+            match_count: 3,
+            filter_meeting_id: mid,
+          })
+          if (e) continue
+          if (Array.isArray(m)) aggregated.push(...(m as typeof matches))
+        }
+        // sort desc by similarity, keep top 5
+        matches = aggregated
+          .sort((a, b) => (b.similarity || 0) - (a.similarity || 0))
+          .slice(0, 5)
+      }
+    } else {
+      const { data, error } = await supabase.rpc('match_meeting_embeddings', {
+        query_embedding: qEmbedding as unknown as string,
+        match_user_id: userId,
+        match_count: 5,
+        filter_meeting_id: resolvedMeetingId,
+      })
+      if (error) rpcErr = { message: error.message }
+      matches = (data || []) as typeof matches
+    }
 
     console.log(`[ask-meeting] RPC returned ${matches?.length ?? 0} matches`)
     if (matches && matches.length > 0) {
