@@ -400,10 +400,11 @@ export default function AdminPanel() {
         .order('createdAt', { ascending: false });
       if (error) throw error;
 
-      const [meetingsRes, groupsRes, usageRes] = await Promise.all([
+      const [meetingsRes, groupsRes, usageRes, profilesRes] = await Promise.all([
         supabase.from('Meeting').select('userId'),
         supabase.from('AdminGroup').select('*'),
         supabase.from('Usage').select('userId, transcriptionsUsed, totalMinutesTranscribed, currentMonth'),
+        supabase.from('profiles').select('user_id, trial_ends_at'),
       ]);
 
       const countMap: Record<string, number> = {};
@@ -416,8 +417,14 @@ export default function AdminPanel() {
         }
       });
 
+      // Map profiles.trial_ends_at by user_id (source of truth for trial)
+      const trialMap: Record<string, string | null> = {};
+      profilesRes.data?.forEach(p => { trialMap[p.user_id] = p.trial_ends_at; });
+
       setUsers((usersData || []).map(u => ({
         ...u, meetingCount: countMap[u.id] || 0,
+        // Prefer profiles.trial_ends_at; fall back to legacy User.trialEndsAt
+        trialEndsAt: trialMap[u.id] ?? u.trialEndsAt,
         usageTranscriptions: usageMap[u.id]?.t || 0,
         usageMinutes: usageMap[u.id]?.m || 0,
       })));
