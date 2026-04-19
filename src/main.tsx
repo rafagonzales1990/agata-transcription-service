@@ -39,6 +39,7 @@ Sentry.init({
     if (import.meta.env.DEV) return null;
     const msg = event.exception?.values?.[0]?.value || event.message || '';
     if (isAdsenseNoise(msg)) return null;
+    if (isSupabaseLockNoise(msg)) return null;
     return event;
   },
 });
