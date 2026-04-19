@@ -488,7 +488,7 @@ export default function RoutineDetailPage() {
             </div>
             <div className="flex gap-2">
               <Link to={`/upload?routineId=${routine.id}`}>
-                <Button variant="outline" size="sm"><Plus className="h-4 w-4 mr-1" /> Adicionar reunião</Button>
+                <Button variant="outline" size="sm" className="border border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground"><Plus className="h-4 w-4 mr-1" /> Adicionar reunião</Button>
               </Link>
               <Button size="sm" className="bg-primary text-primary-foreground" onClick={handleConsolidate} disabled={generating}>
                 {generating ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
