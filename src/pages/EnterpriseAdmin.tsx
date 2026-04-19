@@ -233,11 +233,11 @@ export default function EnterpriseAdmin() {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <Button variant="outline" onClick={() => navigate('/settings/branding')}>
+              <Button variant="outline" className="w-full justify-start text-foreground border-input" onClick={() => navigate('/settings/branding')}>
                 <Palette className="h-4 w-4 mr-2" />
                 Personalização da Empresa
               </Button>
-              <Button variant="outline" onClick={handleStripePortal} disabled={portalLoading}>
+              <Button variant="outline" className="w-full justify-start text-foreground border-input" onClick={handleStripePortal} disabled={portalLoading}>
                 {portalLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CreditCard className="h-4 w-4 mr-2" />}
                 Gerenciar Assinatura
               </Button>

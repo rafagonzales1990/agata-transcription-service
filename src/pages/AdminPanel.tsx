@@ -680,13 +680,13 @@ export default function AdminPanel() {
                 { label: 'Em Trial', value: String(trialUsers), sub: `${freeUsers} expirados`, icon: Clock },
                 { label: 'Churn Rate', value: '0%', sub: `${freeUsers} usuários free`, icon: BarChart3 },
               ].map((c, i) => (
-                <Card key={i} className="bg-card border-border">
+                <Card key={i} className="bg-card text-card-foreground border">
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between mb-1">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{c.label}</p>
+                      <p className="text-sm text-muted-foreground">{c.label}</p>
                       <c.icon className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <p className="text-2xl font-bold font-mono text-foreground">{c.value}</p>
+                    <p className="text-2xl font-bold text-foreground">{c.value}</p>
                     <p className="text-xs text-muted-foreground mt-1">{c.sub}</p>
                   </CardContent>
                 </Card>
@@ -699,13 +699,13 @@ export default function AdminPanel() {
                 { label: 'Reuniões', value: String(totalMeetings), icon: FileAudio },
                 { label: 'Grupos', value: String(groups.length), icon: Clock },
               ].map((c, i) => (
-                <Card key={i} className="bg-card border-border">
+                <Card key={i} className="bg-card text-card-foreground border">
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between mb-1">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{c.label}</p>
+                      <p className="text-sm text-muted-foreground">{c.label}</p>
                       <c.icon className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <p className="text-2xl font-bold font-mono text-foreground">{c.value}</p>
+                    <p className="text-2xl font-bold text-foreground">{c.value}</p>
                     {'sub' in c && c.sub && <p className="text-xs text-muted-foreground mt-1">{c.sub}</p>}
                   </CardContent>
                 </Card>
