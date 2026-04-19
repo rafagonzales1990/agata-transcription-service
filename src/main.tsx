@@ -31,6 +31,8 @@ Sentry.init({
   integrations: [Sentry.browserTracingIntegration()],
   beforeSend(event) {
     if (import.meta.env.DEV) return null;
+    const msg = event.exception?.values?.[0]?.value || event.message || '';
+    if (isAdsenseNoise(msg)) return null;
     return event;
   },
 });
