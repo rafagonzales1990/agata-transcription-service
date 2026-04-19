@@ -622,16 +622,18 @@ export default function AdminPanel() {
       const d = new Date(u.giftEndsAt);
       return { label: `🎁 Gift até ${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`, cls: 'bg-amber-100 text-amber-700' };
     }
-    // 2. Active trial
-    if (u.trialEndsAt && new Date(u.trialEndsAt) > now) {
-      return { label: `Trial ${getDaysRemaining(u.trialEndsAt)}d`, cls: 'bg-amber-100 text-amber-700' };
+    // 2. Basic plan: trial active → Trial Xd, else Gratuito
+    if (!u.planId || u.planId === 'basic') {
+      if (u.trialEndsAt && new Date(u.trialEndsAt) > now) {
+        return { label: `Trial ${getDaysRemaining(u.trialEndsAt)}d`, cls: 'bg-orange-100 text-orange-700' };
+      }
+      return { label: 'Gratuito', cls: 'bg-gray-100 text-gray-700' };
     }
-    // 3. Paid plan (not basic)
-    if (u.planId && u.planId !== 'basic') {
-      return { label: `Pago (${PLAN_LABELS[u.planId] || u.planId})`, cls: 'bg-green-100 text-green-700' };
-    }
-    // 4. Free
-    return { label: 'Gratuito', cls: 'bg-gray-100 text-gray-700' };
+    // 3. Paid plans: show plan name with plan-specific color
+    if (u.planId === 'inteligente') return { label: 'Essencial', cls: 'bg-emerald-100 text-emerald-700' };
+    if (u.planId === 'automacao') return { label: 'Pro', cls: 'bg-blue-100 text-blue-700' };
+    if (u.planId === 'enterprise') return { label: 'Enterprise', cls: 'bg-purple-100 text-purple-700' };
+    return { label: PLAN_LABELS[u.planId] || u.planId, cls: 'bg-gray-100 text-gray-700' };
   };
 
   return (
