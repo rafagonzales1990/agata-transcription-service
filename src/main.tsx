@@ -7,7 +7,13 @@ import "./index.css";
 const isAdsenseNoise = (msg: string) =>
   msg.includes('Object Not Found Matching Id') ||
   msg.includes('adsbygoogle.push() error') ||
+  msg.includes('adsbygoogle') ||
   msg.includes('already have ads in them');
+
+// Suppress Supabase auth lock conflicts (multi-tab / rapid re-renders, not actionable)
+const isSupabaseLockNoise = (msg: string) =>
+  (msg.includes('Lock') || msg.includes('lock')) &&
+  (msg.includes('stole') || msg.includes('stolen') || msg.includes('sb-hblczvmpyaznbxvdcaze') || msg.includes('NavigatorLockAcquireTimeoutError'));
 
 window.addEventListener('unhandledrejection', (event) => {
   const msg = event?.reason?.message || String(event?.reason || '');
