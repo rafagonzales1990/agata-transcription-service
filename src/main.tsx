@@ -17,12 +17,12 @@ const isSupabaseLockNoise = (msg: string) =>
 
 window.addEventListener('unhandledrejection', (event) => {
   const msg = event?.reason?.message || String(event?.reason || '');
-  if (isAdsenseNoise(msg)) event.preventDefault();
+  if (isAdsenseNoise(msg) || isSupabaseLockNoise(msg)) event.preventDefault();
 });
 
 window.addEventListener('error', (event) => {
   const msg = event?.message || String(event?.error || '');
-  if (isAdsenseNoise(msg)) {
+  if (isAdsenseNoise(msg) || isSupabaseLockNoise(msg)) {
     event.preventDefault();
     event.stopImmediatePropagation();
   }
