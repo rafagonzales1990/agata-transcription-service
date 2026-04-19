@@ -232,13 +232,13 @@ export default function EnterpriseAdmin() {
               </Card>
             </div>
 
-            <div className="flex flex-wrap gap-3 text-white">
-              <Button variant="outline" className="text-white bg-card hover:bg-card" onClick={() => navigate('/settings/branding')}>
-                <Palette className="h-4 w-4 mr-2 text-white" />
+            <div className="flex flex-wrap gap-3">
+              <Button variant="outline" onClick={() => navigate('/settings/branding')}>
+                <Palette className="h-4 w-4 mr-2" />
                 Personalização da Empresa
               </Button>
-              <Button variant="outline" className="text-white bg-card hover:bg-card" onClick={handleStripePortal} disabled={portalLoading}>
-                {portalLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin text-white" /> : <CreditCard className="h-4 w-4 mr-2 text-white" />}
+              <Button variant="outline" onClick={handleStripePortal} disabled={portalLoading}>
+                {portalLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CreditCard className="h-4 w-4 mr-2" />}
                 Gerenciar Assinatura
               </Button>
             </div>
