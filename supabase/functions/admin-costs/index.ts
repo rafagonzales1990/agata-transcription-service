@@ -14,14 +14,15 @@ async function verifyAdmin(supabase: any, authHeader: string) {
   const { data: { user }, error } = await authClient.auth.getUser()
   if (error || !user) return null
 
-  const { data: userData } = await supabase
-    .from('User')
-    .select('id, isAdmin')
-    .eq('id', user.id)
-    .single()
+    const { data: userData } = await supabase
+      .from('User')
+      .select('id, isAdmin, role')
+      .eq('id', user.id)
+      .maybeSingle()
 
-  if (!userData?.isAdmin) return null
-  return user
+    if (!userData) return null
+    if (!userData.isAdmin && userData.role !== 'dev') return null
+    return user
 }
 
 Deno.serve(async (req) => {
