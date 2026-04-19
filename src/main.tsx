@@ -4,12 +4,23 @@ import App from "./App.tsx";
 import "./index.css";
 
 // Suppress known AdSense internal errors (not actionable)
+const isAdsenseNoise = (msg: string) =>
+  msg.includes('Object Not Found Matching Id') ||
+  msg.includes('adsbygoogle.push() error') ||
+  msg.includes('already have ads in them');
+
 window.addEventListener('unhandledrejection', (event) => {
   const msg = event?.reason?.message || String(event?.reason || '');
-  if (msg.includes('Object Not Found Matching Id')) {
-    event.preventDefault();
-  }
+  if (isAdsenseNoise(msg)) event.preventDefault();
 });
+
+window.addEventListener('error', (event) => {
+  const msg = event?.message || String(event?.error || '');
+  if (isAdsenseNoise(msg)) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }
+}, true);
 
 Sentry.init({
   dsn: "https://535dff649d5d630f7a0897f50581f786@o4511150762950656.ingest.us.sentry.io/4511150767210496",
