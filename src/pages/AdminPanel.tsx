@@ -680,13 +680,13 @@ export default function AdminPanel() {
                 { label: 'Em Trial', value: String(trialUsers), sub: `${freeUsers} expirados`, icon: Clock },
                 { label: 'Churn Rate', value: '0%', sub: `${freeUsers} usuários free`, icon: BarChart3 },
               ].map((c, i) => (
-                <Card key={i} className="bg-card border-border [&_p]:text-foreground [&_span]:text-foreground">
+                <Card key={i} className="bg-card border-border text-white [&_p]:text-white [&_span]:text-white" style={{ color: 'white' }}>
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-sm text-muted-foreground">{c.label}</p>
                       <c.icon className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <p className="text-2xl font-bold text-foreground" style={{ color: 'inherit' }}>{c.value}</p>
+                    <p className="text-2xl font-bold text-white" style={{ color: 'white' }}>{c.value}</p>
                     <p className="text-xs text-muted-foreground mt-1">{c.sub}</p>
                   </CardContent>
                 </Card>
@@ -699,13 +699,13 @@ export default function AdminPanel() {
                 { label: 'Reuniões', value: String(totalMeetings), icon: FileAudio },
                 { label: 'Grupos', value: String(groups.length), icon: Clock },
               ].map((c, i) => (
-                <Card key={i} className="bg-card border-border [&_p]:text-foreground [&_span]:text-foreground">
+                <Card key={i} className="bg-card border-border text-white [&_p]:text-white [&_span]:text-white" style={{ color: 'white' }}>
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-sm text-muted-foreground">{c.label}</p>
                       <c.icon className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <p className="text-2xl font-bold text-foreground" style={{ color: 'inherit' }}>{c.value}</p>
+                    <p className="text-2xl font-bold text-white" style={{ color: 'white' }}>{c.value}</p>
                     {'sub' in c && c.sub && <p className="text-xs text-muted-foreground mt-1">{c.sub}</p>}
                   </CardContent>
                 </Card>
