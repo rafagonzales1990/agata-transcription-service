@@ -647,13 +647,13 @@ export default function AdminPanel() {
           <VersionBadge showChangelog={false} className="ml-2" />
         </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => navigate('/admin/leads')}>
+            <Button variant="outline" size="sm" className="text-foreground" onClick={() => navigate('/admin/leads')}>
               Leads Demo
             </Button>
-            <Button variant="outline" size="sm" onClick={() => refreshUsers()}>
+            <Button variant="outline" size="sm" className="text-foreground" onClick={() => refreshUsers()}>
               <RefreshCw className="h-4 w-4 mr-1" /> Refresh
             </Button>
-            <Button variant="outline" size="sm" onClick={() => { setInviteForm({ email: '', name: '', planId: 'basic' }); setInviteOpen(true); }}>
+            <Button variant="outline" size="sm" className="text-foreground" onClick={() => { setInviteForm({ email: '', name: '', planId: 'basic' }); setInviteOpen(true); }}>
               <Mail className="h-4 w-4 mr-1" /> Convidar Usuário
             </Button>
             <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => { setFormName(''); setFormEmail(''); setFormPassword(''); setFormPlan('basic'); setShowNewUser(true); }}>
