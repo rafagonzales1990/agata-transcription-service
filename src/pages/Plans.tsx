@@ -228,42 +228,88 @@ export default function PlansPage() {
               })}
             </div>
 
-            {/* Annual Upfront Callout — always visible */}
-            <hr className="border-border my-2" />
-            <div className="p-5 bg-muted/40 border border-border rounded-xl">
-              <div className="flex items-start gap-2 mb-3">
-                <span className="text-base">💡</span>
-                <div>
-                  <p className="text-sm font-medium text-foreground">
-                    Prefere pagar à vista e economizar ainda mais?
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Cobrado uma vez. Acesso garantido por 12 meses.
+            {/* Annual Upfront Savings Card */}
+            <Card className="border-l-4 border-l-primary bg-gradient-to-br from-primary/5 to-transparent">
+              <CardContent className="p-6 sm:p-8">
+                <div className="text-center mb-6">
+                  <h2 className="text-xl sm:text-2xl font-bold text-foreground">
+                    💰 Pague uma vez, use por 12 meses — economize até 25%
+                  </h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Cobrado uma única vez no cartão. Sem renovação automática.
                   </p>
                 </div>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-6 mt-3">
-                {[
-                  { id: 'inteligente', label: 'Essencial · R$444/ano', detail: '(R$37/mês · 24% off)' },
-                  { id: 'automacao', label: 'Pro · R$1.644/ano', detail: '(R$137/mês · 25% off)' },
-                  { id: 'enterprise', label: 'Enterprise · R$5.400/ano', detail: '(R$450/mês · 31% off)' },
-                ].map((item) => {
-                  const isCurrent = currentPlanId === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => handleUpfrontSubscribe(item.id)}
-                      disabled={!!checkoutLoading || isCurrent}
-                      className={`text-sm text-left disabled:opacity-50 ${isCurrent ? 'text-muted-foreground line-through cursor-not-allowed' : 'text-primary hover:underline'}`}
-                    >
-                      {item.label}
-                      <span className="text-xs text-muted-foreground ml-1">{item.detail}</span>
-                      {!isCurrent && <span className="ml-1">→</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+
+                <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
+                  {[
+                    {
+                      id: 'inteligente',
+                      name: 'Essencial',
+                      annualLabel: 'R$ 444',
+                      monthlyEq: 'R$ 37',
+                      savingsLabel: 'Você economiza R$ 144',
+                    },
+                    {
+                      id: 'automacao',
+                      name: 'Pro',
+                      annualLabel: 'R$ 1.644',
+                      monthlyEq: 'R$ 137',
+                      savingsLabel: 'Você economiza R$ 552',
+                    },
+                  ].map((item) => {
+                    const isCurrent = currentPlanId === item.id;
+                    const loadingThis = checkoutLoading === item.id + '_upfront';
+                    return (
+                      <div
+                        key={item.id}
+                        className="rounded-lg border border-border bg-card p-5 flex flex-col"
+                      >
+                        <p className="text-sm font-semibold text-foreground uppercase tracking-wide">
+                          {item.name}
+                        </p>
+                        <div className="mt-2 flex items-baseline gap-1">
+                          <span className="text-3xl font-bold text-primary">{item.annualLabel}</span>
+                          <span className="text-sm text-muted-foreground">/ano</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          = {item.monthlyEq}/mês
+                        </p>
+                        <Badge className="mt-3 self-start bg-primary/10 text-primary border-primary/20 hover:bg-primary/15">
+                          {item.savingsLabel}
+                        </Badge>
+                        <Button
+                          className="mt-4 w-full bg-primary hover:bg-emerald-600 text-primary-foreground"
+                          onClick={() => handleUpfrontSubscribe(item.id)}
+                          disabled={!!checkoutLoading || isCurrent}
+                        >
+                          {loadingThis ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : isCurrent ? (
+                            'Plano Atual'
+                          ) : (
+                            <>Assinar {item.name} Anual →</>
+                          )}
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-6 pt-5 border-t border-border grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {[
+                    'Cobrado uma única vez',
+                    'Acesso garantido por 12 meses',
+                    'Suporte prioritário incluído',
+                    'Cancele e receba reembolso proporcional',
+                  ].map((badge) => (
+                    <div key={badge} className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                      <span>{badge}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </>
         )}
       </div>
