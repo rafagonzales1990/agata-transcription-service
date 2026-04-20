@@ -164,13 +164,11 @@ export default function LandingPage() {
                   <span className="font-medium text-sm text-foreground">{faq.question}</span>
                   {openFaq === index ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                 </button>
-                <AnimatePresence>
-                  {openFaq === index && (
-                    <div className="overflow-hidden">
-                      <p className="px-4 pb-4 text-sm text-muted-foreground">{faq.answer}</p>
-                    </div>
-                  )}
-                </AnimatePresence>
+                {openFaq === index && (
+                  <div className="overflow-hidden">
+                    <p className="px-4 pb-4 text-sm text-muted-foreground">{faq.answer}</p>
+                  </div>
+                )}
               </div>
             ))}
           </div>
