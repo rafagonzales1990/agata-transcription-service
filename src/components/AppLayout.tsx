@@ -49,6 +49,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { signOut, profile } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const qc = useQueryClient();
   const [isAdmin, setIsAdmin] = useState(false);
   const [userCpf, setUserCpf] = useState<string | null | undefined>(undefined);
   const [pwaModalOpen, setPwaModalOpen] = useState(false);
