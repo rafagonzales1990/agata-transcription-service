@@ -29,20 +29,23 @@ window.addEventListener('error', (event) => {
   }
 }, true);
 
-Sentry.init({
-  dsn: "https://535dff649d5d630f7a0897f50581f786@o4511150762950656.ingest.us.sentry.io/4511150767210496",
-  environment: import.meta.env.MODE,
-  tracesSampleRate: 0.2,
-  replaysSessionSampleRate: 0.1,
-  replaysOnErrorSampleRate: 1.0,
-  integrations: [Sentry.browserTracingIntegration()],
-  beforeSend(event) {
-    if (import.meta.env.DEV) return null;
-    const msg = event.exception?.values?.[0]?.value || event.message || '';
-    if (isAdsenseNoise(msg)) return null;
-    if (isSupabaseLockNoise(msg)) return null;
-    return event;
-  },
+// Defer Sentry init — not needed before first paint
+import("@sentry/react").then((Sentry) => {
+  Sentry.init({
+    dsn: "https://535dff649d5d630f7a0897f50581f786@o4511150762950656.ingest.us.sentry.io/4511150767210496",
+    environment: import.meta.env.MODE,
+    tracesSampleRate: 0.2,
+    replaysSessionSampleRate: 0.1,
+    replaysOnErrorSampleRate: 1.0,
+    integrations: [Sentry.browserTracingIntegration()],
+    beforeSend(event) {
+      if (import.meta.env.DEV) return null;
+      const msg = event.exception?.values?.[0]?.value || event.message || '';
+      if (isAdsenseNoise(msg)) return null;
+      if (isSupabaseLockNoise(msg)) return null;
+      return event;
+    },
+  });
 });
 
 // PWA Service Worker registration — only in production and outside iframes/preview
@@ -60,7 +63,6 @@ if ("serviceWorker" in navigator) {
     window.location.hostname.includes("lovableproject.com");
 
   if (isPreviewHost || isInIframe) {
-    // Unregister any existing service workers in preview/iframe contexts
     navigator.serviceWorker.getRegistrations().then((registrations) => {
       registrations.forEach((r) => r.unregister());
     });
@@ -73,4 +75,23 @@ if ("serviceWorker" in navigator) {
   }
 }
 
-createRoot(document.getElementById("root")!).render(<App />);
+const LoadingShell = () => {
+  const isDark = typeof window !== 'undefined' && localStorage.getItem('agata-theme') === 'dark';
+  return (
+    <div
+      className="flex items-center justify-center min-h-screen"
+      style={{ backgroundColor: isDark ? '#0D1F2D' : '#ffffff' }}
+    >
+      <div className="flex flex-col items-center gap-3">
+        <img src="/logo-icon.png" alt="Ágata" width={32} height={32} />
+        <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    </div>
+  );
+};
+
+createRoot(document.getElementById("root")!).render(
+  <Suspense fallback={<LoadingShell />}>
+    <App />
+  </Suspense>
+);
