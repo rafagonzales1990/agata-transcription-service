@@ -36,7 +36,11 @@ export function HeroSection() {
               </a>
             </div>
 
-            <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground mt-2">
+              ✓ 14 dias grátis  •  ✓ Sem cartão de crédito  •  ✓ Cancele quando quiser
+            </p>
+
+            <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground mt-4">
               <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-primary" /> PT-BR nativo</span>
               <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-primary" /> Ata pronta em PDF e Word</span>
               <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-primary" /> Rotinas e consolidação</span>
