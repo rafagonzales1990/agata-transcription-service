@@ -81,7 +81,7 @@ export default function MeetingsPage() {
     if (error) toast.error('Erro ao deletar reunião');
     else {
       toast.success('Reunião deletada');
-      setMeetings(prev => prev.filter(m => m.id !== deleteId));
+      invalidateMeetings();
     }
     setDeleteId(null);
   };
@@ -114,7 +114,7 @@ export default function MeetingsPage() {
     if (error) toast.error('Erro ao atualizar reunião');
     else {
       toast.success('Reunião atualizada');
-      await fetchMeetings();
+      await invalidateMeetings();
     }
     setEditMeeting(null);
   };
@@ -151,7 +151,7 @@ export default function MeetingsPage() {
     if (error) {
       toast.error('Erro ao mover reunião');
     } else {
-      setMeetings(prev => prev.map(m => m.id === meetingId ? { ...m, projectId } : m));
+      invalidateMeetings();
       toast.success(projectId ? 'Reunião movida para projeto' : 'Reunião removida do projeto');
     }
     setAssignMenuMeetingId(null);
