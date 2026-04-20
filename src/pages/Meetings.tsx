@@ -1,4 +1,5 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,21 +22,11 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useProjects, type Project } from '@/hooks/useProjects';
+import { useMeetings, type MeetingListItem } from '@/hooks/useMeetings';
+import { useAuth } from '@/contexts/AuthContext';
+import { Skeleton } from '@/components/ui/skeleton';
 
-interface Meeting {
-  id: string;
-  title: string;
-  fileName: string;
-  status: string;
-  createdAt: string;
-  summary: string | null;
-  participants: string[];
-  meetingDate: string | null;
-  meetingTime: string | null;
-  location: string | null;
-  responsible: string | null;
-  projectId: string | null;
-}
+type Meeting = MeetingListItem;
 
 const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: typeof CheckCircle }> = {
   completed: { label: 'Concluída', variant: 'default', icon: CheckCircle },
@@ -50,9 +41,11 @@ type SortOption = 'newest' | 'oldest' | 'title_asc';
 type DateRange = 'all' | '7' | '30' | '90';
 
 export default function MeetingsPage() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const { data: meetings = [], isLoading: loading } = useMeetings(user?.id);
+
   const [searchParams, setSearchParams] = useSearchParams();
-  const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateRange, setDateRange] = useState<DateRange>('all');
@@ -71,6 +64,8 @@ export default function MeetingsPage() {
   const [renameValue, setRenameValue] = useState('');
   const [assignMenuMeetingId, setAssignMenuMeetingId] = useState<string | null>(null);
 
+  const invalidateMeetings = () => queryClient.invalidateQueries({ queryKey: ['meetings', user?.id] });
+
   const setProjectFilter = (id: string) => {
     if (id === 'all') {
       searchParams.delete('project');
@@ -80,31 +75,13 @@ export default function MeetingsPage() {
     setSearchParams(searchParams, { replace: true });
   };
 
-  const fetchMeetings = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user;
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('Meeting')
-      .select('id, title, fileName, status, createdAt, summary, participants, meetingDate, meetingTime, location, responsible, projectId')
-      .eq('userId', user.id)
-      .order('createdAt', { ascending: false });
-
-    if (error) console.error('Error fetching meetings:', error);
-    else setMeetings((data as Meeting[]) || []);
-    setLoading(false);
-  };
-
-  useEffect(() => { fetchMeetings(); }, []);
-
   const handleDelete = async () => {
     if (!deleteId) return;
     const { error } = await supabase.from('Meeting').delete().eq('id', deleteId);
     if (error) toast.error('Erro ao deletar reunião');
     else {
       toast.success('Reunião deletada');
-      setMeetings(prev => prev.filter(m => m.id !== deleteId));
+      invalidateMeetings();
     }
     setDeleteId(null);
   };
@@ -137,7 +114,7 @@ export default function MeetingsPage() {
     if (error) toast.error('Erro ao atualizar reunião');
     else {
       toast.success('Reunião atualizada');
-      await fetchMeetings();
+      await invalidateMeetings();
     }
     setEditMeeting(null);
   };
@@ -174,7 +151,7 @@ export default function MeetingsPage() {
     if (error) {
       toast.error('Erro ao mover reunião');
     } else {
-      setMeetings(prev => prev.map(m => m.id === meetingId ? { ...m, projectId } : m));
+      invalidateMeetings();
       toast.success(projectId ? 'Reunião movida para projeto' : 'Reunião removida do projeto');
     }
     setAssignMenuMeetingId(null);
@@ -383,8 +360,19 @@ export default function MeetingsPage() {
         )}
 
         {loading ? (
-          <div className="flex justify-center py-16">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Card key={i}>
+                <CardContent className="p-4 flex items-center gap-4">
+                  <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-3/5" />
+                    <Skeleton className="h-3 w-2/5" />
+                  </div>
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                </CardContent>
+              </Card>
+            ))}
           </div>
         ) : filtered.length === 0 ? (
           <Card>

@@ -1,4 +1,5 @@
 import { ReactNode, useCallback, useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,6 +23,7 @@ import { TrialAds } from '@/components/TrialAds';
 import { TrialUpgradeBanners } from '@/components/TrialUpgradeBanners';
 
 import { supabase } from '@/integrations/supabase/client';
+import { fetchMeetingsList } from '@/hooks/useMeetings';
 import { CpfRequiredModal } from '@/components/CpfRequiredModal';
 import { useTheme } from '@/hooks/useTheme';
 import { PWAInstallModal } from '@/components/PWAInstallModal';
@@ -47,6 +49,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { signOut, profile } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const qc = useQueryClient();
   const [isAdmin, setIsAdmin] = useState(false);
   const [userCpf, setUserCpf] = useState<string | null | undefined>(undefined);
   const [pwaModalOpen, setPwaModalOpen] = useState(false);
@@ -143,6 +146,12 @@ export function AppLayout({ children }: AppLayoutProps) {
             key={item.href}
             to={item.href}
             onClick={onNavigate}
+            onMouseEnter={item.href === '/meetings' && profile?.user_id ? () => {
+              qc.prefetchQuery({
+                queryKey: ['meetings', profile.user_id],
+                queryFn: () => fetchMeetingsList(profile.user_id),
+              });
+            } : undefined}
             className={cn(
               'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all',
               isActive(item.href) ? activeClasses : inactiveClasses
