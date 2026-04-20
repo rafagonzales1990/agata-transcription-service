@@ -1,7 +1,8 @@
-import * as Sentry from "@sentry/react";
 import { createRoot } from "react-dom/client";
-import App from "./App.tsx";
+import { lazy, Suspense } from "react";
 import "./index.css";
+
+const App = lazy(() => import("./App.tsx"));
 
 // Suppress known AdSense internal errors (not actionable)
 const isAdsenseNoise = (msg: string) =>
