@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(supabase --version)",
-      "Bash(supabase status:*)"
+      "Bash(supabase status:*)",
+      "Bash(supabase functions *)",
+      "Bash(npx supabase *)"
     ]
   }
 }

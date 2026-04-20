@@ -24,6 +24,12 @@ const STRIPE_PRICES: Record<string, { monthly: string; annual: string; annual_up
   },
 }
 
+const PLAN_VALUES: Record<string, Record<string, number>> = {
+  inteligente: { monthly: 49, yearly: 37, annual_upfront: 444 },
+  automacao:   { monthly: 183, yearly: 137, annual_upfront: 1644 },
+  enterprise:  { monthly: 0, yearly: 0, annual_upfront: 0 },
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -70,6 +76,8 @@ Deno.serve(async (req) => {
       : billingCycle === 'yearly'
         ? planPrices.annual
         : planPrices.monthly
+
+    const planValue = PLAN_VALUES[planId]?.[billingCycle] ?? 0
 
     console.log(`Checkout: planId=${planId} billingCycle=${billingCycle} priceId=${priceId}`)
 
@@ -118,7 +126,7 @@ Deno.serve(async (req) => {
             stripePriceId: priceId,
           }).eq('email', user.email!)
 
-          return new Response(JSON.stringify({ success: true, type: 'upgrade' }), {
+          return new Response(JSON.stringify({ success: true, type: 'upgrade', planId, billingCycle, value: planValue }), {
             status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           })
         }
@@ -133,7 +141,7 @@ Deno.serve(async (req) => {
       customer: customerId,
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${origin}/plans?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${origin}/plans?success=true&plan=${planId}&billing=${billingCycle}&value=${planValue}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/plans?canceled=true`,
       subscription_data: {
         metadata: { userId: user.id, planId, billingCycle },
