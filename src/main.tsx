@@ -88,8 +88,4 @@ const LoadingShell = () => {
   );
 };
 
-createRoot(document.getElementById("root")!).render(
-  <Suspense fallback={<LoadingShell />}>
-    <App />
-  </Suspense>
-);
+createRoot(document.getElementById("root")!).render(<App />);
