@@ -1,6 +1,6 @@
 import { useState, lazy, Suspense, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import {
   ChevronDown, ChevronUp, Star, CheckCircle,
   BadgeCheck, Timer, TrendingUp, Lock, Shield,
@@ -88,12 +88,8 @@ export default function LandingPage() {
       <section className="py-16 px-4">
         <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6">
           {metrics.map((metric, index) => (
-            <motion.div
+            <div
               key={index}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
               className="text-center p-6 rounded-xl bg-card border border-border"
             >
               <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-secondary text-primary mb-3">
@@ -101,7 +97,7 @@ export default function LandingPage() {
               </div>
               <p className="text-2xl font-bold text-foreground">{metric.number}</p>
               <p className="text-xs text-muted-foreground">{metric.label}</p>
-            </motion.div>
+            </div>
           ))}
         </div>
       </section>
@@ -126,33 +122,25 @@ export default function LandingPage() {
 
           <div className="grid md:grid-cols-3 gap-6">
             {testimonials.map((t, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card className="h-full border-border">
-                  <CardContent className="p-6">
-                    <div className="flex gap-0.5 mb-3">
-                      {Array.from({ length: t.stars }).map((_, i) => (
-                        <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      ))}
+              <Card key={index} className="h-full border-border">
+                <CardContent className="p-6">
+                  <div className="flex gap-0.5 mb-3">
+                    {Array.from({ length: t.stars }).map((_, i) => (
+                      <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    ))}
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4 italic">"{t.text}"</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-sm font-bold text-primary">
+                      {t.name.split(' ').map(n => n[0]).join('')}
                     </div>
-                    <p className="text-sm text-muted-foreground mb-4 italic">"{t.text}"</p>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-sm font-bold text-primary">
-                        {t.name.split(' ').map(n => n[0]).join('')}
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">{t.name}</p>
-                        <p className="text-xs text-muted-foreground">{t.role} · {t.company}</p>
-                      </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{t.name}</p>
+                      <p className="text-xs text-muted-foreground">{t.role} · {t.company}</p>
                     </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </div>
@@ -178,14 +166,9 @@ export default function LandingPage() {
                 </button>
                 <AnimatePresence>
                   {openFaq === index && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden"
-                    >
+                    <div className="overflow-hidden">
                       <p className="px-4 pb-4 text-sm text-muted-foreground">{faq.answer}</p>
-                    </motion.div>
+                    </div>
                   )}
                 </AnimatePresence>
               </div>
