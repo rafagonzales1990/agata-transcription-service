@@ -1,6 +1,6 @@
 import { useState, lazy, Suspense, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { AnimatePresence } from 'framer-motion';
+
 import {
   ChevronDown, ChevronUp, Star, CheckCircle,
   BadgeCheck, Timer, TrendingUp, Lock, Shield,
