@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { motion } from 'framer-motion';
 import { ArrowRight, CheckCircle, FileText, Brain } from 'lucide-react';
 
 export function HeroSection() {
@@ -9,7 +8,7 @@ export function HeroSection() {
     <section className="pt-28 pb-20 px-4">
       <div className="max-w-7xl mx-auto">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+          <div className="animate-fade-in-up">
             <Badge className="mb-5 bg-secondary text-secondary-foreground hover:bg-secondary border-0 text-xs font-medium px-3 py-1">
               🇧🇷 Feito para o mercado brasileiro
             </Badge>
@@ -42,10 +41,10 @@ export function HeroSection() {
               <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-primary" /> Ata pronta em PDF e Word</span>
               <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-primary" /> Rotinas e consolidação</span>
             </div>
-          </motion.div>
+          </div>
 
           {/* Hero visual - product mockup */}
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
+          <div className="animate-fade-in-right">
             <div className="bg-card rounded-2xl shadow-2xl border border-border p-6 space-y-4">
               <div className="flex items-center gap-2 text-xs text-muted-foreground border-b border-border pb-3">
                 <div className="flex gap-1.5">
@@ -89,7 +88,7 @@ export function HeroSection() {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>
