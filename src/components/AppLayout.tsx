@@ -146,6 +146,12 @@ export function AppLayout({ children }: AppLayoutProps) {
             key={item.href}
             to={item.href}
             onClick={onNavigate}
+            onMouseEnter={item.href === '/meetings' && profile?.user_id ? () => {
+              qc.prefetchQuery({
+                queryKey: ['meetings', profile.user_id],
+                queryFn: () => fetchMeetingsList(profile.user_id),
+              });
+            } : undefined}
             className={cn(
               'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all',
               isActive(item.href) ? activeClasses : inactiveClasses
