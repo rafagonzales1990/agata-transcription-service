@@ -45,7 +45,16 @@ const DesktopAuth = lazy(() => import("./pages/DesktopAuth"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const AskMeetings = lazy(() => import("./pages/AskMeetings"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 10,
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const SentryErrorFallback = () => (
   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: '16px', fontFamily: 'sans-serif' }}>
