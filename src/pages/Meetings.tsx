@@ -360,8 +360,19 @@ export default function MeetingsPage() {
         )}
 
         {loading ? (
-          <div className="flex justify-center py-16">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Card key={i}>
+                <CardContent className="p-4 flex items-center gap-4">
+                  <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-3/5" />
+                    <Skeleton className="h-3 w-2/5" />
+                  </div>
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                </CardContent>
+              </Card>
+            ))}
           </div>
         ) : filtered.length === 0 ? (
           <Card>
