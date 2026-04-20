@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback 
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import * as Sentry from '@sentry/react';
+import { pushEvent, gtag, GA_MEASUREMENT_ID } from '@/lib/gtag';
 
 export interface UserProfile {
   id: string;
@@ -59,12 +60,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         setSession(session);
         setLoading(false);
         if (session?.user) {
           Sentry.setUser({ id: session.user.id, email: session.user.email });
           setTimeout(() => fetchProfile(session.user.id), 0);
+
+          if (event === 'SIGNED_IN') {
+            const firstLoginKey = `agata_first_login_${session.user.id}`;
+            if (!localStorage.getItem(firstLoginKey)) {
+              localStorage.setItem(firstLoginKey, '1');
+              pushEvent('first_login', { userId: session.user.id });
+            }
+            gtag('config', GA_MEASUREMENT_ID, { user_id: session.user.id });
+          }
         } else {
           Sentry.setUser(null);
           setProfile(null);
