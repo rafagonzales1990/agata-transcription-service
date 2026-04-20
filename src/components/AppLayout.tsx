@@ -23,6 +23,7 @@ import { TrialAds } from '@/components/TrialAds';
 import { TrialUpgradeBanners } from '@/components/TrialUpgradeBanners';
 
 import { supabase } from '@/integrations/supabase/client';
+import { fetchMeetingsList } from '@/hooks/useMeetings';
 import { CpfRequiredModal } from '@/components/CpfRequiredModal';
 import { useTheme } from '@/hooks/useTheme';
 import { PWAInstallModal } from '@/components/PWAInstallModal';
