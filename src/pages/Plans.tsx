@@ -93,6 +93,8 @@ export default function PlansPage() {
       if (data.type === 'checkout' && data.url) {
         window.location.href = data.url;
       } else if (data.type === 'upgrade') {
+        conversionPurchase(data.planId, data.value);
+        trackPurchase(data.planId, data.value);
         toast.success('Plano atualizado com sucesso!');
         window.location.reload();
       }
