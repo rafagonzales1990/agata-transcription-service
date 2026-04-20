@@ -1,4 +1,5 @@
 import { useState, lazy, Suspense, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 
 import {
@@ -179,6 +180,15 @@ export default function LandingPage() {
         <FinalCTASection />
         <LandingFooter />
       </Suspense>
+      {/* Sticky mobile CTA */}
+      <div className="fixed bottom-0 left-0 w-full z-50 md:hidden">
+        <Link
+          to="/auth/signup"
+          className="block w-full bg-primary text-primary-foreground text-center text-sm font-semibold py-3 px-4"
+        >
+          Começar Grátis — 14 dias sem custo
+        </Link>
+      </div>
     </div>
   );
 }
