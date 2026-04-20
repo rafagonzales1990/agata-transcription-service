@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Sparkles, Eye, EyeOff, CheckCircle, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { conversionSignup, trackSignup, trialStartedFromDemo } from '@/lib/gtag';
+import { conversionSignup, trackSignup, trackBeginSignup, trialStartedFromDemo } from '@/lib/gtag';
 
 export default function SignupPage() {
   const [name, setName] = useState('');
@@ -54,6 +54,7 @@ export default function SignupPage() {
       return;
     }
     setLoading(true);
+    trackBeginSignup();
     const { error } = await supabase.auth.signUp({
       email,
       password,

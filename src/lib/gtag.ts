@@ -60,6 +60,8 @@ export const pushEvent = (eventName: string, params?: Record<string, any>) => {
 
 export const trackSignup = () => pushEvent('signup_completed')
 
+export const trackBeginSignup = () => pushEvent('begin_signup')
+
 export const trackBeginCheckout = (planName: string, value: number) =>
   pushEvent('begin_checkout', { plan_name: planName, value, currency: 'BRL' })
 
