@@ -1,8 +1,6 @@
 import { createRoot } from "react-dom/client";
-import { lazy, Suspense } from "react";
+import App from "./App.tsx";
 import "./index.css";
-
-const App = lazy(() => import("./App.tsx"));
 
 // Suppress known AdSense internal errors (not actionable)
 const isAdsenseNoise = (msg: string) =>
@@ -90,8 +88,4 @@ const LoadingShell = () => {
   );
 };
 
-createRoot(document.getElementById("root")!).render(
-  <Suspense fallback={<LoadingShell />}>
-    <App />
-  </Suspense>
-);
+createRoot(document.getElementById("root")!).render(<App />);
