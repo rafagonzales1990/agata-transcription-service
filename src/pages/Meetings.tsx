@@ -22,21 +22,11 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useProjects, type Project } from '@/hooks/useProjects';
+import { useMeetings, type MeetingListItem } from '@/hooks/useMeetings';
+import { useAuth } from '@/contexts/AuthContext';
+import { Skeleton } from '@/components/ui/skeleton';
 
-interface Meeting {
-  id: string;
-  title: string;
-  fileName: string;
-  status: string;
-  createdAt: string;
-  summary: string | null;
-  participants: string[];
-  meetingDate: string | null;
-  meetingTime: string | null;
-  location: string | null;
-  responsible: string | null;
-  projectId: string | null;
-}
+type Meeting = MeetingListItem;
 
 const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: typeof CheckCircle }> = {
   completed: { label: 'Concluída', variant: 'default', icon: CheckCircle },
@@ -51,9 +41,11 @@ type SortOption = 'newest' | 'oldest' | 'title_asc';
 type DateRange = 'all' | '7' | '30' | '90';
 
 export default function MeetingsPage() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const { data: meetings = [], isLoading: loading } = useMeetings(user?.id);
+
   const [searchParams, setSearchParams] = useSearchParams();
-  const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateRange, setDateRange] = useState<DateRange>('all');
@@ -72,6 +64,8 @@ export default function MeetingsPage() {
   const [renameValue, setRenameValue] = useState('');
   const [assignMenuMeetingId, setAssignMenuMeetingId] = useState<string | null>(null);
 
+  const invalidateMeetings = () => queryClient.invalidateQueries({ queryKey: ['meetings', user?.id] });
+
   const setProjectFilter = (id: string) => {
     if (id === 'all') {
       searchParams.delete('project');
@@ -80,24 +74,6 @@ export default function MeetingsPage() {
     }
     setSearchParams(searchParams, { replace: true });
   };
-
-  const fetchMeetings = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user;
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('Meeting')
-      .select('id, title, fileName, status, createdAt, summary, participants, meetingDate, meetingTime, location, responsible, projectId')
-      .eq('userId', user.id)
-      .order('createdAt', { ascending: false });
-
-    if (error) console.error('Error fetching meetings:', error);
-    else setMeetings((data as Meeting[]) || []);
-    setLoading(false);
-  };
-
-  useEffect(() => { fetchMeetings(); }, []);
 
   const handleDelete = async () => {
     if (!deleteId) return;
