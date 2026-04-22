@@ -236,6 +236,10 @@ export default function PlansPage() {
               })}
             </div>
 
+            <p className="text-center text-xs text-muted-foreground mt-4">
+              * Sujeito ao pacote contratado. Consulte condições com nossa equipe comercial.
+            </p>
+
             {/* Annual Upfront Savings Card */}
             <Card className="border-l-4 border-l-primary bg-gradient-to-br from-primary/5 to-transparent">
               <CardContent className="p-6 sm:p-8">
