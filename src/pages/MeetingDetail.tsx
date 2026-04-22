@@ -649,7 +649,7 @@ export default function MeetingDetail() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="markdown-rendered text-sm leading-relaxed max-h-[400px] overflow-y-auto">
+              <div className="markdown-rendered text-sm leading-relaxed max-h-[400px] overflow-y-auto overflow-x-auto">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{meeting.transcription}</ReactMarkdown>
               </div>
             </CardContent>
@@ -706,7 +706,7 @@ export default function MeetingDetail() {
               )}
 
               {summaryContent && !summaryLoading && (
-                <div className="markdown-rendered">
+                <div className="markdown-rendered overflow-x-auto">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{summaryContent}</ReactMarkdown>
                 </div>
               )}
