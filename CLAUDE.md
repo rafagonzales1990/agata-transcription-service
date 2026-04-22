@@ -7,7 +7,7 @@ Vá direto ao ponto técnico. Nunca snippets parciais — sempre arquivos comple
 ## Stack
 - Frontend: React + TypeScript + Tailwind via Lovable
 - Backend: Supabase ID `hblczvmpyaznbxvdcaze`
-- IA: Gemini 2.0 Flash — endpoint `v1beta/models/gemini-2.0-flash` | Fallback: OpenAI Whisper-1 / GPT-4o-mini
+- IA: CASCADE `gemini-2.5-flash` → `gemini-2.0-flash` → OpenAI Whisper-1/GPT-4o-mini | endpoint `v1beta`
 - Embeddings: `gemini-embedding-001` v1beta, outputDimensionality: 768
 - Pagamentos: Stripe Live
 - Email: Resend
@@ -19,6 +19,7 @@ Vá direto ao ponto técnico. Nunca snippets parciais — sempre arquivos comple
 - Tabelas: PascalCase com aspas (`"Meeting"`, `"User"`, `"Plan"`, `"Usage"`)
 - NUNCA expor chaves de API no frontend — sempre Edge Functions + Secrets
 - Primeira hipótese em falha silenciosa: RLS
+- **RLS recursiva**: NUNCA usar subqueries que referenciam tabelas com RLS ativa dentro de policies — causa recursão infinita e quebra todas as queries. Usar `SECURITY DEFINER` functions em vez de subqueries diretas.
 
 ## ⚠️ REGRAS ABSOLUTAS — JAMAIS ALTERAR
 
@@ -43,14 +44,40 @@ Vá direto ao ponto técnico. Nunca snippets parciais — sempre arquivos comple
 
 | Feature | Detalhe |
 |---------|---------|
-| Enterprise Admin | Rota /enterprise/admin com acesso role=enterprise_admin ou isTeamOwner |
-| Dashboard | 4 cards de métricas + gráfico Recharts por membro (últimas 4 semanas) |
-| Membros | Convidar, remover membros; painel de convites pendentes |
-| Reuniões do Time | Todas as reuniões scoped ao teamId, filtros |
-| Projetos do Time | Projetos compartilhados scoped ao teamId |
-| Configurações | Editar nome/empresa, dissolver time, sair do time |
-| RLS | Meeting, Usage, User, TeamInvite todos scoped ao teamId |
-| Hotfix CPF modal | Modal bloqueava admin — corrigido com isAdmin bypass e botão X para fechar sem logout |
+| Enterprise Admin | Rota /enterprise/admin com acesso role=enterprise_admin ou isTeamOwner=true |
+| Dashboard | 4 cards (membros, reuniões mês, minutos, convites) + gráfico Recharts por membro (4 semanas) |
+| Membros | Tabela com uso individual, convidar, remover, convites pendentes |
+| Reuniões do Time | Todas as reuniões scoped ao teamId, filtros por membro/status |
+| Projetos do Time | Projetos compartilhados (teamId), criar/editar |
+| Configurações | Nome/empresa, dissolver time (owner), sair do time (membro) |
+| Sidebar | "Painel do Time" visível apenas para enterprise_admin/isTeamOwner |
+| health-check | Testa gemini-2.5 e gemini-2.0 em paralelo, sempre retorna 200 |
+
+### HOTFIXES — 22/04/2026
+
+| Fix | Detalhe |
+|-----|---------|
+| CPF modal timing | `userDataLoaded` bloqueia modal até query terminar |
+| CPF modal condição | `userDataLoaded && !hasCompletedOnboarding && !userCpf` — sem dependência de isAdmin |
+| CPF modal botão X | `onDismiss` simples sem navigate/signOut; modal volta na próxima visita |
+| RLS recursiva | Policies enterprise_admin com subquery em User/Meeting causavam loop — removidas |
+| Cache entre sessões | `queryClient.clear()` no SIGNED_OUT event |
+| health-check 200 | Sempre retorna 200; erros no payload; alerta só se ambos Gemini falharem |
+
+### v1.3.0 — Projetos — 22/04/2026
+
+| Feature | Detalhe |
+|---------|---------|
+| Página /projects | Organização de reuniões por projeto/cliente |
+| Modal criar/editar | Nome, descrição, 8 cores preset |
+| Compartilhar com time | Toggle Enterprise para projetos scoped ao teamId |
+| Bulk categorizar | Modal para categorizar reuniões em lote |
+| Filtro "Sem projeto" | Na página de Reuniões |
+| Badge por projeto | Badge colorido na lista de reuniões |
+| Upload com projeto | Select de projeto no upload de reunião |
+| Limites por plano | basic=3, inteligente=10, automacao=30, enterprise=ilimitado |
+| maxProjects | Coluna adicionada na tabela Plan |
+| RLS Projetos | Usuário vê próprios projetos + projetos do time (teamId) |
 
 ### DEV 5 — 22/04/2026
 
