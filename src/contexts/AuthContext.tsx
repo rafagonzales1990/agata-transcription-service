@@ -64,6 +64,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (event, session) => {
         setSession(session);
         setLoading(false);
+
+        if (event === 'SIGNED_OUT') {
+          queryClient.clear();
+        }
+
         if (session?.user) {
           Sentry.setUser({ id: session.user.id, email: session.user.email });
           setTimeout(() => fetchProfile(session.user.id), 0);
