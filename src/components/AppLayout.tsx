@@ -53,8 +53,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   const qc = useQueryClient();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isEnterpriseAdmin, setIsEnterpriseAdmin] = useState(false);
-  const [userCpf, setUserCpf] = useState<string | null | undefined>(undefined);
+  const [userCpf, setUserCpf] = useState<string | null>(null);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean>(true);
+  const [userDataLoaded, setUserDataLoaded] = useState(false);
   const [pwaModalOpen, setPwaModalOpen] = useState(false);
   const [hasCompletedMeetings, setHasCompletedMeetings] = useState(false);
 
@@ -88,6 +89,8 @@ export function AppLayout({ children }: AppLayoutProps) {
         setUserCpf(data?.cpf ?? null);
         setHasCompletedOnboarding(data?.hasCompletedOnboarding ?? false);
       }
+    } finally {
+      setUserDataLoaded(true);
     }
   }, []);
 
@@ -120,7 +123,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     navigate('/');
   };
 
-  const needsCpf = !isAdmin && userCpf !== undefined && !userCpf && !hasCompletedOnboarding;
+  const needsCpf = userDataLoaded && !isAdmin && !userCpf && !hasCompletedOnboarding;
   const authUser = profile;
 
   const initial = profile?.name?.charAt(0)?.toUpperCase() || profile?.email?.charAt(0)?.toUpperCase() || '?';
