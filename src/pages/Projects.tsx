@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
@@ -158,9 +159,15 @@ export default function ProjectsPage() {
     // For now, if it's the uncategorized card, we'll just let them pick - but the spec is unclear. Let's just assign to the target project.
 
     const ids = Array.from(bulkSelected);
+    const targetId = bulkUncategorized ? bulkProject?.id || null : bulkProject?.id || null;
+    if (bulkUncategorized && !targetId) {
+      toast.error('Selecione um projeto de destino');
+      setBulkSaving(false);
+      return;
+    }
     const { error } = await supabase
       .from('Meeting')
-      .update({ projectId: bulkProject?.id || null, updatedAt: new Date().toISOString() })
+      .update({ projectId: targetId, updatedAt: new Date().toISOString() })
       .in('id', ids);
 
     if (error) {
@@ -189,7 +196,7 @@ export default function ProjectsPage() {
                 : `${limits.used} de ${limits.maxProjects} projetos utilizados`}
             </p>
           </div>
-          <Button onClick={openCreateModal} className="bg-primary text-primary-foreground hover:bg-primary/90">
+          <Button onClick={openCreateModal} disabled={limits.isAtLimit} title={limits.isAtLimit ? 'Limite de projetos atingido — faça upgrade' : undefined} className="bg-primary text-primary-foreground hover:bg-primary/90">
             <Plus className="h-4 w-4 mr-1" />
             Novo Projeto
           </Button>
@@ -228,7 +235,7 @@ export default function ProjectsPage() {
                       variant="ghost"
                       size="sm"
                       className="text-xs h-7"
-                      onClick={() => openBulkModal(projects[0], false)}
+                      onClick={() => openBulkModal(null, true)}
                     >
                       <FolderInput className="h-3 w-3 mr-1" />
                       Categorizar em lote
@@ -402,6 +409,31 @@ export default function ProjectsPage() {
               Selecione as reuniões para mover para este projeto
             </DialogDescription>
           </DialogHeader>
+
+          {/* Project selector when opened from "Sem Projeto" */}
+          {bulkUncategorized && (
+            <div className="mb-2">
+              <label className="text-sm font-medium text-foreground mb-1 block">Mover para o projeto:</label>
+              <Select value={bulkProject?.id || ''} onValueChange={(v) => {
+                const p = projects.find(pr => pr.id === v) || null;
+                setBulkProject(p);
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um projeto" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map(p => (
+                    <SelectItem key={p.id} value={p.id}>
+                      <span className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: p.color }} />
+                        {p.name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="flex items-center gap-2 mb-2">
             <Checkbox
