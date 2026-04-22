@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -983,7 +984,6 @@ export default function AdminPanel() {
                         { label: 'Total Transcrições', value: String(costsData.totalTranscriptions) },
                         { label: 'Minutos Transcritos', value: String(costsData.totalMinutes), sub: `~${Math.round(costsData.totalMinutes / 60)}h` },
                         { label: 'Custo Total', value: `R$ ${(costsData.totalCostCents / 100).toFixed(2)}` },
-                        { label: 'Economia Gemini', value: 'Free Tier', sub: 'Gemini 2.5 Flash' },
                       ].map((c, i) => (
                         <Card key={i} className="bg-card border-border">
                           <CardContent className="p-5">
@@ -993,6 +993,14 @@ export default function AdminPanel() {
                           </CardContent>
                         </Card>
                       ))}
+                      <Card className="bg-card border-border">
+                        <CardContent className="p-5">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide">FREE TIER GEMINI</p>
+                          <p className="text-2xl font-bold font-mono text-foreground mt-1">{costsData.dailyGeminiCount ?? 0} / 10.000 req/dia</p>
+                          <Progress value={Math.min(100, ((costsData.dailyGeminiCount ?? 0) / 10000) * 100)} className="h-2 mt-2" />
+                          <p className="text-xs text-muted-foreground mt-1">Gemini 2.5 Flash — limite diário do plano gratuito</p>
+                        </CardContent>
+                      </Card>
                     </div>
 
                     {/* Provider cards */}
