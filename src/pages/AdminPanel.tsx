@@ -726,15 +726,28 @@ export default function AdminPanel() {
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'USUÁRIOS ATIVOS', value: String(totalUsers), sub: `${newLast7} novos (7d)`, icon: Users },
-                { label: 'TRIALS ATIVOS', value: String(trialUsers), sub: `${freeUsers} expirados`, icon: Zap },
-                { label: 'REUNIÕES CONCLUÍDAS', value: `${dashMetrics.completedMeetings} / ${totalMeetings}`, sub: `${totalMeetings > 0 ? Math.round((dashMetrics.completedMeetings / totalMeetings) * 100) : 0}% taxa de conclusão`, icon: BarChart3 },
-                { label: 'TEMPO MÉDIO', value: `${dashMetrics.avgDurationMin} min`, sub: 'por reunião concluída', icon: Clock },
+                { label: 'USUÁRIOS ATIVOS', value: String(totalUsers), sub: `${newLast7} novos (7d)`, icon: Users, tooltip: '' },
+                { label: 'TRIALS ATIVOS', value: String(trialUsers), sub: `${freeUsers} expirados`, icon: Zap, tooltip: '' },
+                { label: 'REUNIÕES CONCLUÍDAS', value: `${dashMetrics.completedMeetings} concluídas`, sub: (() => { const denom = dashMetrics.completedMeetings + dashMetrics.failedMeetings; const rate = denom > 0 ? Math.round((dashMetrics.completedMeetings / denom) * 100) : 0; return `${dashMetrics.failedMeetings} falharam / ${dashMetrics.processingMeetings} processando — ${rate}% taxa`; })(), icon: BarChart3, tooltip: 'Total de reuniões com transcrição finalizada vs. falhas de transcrição. Reuniões em processamento não entram no cálculo.' },
+                { label: 'TEMPO MÉDIO', value: `${dashMetrics.avgDurationMin} min`, sub: 'por reunião concluída', icon: Clock, tooltip: '' },
               ].map((c, i) => (
                 <Card key={i} className="bg-card border-border">
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between mb-1">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{c.label}</p>
+                      {c.tooltip ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <p className="text-xs text-muted-foreground uppercase tracking-wide cursor-help underline decoration-dotted">{c.label}</p>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">
+                              <p>{c.tooltip}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">{c.label}</p>
+                      )}
                       <c.icon className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <p className="text-2xl font-bold text-foreground font-mono">{c.value}</p>
