@@ -20,7 +20,7 @@ const plans = [
   {
     name: 'Essencial',
     price: 'R$ 37',
-    originalPrice: 'R$ 49',
+    originalPrice: 'R$ 53',
     period: '/mês',
     description: 'Para profissionais',
     features: ['15 transcrições/mês', 'Até 45min por áudio', 'Resumo avançado com IA', 'Ata em PDF profissional', 'Sem marca d\'água'],
@@ -32,7 +32,7 @@ const plans = [
   {
     name: 'Pro',
     price: 'R$ 137',
-    originalPrice: 'R$ 183',
+    originalPrice: 'R$ 196',
     period: '/mês',
     description: 'Para equipes com volume',
     features: ['30 transcrições/mês', 'Até 1h por áudio', 'Todos os recursos', 'Templates customizados', 'Suporte prioritário'],
@@ -64,7 +64,7 @@ export function PlansSection() {
             Planos simples e transparentes
           </h2>
           <p className="text-muted-foreground">
-            Comece grátis. Faça upgrade quando precisar. Preço anual com 20% de desconto.
+            Comece grátis. Faça upgrade quando precisar. Preço anual com 30% de desconto.
           </p>
         </div>
 
@@ -97,7 +97,7 @@ export function PlansSection() {
                       {plan.period && <span className="text-sm text-muted-foreground">{plan.period}</span>}
                     </div>
                     {plan.originalPrice && (
-                      <p className="text-[10px] text-primary font-medium mb-4">Preço anual — economia de 20%</p>
+                      <p className="text-[10px] text-primary font-medium mb-4">Preço anual — economia de 30%</p>
                     )}
                     {!plan.originalPrice && <div className="mb-4" />}
                   </div>
