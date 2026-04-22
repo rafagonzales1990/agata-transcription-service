@@ -84,11 +84,23 @@ async function fetchUsage(): Promise<UsageData> {
     ? userRes.data!.giftPlanId!
     : (userRes.data?.planId || 'basic');
 
+  const trialEndsAt = userRes.data?.trialEndsAt ? new Date(userRes.data.trialEndsAt) : null;
+  const isTrial = !!trialEndsAt && trialEndsAt > nowDate;
+
   const { data: plan } = await supabase
     .from('Plan')
     .select('name, maxTranscriptions, maxDurationMinutes')
     .eq('id', planId)
     .maybeSingle();
+
+  // For trial users on 'basic', fetch the base plan name
+  const basePlanId = userRes.data?.planId || 'basic';
+  let basePlanName = plan?.name || 'Gratuito';
+  if (isTrial && basePlanId !== planId) {
+    // planId might differ due to gift; use the fetched plan name
+  } else if (isTrial) {
+    // They're on trial with the same planId, use the plan name directly
+  }
 
   const transcriptionsUsed = usageRes.data?.transcriptionsUsed ?? 0;
   const totalMinutesTranscribed = usageRes.data?.totalMinutesTranscribed ?? 0;
@@ -96,7 +108,7 @@ async function fetchUsage(): Promise<UsageData> {
   const maxT = plan?.maxTranscriptions ?? 5;
   const dbMaxM = plan?.maxDurationMinutes ?? null;
   const displayMaxM = getDisplayMinutes(planId, dbMaxM);
-  const planName = plan?.name || 'Gratuito';
+  const planName = basePlanName;
   const durationLabel = getDurationLabel(planId, dbMaxM);
 
   const transcriptionPercent = maxT > 0 ? Math.min(100, (transcriptionsUsed / maxT) * 100) : 0;
@@ -114,6 +126,7 @@ async function fetchUsage(): Promise<UsageData> {
     maxPercent,
     isNearLimit: planId !== 'enterprise' && maxPercent >= 80 && maxPercent < 100,
     isAtLimit: planId !== 'enterprise' && (transcriptionsUsed >= maxT || totalMinutesTranscribed >= displayMaxM),
+    isTrial,
     loading: false,
   };
 }
