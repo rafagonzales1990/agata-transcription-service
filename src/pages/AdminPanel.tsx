@@ -440,6 +440,25 @@ export default function AdminPanel() {
       })));
     } catch (e: any) { toast.error('Erro: ' + e.message); }
     setLoading(false);
+    // Fetch dashboard metrics
+    try {
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+      const [meetingsMonthRes, completedRes, usageTotalRes, avgDurRes] = await Promise.all([
+        supabase.from('Meeting').select('id', { count: 'exact', head: true }).gte('createdAt', thirtyDaysAgo),
+        supabase.from('Meeting').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
+        supabase.from('Usage').select('totalMinutesTranscribed'),
+        supabase.from('Meeting').select('fileDuration').eq('status', 'completed').not('fileDuration', 'is', null),
+      ]);
+      const totalMin = (usageTotalRes.data || []).reduce((s, u) => s + (u.totalMinutesTranscribed || 0), 0);
+      const durations = (avgDurRes.data || []).map(m => m.fileDuration || 0).filter(d => d > 0);
+      const avgSec = durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
+      setDashMetrics({
+        meetingsThisMonth: meetingsMonthRes.count || 0,
+        completedMeetings: completedRes.count || 0,
+        totalMinutes: totalMin,
+        avgDurationMin: Math.round(avgSec / 60),
+      });
+    } catch (e) { console.error('dashboard metrics error', e); }
   }, []);
 
   const fetchGroups = useCallback(async () => {
