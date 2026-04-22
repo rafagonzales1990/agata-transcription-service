@@ -699,21 +699,21 @@ export default function AdminPanel() {
           </TabsList>
 
           {/* ── Dashboard Tab ──────────────────────────────── */}
-          <TabsContent value="dashboard" className="space-y-6">
+           <TabsContent value="dashboard" className="space-y-6">
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'MRR', value: 'R$ 0', sub: 'ARR: R$ 0', icon: DollarSign },
-                { label: 'Assinaturas Ativas', value: String(activeSubscriptions), sub: `${totalUsers > 0 ? Math.round((activeSubscriptions / totalUsers) * 100) : 0}% conversão`, icon: TrendingUp },
-                { label: 'Em Trial', value: String(trialUsers), sub: `${freeUsers} expirados`, icon: Clock },
-                { label: 'Churn Rate', value: '0%', sub: `${freeUsers} usuários free`, icon: BarChart3 },
+                { label: 'RECEITA MENSAL', value: 'R$ 0,00', sub: 'Integração Stripe', icon: DollarSign },
+                { label: 'CRESCIMENTO', value: `+${newLast30}`, sub: 'usuários nos últimos 30 dias', icon: TrendingUp },
+                { label: 'REUNIÕES ESTE MÊS', value: `${dashMetrics.meetingsThisMonth}`, sub: `${dashMetrics.completedMeetings} concluídas`, icon: FileAudio },
+                { label: 'MINUTOS TRANSCRITOS', value: String(dashMetrics.totalMinutes), sub: `~${Math.round(dashMetrics.totalMinutes / 60)}h acumuladas`, icon: Clock },
               ].map((c, i) => (
-                <Card key={i} className="bg-card border-border text-white [&_p]:text-white [&_span]:text-white" style={{ color: 'white' }}>
+                <Card key={i} className="bg-card border-border">
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between mb-1">
-                      <p className="text-sm text-muted-foreground">{c.label}</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{c.label}</p>
                       <c.icon className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <p className="text-2xl font-bold text-white" style={{ color: 'white' }}>{c.value}</p>
+                    <p className="text-2xl font-bold text-foreground font-mono">{c.value}</p>
                     <p className="text-xs text-muted-foreground mt-1">{c.sub}</p>
                   </CardContent>
                 </Card>
@@ -721,19 +721,19 @@ export default function AdminPanel() {
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'Total Usuários', value: String(totalUsers), sub: `${newLast7} novos (7d)`, icon: Users },
-                { label: 'Novos (30d)', value: String(newLast30), icon: Zap },
-                { label: 'Reuniões', value: String(totalMeetings), icon: FileAudio },
-                { label: 'Grupos', value: String(groups.length), icon: Clock },
+                { label: 'USUÁRIOS ATIVOS', value: String(totalUsers), sub: `${newLast7} novos (7d)`, icon: Users },
+                { label: 'TRIALS ATIVOS', value: String(trialUsers), sub: `${freeUsers} expirados`, icon: Zap },
+                { label: 'REUNIÕES CONCLUÍDAS', value: `${dashMetrics.completedMeetings} / ${totalMeetings}`, sub: `${totalMeetings > 0 ? Math.round((dashMetrics.completedMeetings / totalMeetings) * 100) : 0}% taxa de conclusão`, icon: BarChart3 },
+                { label: 'TEMPO MÉDIO', value: `${dashMetrics.avgDurationMin} min`, sub: 'por reunião concluída', icon: Clock },
               ].map((c, i) => (
-                <Card key={i} className="bg-card border-border text-white [&_p]:text-white [&_span]:text-white" style={{ color: 'white' }}>
+                <Card key={i} className="bg-card border-border">
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between mb-1">
-                      <p className="text-sm text-muted-foreground">{c.label}</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{c.label}</p>
                       <c.icon className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <p className="text-2xl font-bold text-white" style={{ color: 'white' }}>{c.value}</p>
-                    {'sub' in c && c.sub && <p className="text-xs text-muted-foreground mt-1">{c.sub}</p>}
+                    <p className="text-2xl font-bold text-foreground font-mono">{c.value}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{c.sub}</p>
                   </CardContent>
                 </Card>
               ))}
