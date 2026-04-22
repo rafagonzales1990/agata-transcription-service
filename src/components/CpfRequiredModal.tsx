@@ -89,6 +89,7 @@ export function CpfRequiredModal({ userId, isAdmin, onSaved, onDismiss }: CpfReq
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-[420px] mx-4 p-8 flex flex-col items-center gap-5 relative">
         <button
+          type="button"
           onClick={handleClose}
           className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
           title="Fechar"
