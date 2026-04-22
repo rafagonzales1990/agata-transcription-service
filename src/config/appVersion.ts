@@ -21,12 +21,12 @@
  */
 
 export const appVersion = {
-  version: 'v1.2.0',
+  version: 'v1.4.0',
   releaseDate: '2026-04-22',
   environmentLabel: (import.meta.env.MODE === 'production' ? 'production' : 'dev') as string,
   changelog: [
-    'PWA: modal de instalação com instruções Android/iOS',
-    'Service worker com auto-update e versionamento',
-    'Nova versão estável v1.2.0',
+    'Enterprise Admin: /enterprise/admin com dashboard, membros e projetos do time',
+    'Hotfix: CPF modal não bloqueia mais admin nem usuários com hasCompletedOnboarding',
+    'Nova versão estável v1.4.0',
   ],
 } as const;
