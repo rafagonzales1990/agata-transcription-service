@@ -122,7 +122,11 @@ export function PlansSection() {
           ))}
         </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-6 mt-8 text-sm text-muted-foreground">
+        <p className="text-center text-xs text-muted-foreground mt-6">
+          * Sujeito ao pacote contratado. Consulte condições com nossa equipe comercial.
+        </p>
+
+        <div className="flex flex-wrap items-center justify-center gap-6 mt-4 text-sm text-muted-foreground">
           <span className="flex items-center gap-1"><Shield className="h-4 w-4" /> Garantia de 7 dias</span>
           <span className="flex items-center gap-1"><Lock className="h-4 w-4" /> Pagamento seguro via Stripe</span>
           <span className="flex items-center gap-1"><CheckCircle className="h-4 w-4" /> Cancele a qualquer momento</span>

@@ -139,6 +139,12 @@ export default function PlansPage() {
   const currentPlanId = profile?.plan_id || 'basic';
   const isPaid = currentPlanId !== 'basic';
 
+  const FEATURE_OVERRIDES: Record<string, string[]> = {
+    inteligente: ['15 transcrições/mês', 'Até 1h por áudio', 'Resumo avançado com IA', 'Ata em PDF profissional', 'Sem marca d\'água'],
+    automacao: ['30 transcrições/mês', 'Até 1h30 por áudio', 'Todos os recursos', 'Templates customizados', 'Suporte prioritário'],
+    enterprise: ['Transcrições ilimitadas*', 'Duração ilimitada*', 'Grupos de trabalho', 'Gestão de usuários', 'Suporte dedicado', 'SLA personalizado'],
+  };
+
   return (
     <AppLayout>
       <div className="max-w-6xl mx-auto space-y-8">
