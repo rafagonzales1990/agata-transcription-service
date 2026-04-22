@@ -168,7 +168,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       </nav>
 
       <div className="p-3 border-t border-border space-y-2">
-        {(isEnterprise || isAdmin) && (
+        {isEnterpriseAdmin && (
           <Link
             to="/enterprise/admin"
             onClick={onNavigate}
@@ -179,8 +179,8 @@ export function AppLayout({ children }: AppLayoutProps) {
                 : 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
             )}
           >
-            <Building2 className="h-5 w-5" />
-            Painel Admin
+            <Users className="h-5 w-5" />
+            Painel do Time
           </Link>
         )}
         {isAdmin && (
