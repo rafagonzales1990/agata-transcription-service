@@ -54,6 +54,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isEnterpriseAdmin, setIsEnterpriseAdmin] = useState(false);
   const [userCpf, setUserCpf] = useState<string | null | undefined>(undefined);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean>(true);
   const [pwaModalOpen, setPwaModalOpen] = useState(false);
   const [hasCompletedMeetings, setHasCompletedMeetings] = useState(false);
 
@@ -64,12 +65,13 @@ export function AppLayout({ children }: AppLayoutProps) {
       if (!user) return;
       const { data } = await supabase
         .from('User')
-        .select('isAdmin, cpf, role, isTeamOwner')
+        .select('isAdmin, cpf, role, isTeamOwner, hasCompletedOnboarding')
         .eq('id', user.id)
         .maybeSingle();
       if (data?.isAdmin) setIsAdmin(true);
       if (data?.role === 'enterprise_admin' || data?.isTeamOwner) setIsEnterpriseAdmin(true);
       setUserCpf(data?.cpf ?? null);
+      setHasCompletedOnboarding(data?.hasCompletedOnboarding ?? false);
     } catch (error: any) {
       if (error?.message?.includes('lock') || error?.message?.includes('stolen')) {
         await new Promise(resolve => setTimeout(resolve, 200));
@@ -78,12 +80,13 @@ export function AppLayout({ children }: AppLayoutProps) {
         if (!user) return;
         const { data } = await supabase
           .from('User')
-          .select('isAdmin, cpf, role, isTeamOwner')
+          .select('isAdmin, cpf, role, isTeamOwner, hasCompletedOnboarding')
           .eq('id', user.id)
           .maybeSingle();
         if (data?.isAdmin) setIsAdmin(true);
         if (data?.role === 'enterprise_admin' || data?.isTeamOwner) setIsEnterpriseAdmin(true);
         setUserCpf(data?.cpf ?? null);
+        setHasCompletedOnboarding(data?.hasCompletedOnboarding ?? false);
       }
     }
   }, []);
@@ -117,7 +120,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     navigate('/');
   };
 
-  const needsCpf = userCpf !== undefined && !userCpf;
+  const needsCpf = userCpf !== undefined && !userCpf && !hasCompletedOnboarding;
   const authUser = profile;
 
   const initial = profile?.name?.charAt(0)?.toUpperCase() || profile?.email?.charAt(0)?.toUpperCase() || '?';
