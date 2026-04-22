@@ -34,11 +34,23 @@ Vá direto ao ponto técnico. Nunca snippets parciais — sempre arquivos comple
 - Colunas camelCase com aspas: "planId", "createdAt", "userId"
 
 ## Versão atual
-- Web App: v1.1.1 (`src/config/appVersion.ts`)
+- Web App: v1.2.0 (`src/config/appVersion.ts`)
 - Desktop: v1.0.4
 - Extensão Chrome: v1.0.2 ✅ aprovada
 
 ## Histórico de Releases
+
+### DEV 5 (DEV 12 interno) — Consolidação e Correções (v1.1.2) ✅ — 22/04/2026
+
+| Feature | Detalhe |
+|---------|---------|
+| Counter de uso | Banco corrigido (gabrielcastroesilva zerado); hook useUsage corrigido: currentMonth format, maybeSingle, auto-refresh via Realtime |
+| Stripe | 3 webhooks mortos excluídos; teste CLI com 200 OK; secret revertido e revogado; price IDs todos ativos confirmados |
+| Chrome Web Store | Extensão aprovada e pública (hhefgnokghkmeekjjpaipjmfhnhbnpjb) |
+| Card DEV status | Breakdown completed/failed/processing com totais |
+| Markdown rendering | SharedMeeting migrado para markdown-rendered + overflow-x-auto |
+| check-trials bug | Root cause: query em profiles.trial_ends_at em vez de User.trialEndsAt; corrigido e deployado; 4 e-mails de expiração enviados manualmente |
+| Gemini cascade | 4 edge functions: gemini-2.5-flash → gemini-2.0-flash → OpenAI; provider logado no TranscriptionLog |
 
 ### DEV 11 — Resiliência e Monitoramento (v1.1.1) ✅ — 22/04/2026
 
