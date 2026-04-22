@@ -201,8 +201,7 @@ export default function MeetingsPage() {
 
     let result = meetings.filter(m => {
       if (selectedProjectId === '__none__' && m.projectId) return false;
-      if (selectedProjectId === '__none__' && !m.projectId) { /* pass */ }
-      else if (selectedProjectId !== 'all' && m.projectId !== selectedProjectId) return false;
+      if (selectedProjectId !== 'all' && selectedProjectId !== '__none__' && m.projectId !== selectedProjectId) return false;
       if (statusFilter !== 'all' && m.status !== statusFilter) return false;
 
       if (dateRange !== 'all') {
