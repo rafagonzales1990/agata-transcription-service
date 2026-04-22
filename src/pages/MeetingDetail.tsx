@@ -598,6 +598,13 @@ export default function MeetingDetail() {
           </div>
           {meeting.description && <p className="text-sm text-muted-foreground mt-2">{meeting.description}</p>}
 
+          {meeting.status === "processing" && (
+            <div className="mt-3 p-3 rounded-md bg-primary/10 border border-primary/20 flex items-center gap-3">
+              <Loader2 className="h-4 w-4 text-primary animate-spin shrink-0" />
+              <span className="text-sm text-foreground">Transcrevendo com IA... isso pode levar alguns minutos</span>
+            </div>
+          )}
+
           {meeting.status === "failed" && (
             <div className="mt-3 p-3 rounded-md bg-destructive/10 border border-destructive/20 flex items-center gap-3">
               <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
