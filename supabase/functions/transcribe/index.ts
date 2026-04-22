@@ -130,7 +130,7 @@ async function transcribeWithGroq(
   }
 
   const text = await response.text()
-  return `## Transcrição\n${text}\n\n## Resumo\n(Resumo não disponível — gerado via fallback Groq)\n\n## Itens de Ação\n`
+  return `## Transcrição\n${text}`
 }
 
 async function waitForFileActive(fileUri: string, geminiApiKey: string): Promise<void> {
@@ -175,7 +175,7 @@ async function transcribeWithOpenAI(
   }
 
   const text = await response.text()
-  return `## Transcrição\n${text}\n\n## Resumo\n(Resumo gerado via OpenAI Whisper — fallback automático)\n\n## Itens de Ação\n`
+  return text
 }
 
 async function processTranscription(
