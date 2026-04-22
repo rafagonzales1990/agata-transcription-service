@@ -71,7 +71,7 @@ async function fetchUsage(): Promise<UsageData> {
       .maybeSingle(),
     supabase
       .from('User')
-      .select('planId, giftPlanId, giftEndsAt')
+      .select('planId, giftPlanId, giftEndsAt, trialEndsAt')
       .eq('id', user.id)
       .maybeSingle(),
   ]);
