@@ -5,6 +5,35 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash']
+
+async function callGeminiCascade(
+  apiKey: string,
+  payload: object
+): Promise<{ data: any; modelUsed: string }> {
+  for (const model of GEMINI_MODELS) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!response.ok) {
+        const err = await response.text()
+        console.warn(`[Gemini] ${model} falhou (${response.status}): ${err.substring(0, 200)}`)
+        continue
+      }
+      const data = await response.json()
+      console.log(`[Gemini] Sucesso com modelo: ${model}`)
+      return { data, modelUsed: model }
+    } catch (err) {
+      console.warn(`[Gemini] ${model} erro de rede:`, err)
+    }
+  }
+  throw new Error('Todos os modelos Gemini falharam')
+}
+
 async function generateFollowupWithOpenAI(
   prompt: string,
   openaiApiKey: string
@@ -109,24 +138,13 @@ REGRAS para o corpo do e-mail:
 
     let rawText = ''
     try {
-      const geminiRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.3, maxOutputTokens: 1024 }
-          })
-        }
-      )
-
-      if (!geminiRes.ok) throw new Error(`Gemini error: ${geminiRes.status}`)
-
-      const geminiData = await geminiRes.json()
+      const { data: geminiData } = await callGeminiCascade(geminiApiKey, {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.3, maxOutputTokens: 1024 }
+      })
       rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || ''
     } catch (geminiErr) {
-      console.warn('Gemini falhou no generate-followup, usando OpenAI:', (geminiErr as Error).message)
+      console.warn('Gemini cascade falhou no generate-followup, usando OpenAI:', (geminiErr as Error).message)
       if (!openaiApiKey) throw geminiErr
       rawText = await generateFollowupWithOpenAI(prompt, openaiApiKey)
       console.log('OpenAI fallback para followup concluído')

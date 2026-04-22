@@ -61,28 +61,24 @@ Deno.serve(async (req) => {
 
     // ============================================================
     // 2) Trial expired — send email + auto-downgrade to basic
+    // Queries User directly (trialEndsAt + trialExpiredEmailSent + stripeSubscriptionId)
+    // to avoid profiles.trial_ends_at being NULL for migrated/older accounts
     // ============================================================
-    const { data: expiredProfiles } = await supabase
-      .from('profiles')
-      .select('user_id, email, name, trial_ends_at, plan_id')
-      .lt('trial_ends_at', now.toISOString())
-      .not('trial_ends_at', 'is', null)
+    const { data: expiredUsers } = await supabase
+      .from('User')
+      .select('id, email, name, trialEndsAt, planId')
+      .lt('trialEndsAt', now.toISOString())
+      .not('trialEndsAt', 'is', null)
+      .is('stripeSubscriptionId', null)
+      .eq('trialExpiredEmailSent', false)
 
-    for (const profile of expiredProfiles || []) {
+    for (const user of expiredUsers || []) {
       try {
-        const { data: user } = await supabase
-          .from('User')
-          .select('id, trialExpiredEmailSent, planId')
-          .eq('id', profile.user_id)
-          .maybeSingle()
-
-        if (!user || user.trialExpiredEmailSent) continue
-
         await supabase.functions.invoke('send-email', {
           body: {
             type: 'trial_expired',
-            to: profile.email,
-            data: { name: profile.name || 'Usuário' },
+            to: user.email,
+            data: { name: user.name || 'Usuário' },
           },
         })
 
@@ -96,12 +92,12 @@ Deno.serve(async (req) => {
         // Only downgrade if user is not on a paid plan already
         if (!user.planId || user.planId === 'basic' || user.planId === 'inteligente') {
           await supabase.from('User').update({ planId: 'basic' }).eq('id', user.id)
-          await supabase.from('profiles').update({ plan_id: 'basic' }).eq('user_id', profile.user_id)
+          await supabase.from('profiles').update({ plan_id: 'basic' }).eq('user_id', user.id)
         }
 
         emailsSent++
       } catch (err) {
-        errors.push(`trial_expired ${profile.user_id}: ${String(err)}`)
+        errors.push(`trial_expired ${user.id}: ${String(err)}`)
       }
     }
 

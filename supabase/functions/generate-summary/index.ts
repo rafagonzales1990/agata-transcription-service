@@ -7,6 +7,35 @@ const corsHeaders = {
 
 const PAID_PLANS = ['inteligente', 'automacao', 'enterprise']
 
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash']
+
+async function callGeminiCascade(
+  apiKey: string,
+  payload: object
+): Promise<{ data: any; modelUsed: string }> {
+  for (const model of GEMINI_MODELS) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!response.ok) {
+        const err = await response.text()
+        console.warn(`[Gemini] ${model} falhou (${response.status}): ${err.substring(0, 200)}`)
+        continue
+      }
+      const data = await response.json()
+      console.log(`[Gemini] Sucesso com modelo: ${model}`)
+      return { data, modelUsed: model }
+    } catch (err) {
+      console.warn(`[Gemini] ${model} erro de rede:`, err)
+    }
+  }
+  throw new Error('Todos os modelos Gemini falharam')
+}
+
 const prompts: Record<string, (title: string, transcription: string) => string> = {
   executivo: (meetingTitle, transcription) => `Você é um assistente especializado em criar resumos de reuniões corporativas
 em português brasileiro. A transcrição é de uma reunião intitulada "${meetingTitle}".
@@ -243,31 +272,16 @@ Deno.serve(async (req) => {
 
     const prompt = prompts[depth](meeting.title, meeting.transcription)
 
-    // Call Gemini with OpenAI fallback
+    // Call Gemini cascade with OpenAI fallback
     let summaryText = ''
     try {
-      const geminiResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.2, maxOutputTokens: maxTokens[depth] },
-          }),
-        }
-      )
-
-      if (!geminiResponse.ok) {
-        const errText = await geminiResponse.text()
-        console.error('Gemini error:', errText)
-        throw new Error(`Gemini API error: ${geminiResponse.status}`)
-      }
-
-      const geminiResult = await geminiResponse.json()
+      const { data: geminiResult } = await callGeminiCascade(geminiApiKey, {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.2, maxOutputTokens: maxTokens[depth] },
+      })
       summaryText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || ''
     } catch (geminiErr) {
-      console.warn('Gemini falhou no generate-summary, usando OpenAI:', (geminiErr as Error).message)
+      console.warn('Gemini cascade falhou no generate-summary, usando OpenAI:', (geminiErr as Error).message)
       if (!openaiApiKey) throw geminiErr
       summaryText = await generateSummaryWithOpenAI(meeting.transcription, depth, openaiApiKey)
       console.log('OpenAI fallback para summary concluído')

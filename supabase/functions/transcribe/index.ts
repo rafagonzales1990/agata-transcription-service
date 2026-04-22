@@ -6,7 +6,7 @@ const corsHeaders = {
 }
 
 const MAX_CHUNK_BYTES = 4 * 1024 * 1024
-const GEMINI_MODEL = 'gemini-2.0-flash'
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash']
 
 async function fetchWithRetry(
   url: string,
@@ -76,10 +76,11 @@ async function transcribeChunk(
   mimeType: string,
   geminiApiKey: string,
   chunkIndex: number,
-  totalChunks: number
+  totalChunks: number,
+  model: string
 ): Promise<string> {
   const response = await fetchWithRetry(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiApiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -311,13 +312,21 @@ async function processTranscription(
         new Uint8Array(arrayBuffer)
           .reduce((data, byte) => data + String.fromCharCode(byte), '')
       )
-      try {
-        fullTranscriptionText = await transcribeChunk(
-          base64Data, effectiveMimeType, geminiApiKey, 0, 1
-        )
-      } catch (geminiErr) {
-        console.warn('Gemini falhou para arquivo pequeno, usando OpenAI Whisper:', (geminiErr as Error).message)
-        if (!openaiApiKey) throw geminiErr
+      let chunkSuccess = false
+      for (const model of GEMINI_MODELS) {
+        try {
+          fullTranscriptionText = await transcribeChunk(
+            base64Data, effectiveMimeType, geminiApiKey, 0, 1, model
+          )
+          transcriptionProvider = model
+          chunkSuccess = true
+          break
+        } catch (modelErr) {
+          console.warn(`[Gemini] ${model} falhou no arquivo pequeno:`, (modelErr as Error).message)
+        }
+      }
+      if (!chunkSuccess) {
+        if (!openaiApiKey) throw new Error('Todos os modelos Gemini falharam e OPENAI_API_KEY não configurado')
         const fileName = storagePath.split('/').pop() || 'audio'
         fullTranscriptionText = await transcribeWithOpenAI(arrayBuffer, effectiveMimeType, fileName, openaiApiKey)
         transcriptionProvider = 'openai'
@@ -355,31 +364,42 @@ async function processTranscription(
 
         await waitForFileActive(fileUri, geminiApiKey)
 
-        const geminiResponse = await fetchWithRetry(
-          `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiApiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{
-                parts: [
-                  { file_data: { mime_type: effectiveMimeType, file_uri: fileUri } },
-                  { text: TRANSCRIPTION_PROMPT }
-                ]
-              }],
-              generationConfig: { temperature: 0.1, maxOutputTokens: 16384 }
-            })
+        let largeFileSuccess = false
+        for (const model of GEMINI_MODELS) {
+          try {
+            const geminiResponse = await fetchWithRetry(
+              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [{
+                    parts: [
+                      { file_data: { mime_type: effectiveMimeType, file_uri: fileUri } },
+                      { text: TRANSCRIPTION_PROMPT }
+                    ]
+                  }],
+                  generationConfig: { temperature: 0.1, maxOutputTokens: 16384 }
+                })
+              }
+            )
+
+            if (!geminiResponse.ok) {
+              const errText = await geminiResponse.text()
+              console.warn(`[Gemini] ${model} erro ${geminiResponse.status}:`, errText.substring(0, 200))
+              continue
+            }
+
+            const geminiResult = await geminiResponse.json()
+            fullTranscriptionText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || ''
+            transcriptionProvider = model
+            largeFileSuccess = true
+            break
+          } catch (modelErr) {
+            console.warn(`[Gemini] ${model} falhou no arquivo grande:`, (modelErr as Error).message)
           }
-        )
-
-        if (!geminiResponse.ok) {
-          const errText = await geminiResponse.text()
-          console.error(`Gemini transcription error ${geminiResponse.status}:`, errText)
-          throw new Error(`Gemini transcription failed ${geminiResponse.status}: ${errText.substring(0, 500)}`)
         }
-
-        const geminiResult = await geminiResponse.json()
-        fullTranscriptionText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || ''
+        if (!largeFileSuccess) throw new Error('Todos os modelos Gemini falharam no arquivo grande')
       } catch (geminiErr) {
         console.warn('Gemini falhou para arquivo grande, usando OpenAI Whisper:', (geminiErr as Error).message)
         if (!openaiApiKey) throw geminiErr

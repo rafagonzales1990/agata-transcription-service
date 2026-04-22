@@ -14,6 +14,35 @@ const corsHeaders = {
 
 const PAID_PLANS = ['inteligente', 'automacao', 'enterprise']
 
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash']
+
+async function callGeminiCascade(
+  apiKey: string,
+  payload: object
+): Promise<{ data: any; modelUsed: string }> {
+  for (const model of GEMINI_MODELS) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!response.ok) {
+        const err = await response.text()
+        console.warn(`[Gemini] ${model} falhou (${response.status}): ${err.substring(0, 200)}`)
+        continue
+      }
+      const data = await response.json()
+      console.log(`[Gemini] Sucesso com modelo: ${model}`)
+      return { data, modelUsed: model }
+    } catch (err) {
+      console.warn(`[Gemini] ${model} erro de rede:`, err)
+    }
+  }
+  throw new Error('Todos os modelos Gemini falharam')
+}
+
 const AGATA_LOGO_URL = 'https://hblczvmpyaznbxvdcaze.supabase.co/storage/v1/object/public/assets/logo_transparent.png'
 
 const templateLabels: Record<string, string> = {
@@ -406,28 +435,13 @@ async function generateCustomContent(
 
   let ataText = ''
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 4000 },
-        }),
-      }
-    )
-
-    if (!response.ok) {
-      const errText = await response.text()
-      console.error('Gemini error:', errText)
-      throw new Error('Erro ao gerar conteúdo com IA')
-    }
-
-    const result = await response.json()
+    const { data: result } = await callGeminiCascade(apiKey, {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.3, maxOutputTokens: 4000 },
+    })
     ataText = result.candidates?.[0]?.content?.parts?.[0]?.text || ''
   } catch (geminiErr) {
-    console.warn('Gemini falhou no generate-ata (custom), usando OpenAI:', (geminiErr as Error).message)
+    console.warn('Gemini cascade falhou no generate-ata (custom), usando OpenAI:', (geminiErr as Error).message)
     if (!openaiApiKey) throw geminiErr
     ataText = await generateAtaWithOpenAI(prompt, openaiApiKey)
     console.log('OpenAI fallback para ATA custom concluído')
@@ -656,28 +670,13 @@ ${meeting.transcription?.slice(0, 8000) || summaryContent?.slice(0, 4000) || '(n
 
       let ataText = ''
       try {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: geminiPrompt }] }],
-              generationConfig: { temperature: 0.3, maxOutputTokens: 8192 },
-            }),
-          }
-        )
-
-        if (!response.ok) {
-          const errText = await response.text()
-          console.error('Gemini error:', errText)
-          throw new Error('Erro ao gerar conteúdo com IA')
-        }
-
-        const result = await response.json()
+        const { data: result } = await callGeminiCascade(apiKey, {
+          contents: [{ parts: [{ text: geminiPrompt }] }],
+          generationConfig: { temperature: 0.3, maxOutputTokens: 8192 },
+        })
         ataText = result.candidates?.[0]?.content?.parts?.[0]?.text || summaryContent
       } catch (geminiErr) {
-        console.warn('Gemini falhou no generate-ata, usando OpenAI:', (geminiErr as Error).message)
+        console.warn('Gemini cascade falhou no generate-ata, usando OpenAI:', (geminiErr as Error).message)
         if (!openaiApiKey) throw geminiErr
         ataText = await generateAtaWithOpenAI(geminiPrompt, openaiApiKey)
         console.log('OpenAI fallback para ATA concluído')
