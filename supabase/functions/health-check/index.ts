@@ -73,7 +73,7 @@ async function checkOpenAI(apiKey: string): Promise<ProviderStatus> {
   }
 }
 
-async function verifyDevRole(supabase: ReturnType<typeof createClient>, authHeader: string): Promise<boolean> {
+async function verifyDevRole(supabase: any, authHeader: string): Promise<boolean> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!
   const authClient = createClient(supabaseUrl, anonKey, {

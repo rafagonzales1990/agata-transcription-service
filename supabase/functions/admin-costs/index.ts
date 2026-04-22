@@ -82,12 +82,21 @@ Deno.serve(async (req) => {
       }
     }
 
+    const todayStr = new Date().toISOString().slice(0, 10)
+    const { count: dailyGeminiCount } = await supabase
+      .from('TranscriptionLog')
+      .select('*', { count: 'exact', head: true })
+      .eq('provider', 'gemini')
+      .gte('createdAt', todayStr + 'T00:00:00.000Z')
+      .lte('createdAt', todayStr + 'T23:59:59.999Z')
+
     return new Response(JSON.stringify({
       totalTranscriptions,
       totalMinutes,
       totalCostCents,
       providerStats,
       currentMonthProviders,
+      dailyGeminiCount: dailyGeminiCount || 0,
       recentLogs: allLogs.slice(0, 20),
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
