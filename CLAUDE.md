@@ -50,6 +50,7 @@ Vá direto ao ponto técnico. Nunca snippets parciais — sempre arquivos comple
 | Projetos do Time | Projetos compartilhados scoped ao teamId |
 | Configurações | Editar nome/empresa, dissolver time, sair do time |
 | RLS | Meeting, Usage, User, TeamInvite todos scoped ao teamId |
+| Hotfix CPF modal | Modal bloqueava admin — corrigido com isAdmin bypass e botão X para fechar sem logout |
 
 ### DEV 5 — 22/04/2026
 
