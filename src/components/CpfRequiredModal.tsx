@@ -55,7 +55,7 @@ export function CpfRequiredModal({ userId, isAdmin, onSaved, onDismiss }: CpfReq
       onDismiss?.();
     } else {
       await supabase.auth.signOut();
-      navigate('/login');
+      navigate('/auth/login');
     }
   }, [isAdmin, onDismiss, navigate]);
 

@@ -123,7 +123,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     navigate('/');
   };
 
-  const needsCpf = userDataLoaded && !isAdmin && !userCpf && !hasCompletedOnboarding;
+  const needsCpf = userDataLoaded && !hasCompletedOnboarding && !userCpf;
   const authUser = profile;
 
   const initial = profile?.name?.charAt(0)?.toUpperCase() || profile?.email?.charAt(0)?.toUpperCase() || '?';
