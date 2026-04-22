@@ -1081,6 +1081,11 @@ export default function AdminPanel() {
               <p className="text-center text-muted-foreground py-8">Clique na aba para carregar os dados de custos</p>
             )}
           </TabsContent>
+
+          {/* ── AI Status Tab ─────────────────────────────── */}
+          <TabsContent value="ai-status" className="space-y-6">
+            <AIStatusMonitor />
+          </TabsContent>
         </Tabs>
       </div>
 
