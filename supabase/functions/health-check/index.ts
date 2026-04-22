@@ -98,22 +98,27 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const body = await req.json().catch(() => ({}))
+    const isCron = body?.mode === 'cron'
+
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
+    if (!isCron) {
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      const supabaseForAuth = createClient(supabaseUrl, supabaseServiceKey)
 
-    const isDevUser = await verifyDevRole(supabase, authHeader)
-    if (!isDevUser) {
-      return new Response(JSON.stringify({ error: 'Forbidden' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      const isDevUser = await verifyDevRole(supabaseForAuth, authHeader)
+      if (!isDevUser) {
+        return new Response(JSON.stringify({ error: 'Forbidden' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
     }
 
     const geminiApiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY') || ''
@@ -124,11 +129,33 @@ Deno.serve(async (req) => {
       openaiApiKey ? checkOpenAI(openaiApiKey) : Promise.resolve({ status: 'down' as const, latencyMs: 0 }),
     ])
 
-    return new Response(JSON.stringify({
-      gemini,
-      openai,
-      checkedAt: new Date().toISOString(),
-    }), {
+    const result = { gemini, openai, checkedAt: new Date().toISOString() }
+
+    if (isCron && result.gemini.status !== 'ok') {
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      )
+      await supabase.functions.invoke('send-email', {
+        body: {
+          type: 'custom',
+          to: 'adm@agatatranscription.com',
+          subject: `⚠️ Alerta Ágata: Gemini API ${result.gemini.status.toUpperCase()}`,
+          html: `
+            <h2>Alerta de Instabilidade — Gemini API</h2>
+            <p><strong>Status:</strong> ${result.gemini.status}</p>
+            <p><strong>Latência:</strong> ${result.gemini.latencyMs}ms</p>
+            <p><strong>OpenAI Whisper:</strong> ${result.openai.status}</p>
+            <p><strong>Verificado em:</strong> ${result.checkedAt}</p>
+            <p>O fallback OpenAI está ${result.openai.status === 'ok' ? '✅ ativo e funcionando' : '❌ também com problemas'}.</p>
+            <hr>
+            <p><small>Acesse o painel DEV → Status IAs para mais detalhes.</small></p>
+          `
+        }
+      })
+    }
+
+    return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error: unknown) {
