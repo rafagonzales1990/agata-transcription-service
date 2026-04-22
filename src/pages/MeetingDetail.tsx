@@ -484,13 +484,11 @@ export default function MeetingDetail() {
         body: { meetingId: id, storagePath: meeting.cloudStoragePath },
       });
 
-      if (error) throw error;
+      // Treat 202 (async) as success
+      if (error && !(error as any)?.status?.toString().startsWith('2')) throw error;
       if (data?.error) throw new Error(data.error);
 
-      toast.success("Transcrição reiniciada com sucesso!");
-      // Refresh meeting data
-      const { data: updated } = await supabase.from("Meeting").select("id, title, fileName, cloudStoragePath, status, createdAt, summary, transcription, participants, meetingDate, meetingTime, actionItems, responsible, location, description, ataTemplate, fileDuration").eq("id", id).maybeSingle();
-      if (updated) setMeeting(updated as MeetingRow);
+      toast.success("Transcrição reiniciada! Acompanhe o progresso aqui.");
     } catch (err: any) {
       toast.error(err.message || "Erro ao tentar novamente");
       setMeeting((prev) => prev ? { ...prev, status: "failed" } : prev);

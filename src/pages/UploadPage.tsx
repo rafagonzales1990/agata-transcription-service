@@ -230,8 +230,10 @@ export default function UploadPage() {
       if (insertError) throw new Error(`Erro ao criar reunião: ${insertError.message}`);
       setUploadProgress(70); setStatusMessage('Processando transcrição...');
 
-      const { error: fnError } = await supabase.functions.invoke('transcribe', { body: { meetingId, storagePath } });
-      if (fnError) {
+      const { data: fnData, error: fnError } = await supabase.functions.invoke('transcribe', { body: { meetingId, storagePath } });
+      // Treat 202 (accepted for async processing) as success
+      const isAsync = fnData && !fnError;
+      if (fnError && !(fnError as any)?.status?.toString().startsWith('2')) {
         await supabase.from('Meeting').update({ status: 'failed', errorMessage: fnError.message, updatedAt: new Date().toISOString() }).eq('id', meetingId);
         if (fnError.message?.includes('429') || (fnError as any).status === 429) {
           toast.error('Limite de transcrições por hora atingido. Aguarde 1 hora.');
@@ -242,10 +244,10 @@ export default function UploadPage() {
         return;
       }
 
-      setUploadProgress(100); setStatusMessage('Transcrição concluída!');
+      setUploadProgress(100); setStatusMessage('Transcrição enviada!');
       eventFirstTranscription();
       trackFirstTranscription();
-      toast.success('Transcrição concluída com sucesso!');
+      toast.success('Transcrição iniciada! Acompanhe o progresso na lista de reuniões.');
       setTimeout(() => navigate('/meetings'), 1000);
     } catch (error: any) {
       console.error('Upload error:', error);
