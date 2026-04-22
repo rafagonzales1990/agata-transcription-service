@@ -400,7 +400,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       </main>
       <TrialUpgradeBanners />
       {needsCpf && authUser && (
-        <CpfRequiredModal userId={authUser.user_id} onSaved={fetchCpfAndAdmin} />
+        <CpfRequiredModal userId={authUser.user_id} isAdmin={isAdmin} onSaved={fetchCpfAndAdmin} onDismiss={() => setUserCpf('dismissed')} />
       )}
       <PWAInstallModal open={pwaModalOpen} onOpenChange={setPwaModalOpen} />
     </div>
