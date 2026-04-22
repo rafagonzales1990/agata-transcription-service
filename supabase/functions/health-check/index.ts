@@ -6,18 +6,19 @@ const corsHeaders = {
 }
 
 type ProviderStatus = {
-  status: 'ok' | 'degraded' | 'down'
-  latencyMs: number
+  status: 'ok' | 'error'
+  latency: number
+  detail?: string
 }
 
-async function checkGemini(apiKey: string): Promise<ProviderStatus> {
+async function checkGeminiModel(apiKey: string, model: string): Promise<ProviderStatus> {
   const start = Date.now()
   try {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 15000)
 
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -30,18 +31,16 @@ async function checkGemini(apiKey: string): Promise<ProviderStatus> {
     )
     clearTimeout(timeout)
 
-    const latencyMs = Date.now() - start
+    const latency = Date.now() - start
 
-    if (res.status === 429) return { status: 'degraded', latencyMs }
-    if (res.status >= 500) return { status: 'down', latencyMs }
-    if (!res.ok) return { status: 'degraded', latencyMs }
-    if (latencyMs > 15000) return { status: 'down', latencyMs }
-    if (latencyMs > 5000) return { status: 'degraded', latencyMs }
-    return { status: 'ok', latencyMs }
+    if (!res.ok) return { status: 'error', latency, detail: `HTTP ${res.status}` }
+    return { status: 'ok', latency }
   } catch (err: unknown) {
-    const latencyMs = Date.now() - start
-    if (latencyMs >= 14000) return { status: 'down', latencyMs }
-    return { status: 'down', latencyMs }
+    return {
+      status: 'error',
+      latency: Date.now() - start,
+      detail: (err as Error).message ?? 'timeout',
+    }
   }
 }
 
@@ -58,18 +57,16 @@ async function checkOpenAI(apiKey: string): Promise<ProviderStatus> {
     })
     clearTimeout(timeout)
 
-    const latencyMs = Date.now() - start
+    const latency = Date.now() - start
 
-    if (res.status === 429) return { status: 'degraded', latencyMs }
-    if (res.status >= 500) return { status: 'down', latencyMs }
-    if (!res.ok) return { status: 'degraded', latencyMs }
-    if (latencyMs > 15000) return { status: 'down', latencyMs }
-    if (latencyMs > 5000) return { status: 'degraded', latencyMs }
-    return { status: 'ok', latencyMs }
+    if (!res.ok) return { status: 'error', latency, detail: `HTTP ${res.status}` }
+    return { status: 'ok', latency }
   } catch (err: unknown) {
-    const latencyMs = Date.now() - start
-    if (latencyMs >= 14000) return { status: 'down', latencyMs }
-    return { status: 'down', latencyMs }
+    return {
+      status: 'error',
+      latency: Date.now() - start,
+      detail: (err as Error).message ?? 'timeout',
+    }
   }
 }
 
@@ -124,14 +121,17 @@ Deno.serve(async (req) => {
     const geminiApiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY') || ''
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY') || ''
 
-    const [gemini, openai] = await Promise.all([
-      geminiApiKey ? checkGemini(geminiApiKey) : Promise.resolve({ status: 'down' as const, latencyMs: 0 }),
-      openaiApiKey ? checkOpenAI(openaiApiKey) : Promise.resolve({ status: 'down' as const, latencyMs: 0 }),
+    const noKey: ProviderStatus = { status: 'error', latency: 0, detail: 'API key not configured' }
+
+    const [gemini_2_5, gemini_2_0, openai] = await Promise.all([
+      geminiApiKey ? checkGeminiModel(geminiApiKey, 'gemini-2.5-flash') : Promise.resolve(noKey),
+      geminiApiKey ? checkGeminiModel(geminiApiKey, 'gemini-2.0-flash') : Promise.resolve(noKey),
+      openaiApiKey ? checkOpenAI(openaiApiKey) : Promise.resolve(noKey),
     ])
 
-    const result = { gemini, openai, checkedAt: new Date().toISOString() }
+    const result = { gemini_2_5, gemini_2_0, openai, checkedAt: new Date().toISOString() }
 
-    if (isCron && result.gemini.status !== 'ok') {
+    if (isCron && gemini_2_5.status !== 'ok' && gemini_2_0.status !== 'ok') {
       const supabase = createClient(
         Deno.env.get('SUPABASE_URL')!,
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -140,14 +140,14 @@ Deno.serve(async (req) => {
         body: {
           type: 'custom',
           to: 'adm@agatatranscription.com',
-          subject: `⚠️ Alerta Ágata: Gemini API ${result.gemini.status.toUpperCase()}`,
+          subject: `⚠️ Alerta Ágata: Gemini API DOWN (2.5 e 2.0)`,
           html: `
             <h2>Alerta de Instabilidade — Gemini API</h2>
-            <p><strong>Status:</strong> ${result.gemini.status}</p>
-            <p><strong>Latência:</strong> ${result.gemini.latencyMs}ms</p>
-            <p><strong>OpenAI Whisper:</strong> ${result.openai.status}</p>
+            <p><strong>gemini-2.5-flash:</strong> ${gemini_2_5.status} (${gemini_2_5.latency}ms) ${gemini_2_5.detail ?? ''}</p>
+            <p><strong>gemini-2.0-flash:</strong> ${gemini_2_0.status} (${gemini_2_0.latency}ms) ${gemini_2_0.detail ?? ''}</p>
+            <p><strong>OpenAI:</strong> ${openai.status} (${openai.latency}ms)</p>
             <p><strong>Verificado em:</strong> ${result.checkedAt}</p>
-            <p>O fallback OpenAI está ${result.openai.status === 'ok' ? '✅ ativo e funcionando' : '❌ também com problemas'}.</p>
+            <p>O fallback OpenAI está ${openai.status === 'ok' ? '✅ ativo e funcionando' : '❌ também com problemas'}.</p>
             <hr>
             <p><small>Acesse o painel DEV → Status IAs para mais detalhes.</small></p>
           `
@@ -158,10 +158,16 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
-  } catch (error: unknown) {
-    console.error('health-check error:', error)
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+  } catch (err: unknown) {
+    console.error('health-check error:', err)
+    return new Response(
+      JSON.stringify({
+        gemini_2_5: { status: 'error', latency: 0, detail: (err as Error).message ?? 'internal error' },
+        gemini_2_0: { status: 'error', latency: 0, detail: (err as Error).message ?? 'internal error' },
+        openai: { status: 'unknown', latency: 0 },
+        checkedAt: new Date().toISOString(),
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
   }
 })
