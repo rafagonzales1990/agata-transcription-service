@@ -1,3 +1,4 @@
+// LOVABLE REPO TEST - 22/04/2026 14:45
 import * as Sentry from '@sentry/react';
 import { lazy, Suspense, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
