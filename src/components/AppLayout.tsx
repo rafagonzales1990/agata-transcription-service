@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
-  LayoutDashboard, FileText, Upload, FolderOpen, Settings,
+  LayoutDashboard, FileText, Upload, FolderOpen, FolderKanban, Settings,
   Repeat, Sparkles, LogOut, Menu, X, User, CreditCard,
   ChevronDown, Shield, Users, HelpCircle, ExternalLink,
   Sun, Moon, Building2, Download, Monitor, Globe, Smartphone,
@@ -35,7 +35,7 @@ const menuItems = [
   { label: 'Perguntar às Reuniões', href: '/ask', icon: MessageCircle, requiresMeetings: true, paidOnly: true },
   { label: 'Rotinas', href: '/routines', icon: Repeat },
   { label: 'Documentos', href: '/documents', icon: FolderOpen },
-  { label: 'Projetos', href: '/projects', icon: FolderOpen },
+  { label: 'Projetos', href: '/projects', icon: FolderKanban },
   { label: 'Planos', href: '/plans', icon: CreditCard },
   { label: 'Equipe', href: '/teams', icon: Users, enterpriseOnly: true },
 ];
