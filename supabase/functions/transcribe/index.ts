@@ -536,7 +536,7 @@ async function processTranscription(
         .invoke('generate-embeddings', {
           body: { meetingId, userId: meetingData.userId },
         })
-        .catch((embedErr) => {
+        .catch((embedErr: unknown) => {
           console.error('Failed to invoke generate-embeddings:', embedErr)
         })
     }
@@ -607,6 +607,7 @@ Deno.serve(async (req) => {
     updatedAt: new Date().toISOString(),
   }).eq('id', meetingId)
 
+  // @ts-ignore: EdgeRuntime is available in Supabase Edge Functions runtime
   EdgeRuntime.waitUntil(processTranscription(meetingId, storagePath, supabase, geminiApiKey))
 
   return new Response(
