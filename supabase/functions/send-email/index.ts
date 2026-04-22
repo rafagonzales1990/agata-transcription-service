@@ -67,7 +67,7 @@ function trialExpiredTemplate(name: string): string {
 <h1 style="margin:0 0 16px;font-size:22px;color:#111827;text-align:center">Seu trial chegou ao fim, ${name}</h1>
 <p style="color:#4b5563;line-height:1.6;margin:0 0 20px;text-align:center">Seu período de teste gratuito expirou. Suas transcrições e ATAs continuam salvas — faça upgrade para continuar criando novas.</p>
 <div style="text-align:center">${btn('Escolher meu plano →', BASE_URL + '/plans')}</div>
-<p style="text-align:center;color:#9ca3af;font-size:13px;margin-top:16px">Planos a partir de R$ 49/mês · Cancele quando quiser</p>`)
+<p style="text-align:center;color:#9ca3af;font-size:13px;margin-top:16px">Planos a partir de R$ 37/mês · Cancele quando quiser</p>`)
 }
 
 function transcriptionDoneTemplate(name: string, meetingTitle: string, meetingId: string): string {

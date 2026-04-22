@@ -24,8 +24,8 @@ interface Plan {
 }
 
 const ANNUAL_SAVINGS: Record<string, { monthlyTotal: number; annualTotal: number; savings: number }> = {
-  inteligente: { monthlyTotal: 588_00, annualTotal: 444_00, savings: 144_00 },
-  automacao:   { monthlyTotal: 2196_00, annualTotal: 1644_00, savings: 552_00 },
+  inteligente: { monthlyTotal: 636_00, annualTotal: 444_00, savings: 192_00 },
+  automacao:   { monthlyTotal: 2352_00, annualTotal: 1644_00, savings: 708_00 },
   enterprise:  { monthlyTotal: 7800_00, annualTotal: 5880_00, savings: 1920_00 },
 };
 
@@ -164,7 +164,7 @@ export default function PlansPage() {
           <span className={`text-sm flex items-center gap-1.5 ${yearly ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
             Anual
             <Badge variant="secondary" className="text-[10px]">Mais popular</Badge>
-            <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]">25% de desconto</Badge>
+            <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]">30% de desconto</Badge>
           </span>
         </div>
 
@@ -235,7 +235,7 @@ export default function PlansPage() {
               <CardContent className="p-6 sm:p-8">
                 <div className="text-center mb-6">
                   <h2 className="text-xl sm:text-2xl font-bold text-foreground">
-                    💰 Pague uma vez, use por 12 meses — economize até 25%
+                    💰 Pague uma vez, use por 12 meses — economize até 35%
                   </h2>
                   <p className="text-sm text-muted-foreground mt-1">
                     Cobrado uma única vez no cartão. Sem renovação automática.
@@ -247,16 +247,16 @@ export default function PlansPage() {
                     {
                       id: 'inteligente',
                       name: 'Essencial',
-                      annualLabel: 'R$ 444',
-                      monthlyEq: 'R$ 37',
-                      savingsLabel: 'Você economiza R$ 144',
+                      annualLabel: 'R$ 408',
+                      monthlyEq: 'R$ 34',
+                      savingsLabel: 'Você economiza R$ 228',
                     },
                     {
                       id: 'automacao',
                       name: 'Pro',
-                      annualLabel: 'R$ 1.644',
-                      monthlyEq: 'R$ 137',
-                      savingsLabel: 'Você economiza R$ 552',
+                      annualLabel: 'R$ 1.524',
+                      monthlyEq: 'R$ 127',
+                      savingsLabel: 'Você economiza R$ 828',
                     },
                   ].map((item) => {
                     const isCurrent = currentPlanId === item.id;
