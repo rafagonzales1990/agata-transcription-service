@@ -251,8 +251,13 @@ Deno.serve(async (req) => {
       webm: 'audio/webm',
       mp4: 'video/mp4',
       caf: 'audio/x-caf',
+      mkv: 'video/x-matroska',
+      avi: 'video/x-msvideo',
     }
     const mimeType = mimeMap[ext] || 'audio/mpeg'
+    // Para arquivos webm do app desktop, forçar como video/webm
+    // pois o Gemini rejeita audio/webm com codec de vídeo
+    const effectiveMimeType = (ext === 'webm') ? 'video/webm' : mimeType
 
     // Transcribe based on file size
     const arrayBuffer = await fileData.arrayBuffer()
@@ -266,7 +271,7 @@ Deno.serve(async (req) => {
           .reduce((data, byte) => data + String.fromCharCode(byte), '')
       )
       fullTranscriptionText = await transcribeChunk(
-        base64Data, mimeType, geminiApiKey, 0, 1
+        base64Data, effectiveMimeType, geminiApiKey, 0, 1
       )
     } else {
       console.log(`Large file (${totalBytes} bytes), using Gemini Files API`)
@@ -276,10 +281,10 @@ Deno.serve(async (req) => {
         {
           method: 'POST',
           headers: {
-            'Content-Type': mimeType,
+            'Content-Type': effectiveMimeType,
             'X-Goog-Upload-Protocol': 'raw',
             'X-Goog-Upload-Header-Content-Length': totalBytes.toString(),
-            'X-Goog-Upload-Header-Content-Type': mimeType,
+            'X-Goog-Upload-Header-Content-Type': effectiveMimeType,
           },
           body: new Uint8Array(arrayBuffer),
         }
@@ -307,7 +312,7 @@ Deno.serve(async (req) => {
           body: JSON.stringify({
             contents: [{
               parts: [
-                { file_data: { mime_type: mimeType, file_uri: fileUri } },
+                { file_data: { mime_type: effectiveMimeType, file_uri: fileUri } },
                 { text: TRANSCRIPTION_PROMPT }
               ]
             }],
