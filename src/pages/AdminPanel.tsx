@@ -305,7 +305,7 @@ export default function AdminPanel() {
 
   // Dashboard metrics
   const [dashMetrics, setDashMetrics] = useState({
-    meetingsThisMonth: 0, completedMeetings: 0, totalMinutes: 0, avgDurationMin: 0,
+    meetingsThisMonth: 0, completedMeetings: 0, failedMeetings: 0, processingMeetings: 0, totalMinutes: 0, avgDurationMin: 0,
   });
 
   // Dialog states
