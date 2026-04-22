@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   RefreshCw, Plus, Pencil, Trash2, Shield, X, Copy, ChevronDown,
@@ -305,7 +306,7 @@ export default function AdminPanel() {
 
   // Dashboard metrics
   const [dashMetrics, setDashMetrics] = useState({
-    meetingsThisMonth: 0, completedMeetings: 0, totalMinutes: 0, avgDurationMin: 0,
+    meetingsThisMonth: 0, completedMeetings: 0, failedMeetings: 0, processingMeetings: 0, totalMinutes: 0, avgDurationMin: 0,
   });
 
   // Dialog states
@@ -443,9 +444,11 @@ export default function AdminPanel() {
     // Fetch dashboard metrics
     try {
       const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
-      const [meetingsMonthRes, completedRes, usageTotalRes, avgDurRes] = await Promise.all([
+      const [meetingsMonthRes, completedRes, failedRes, processingRes, usageTotalRes, avgDurRes] = await Promise.all([
         supabase.from('Meeting').select('id', { count: 'exact', head: true }).gte('createdAt', thirtyDaysAgo),
         supabase.from('Meeting').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
+        supabase.from('Meeting').select('id', { count: 'exact', head: true }).eq('status', 'failed'),
+        supabase.from('Meeting').select('id', { count: 'exact', head: true }).eq('status', 'processing'),
         supabase.from('Usage').select('totalMinutesTranscribed'),
         supabase.from('Meeting').select('fileDuration').eq('status', 'completed').not('fileDuration', 'is', null),
       ]);
@@ -455,6 +458,8 @@ export default function AdminPanel() {
       setDashMetrics({
         meetingsThisMonth: meetingsMonthRes.count || 0,
         completedMeetings: completedRes.count || 0,
+        failedMeetings: failedRes.count || 0,
+        processingMeetings: processingRes.count || 0,
         totalMinutes: totalMin,
         avgDurationMin: Math.round(avgSec / 60),
       });
@@ -721,15 +726,28 @@ export default function AdminPanel() {
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'USUÁRIOS ATIVOS', value: String(totalUsers), sub: `${newLast7} novos (7d)`, icon: Users },
-                { label: 'TRIALS ATIVOS', value: String(trialUsers), sub: `${freeUsers} expirados`, icon: Zap },
-                { label: 'REUNIÕES CONCLUÍDAS', value: `${dashMetrics.completedMeetings} / ${totalMeetings}`, sub: `${totalMeetings > 0 ? Math.round((dashMetrics.completedMeetings / totalMeetings) * 100) : 0}% taxa de conclusão`, icon: BarChart3 },
-                { label: 'TEMPO MÉDIO', value: `${dashMetrics.avgDurationMin} min`, sub: 'por reunião concluída', icon: Clock },
+                { label: 'USUÁRIOS ATIVOS', value: String(totalUsers), sub: `${newLast7} novos (7d)`, icon: Users, tooltip: '' },
+                { label: 'TRIALS ATIVOS', value: String(trialUsers), sub: `${freeUsers} expirados`, icon: Zap, tooltip: '' },
+                { label: 'REUNIÕES CONCLUÍDAS', value: `${dashMetrics.completedMeetings} concluídas`, sub: (() => { const denom = dashMetrics.completedMeetings + dashMetrics.failedMeetings; const rate = denom > 0 ? Math.round((dashMetrics.completedMeetings / denom) * 100) : 0; return `${dashMetrics.failedMeetings} falharam / ${dashMetrics.processingMeetings} processando — ${rate}% taxa`; })(), icon: BarChart3, tooltip: 'Total de reuniões com transcrição finalizada vs. falhas de transcrição. Reuniões em processamento não entram no cálculo.' },
+                { label: 'TEMPO MÉDIO', value: `${dashMetrics.avgDurationMin} min`, sub: 'por reunião concluída', icon: Clock, tooltip: '' },
               ].map((c, i) => (
                 <Card key={i} className="bg-card border-border">
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between mb-1">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{c.label}</p>
+                      {c.tooltip ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <p className="text-xs text-muted-foreground uppercase tracking-wide cursor-help underline decoration-dotted">{c.label}</p>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">
+                              <p>{c.tooltip}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">{c.label}</p>
+                      )}
                       <c.icon className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <p className="text-2xl font-bold text-foreground font-mono">{c.value}</p>
