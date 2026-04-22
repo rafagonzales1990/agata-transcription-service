@@ -303,6 +303,11 @@ export default function AdminPanel() {
   const [costsData, setCostsData] = useState<any>(null);
   const [costsLoading, setCostsLoading] = useState(false);
 
+  // Dashboard metrics
+  const [dashMetrics, setDashMetrics] = useState({
+    meetingsThisMonth: 0, completedMeetings: 0, totalMinutes: 0, avgDurationMin: 0,
+  });
+
   // Dialog states
   const [editOpen, setEditOpen] = useState(false);
   const [assignGroupOpen, setAssignGroupOpen] = useState(false);
