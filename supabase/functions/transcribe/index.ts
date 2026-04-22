@@ -79,7 +79,7 @@ async function transcribeChunk(
             { text: TRANSCRIPTION_PROMPT }
           ]
         }],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
+        generationConfig: { temperature: 0.1, maxOutputTokens: 16384 }
       })
     }
   )
@@ -92,6 +92,23 @@ async function transcribeChunk(
 
   const result = await response.json()
   return result.candidates?.[0]?.content?.parts?.[0]?.text || ''
+}
+
+async function waitForFileActive(fileUri: string, geminiApiKey: string): Promise<void> {
+  const fileName = fileUri.split('/').pop()
+  for (let i = 0; i < 15; i++) {
+    await new Promise(r => setTimeout(r, 2000))
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/files/${fileName}?key=${geminiApiKey}`)
+      if (res.ok) {
+        const data = await res.json()
+        console.log(`File state (attempt ${i + 1}): ${data?.state}`)
+        if (data?.state === 'ACTIVE') return
+        if (data?.state === 'FAILED') throw new Error('Gemini file processing failed')
+      }
+    } catch (err) { console.warn(`Polling error attempt ${i+1}:`, err) }
+  }
+  console.warn('File polling timed out, proceeding anyway')
 }
 
 Deno.serve(async (req) => {
@@ -280,7 +297,7 @@ Deno.serve(async (req) => {
 
       console.log(`File uploaded to Gemini: ${fileUri}`)
 
-      await new Promise(resolve => setTimeout(resolve, 3000))
+      await waitForFileActive(fileUri, geminiApiKey)
 
       const geminiResponse = await fetchWithRetry(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
@@ -294,7 +311,7 @@ Deno.serve(async (req) => {
                 { text: TRANSCRIPTION_PROMPT }
               ]
             }],
-            generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
+            generationConfig: { temperature: 0.1, maxOutputTokens: 16384 }
           })
         }
       )

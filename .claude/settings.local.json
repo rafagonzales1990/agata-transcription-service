@@ -4,7 +4,8 @@
       "Bash(supabase --version)",
       "Bash(supabase status:*)",
       "Bash(supabase functions *)",
-      "Bash(npx supabase *)"
+      "Bash(npx supabase *)",
+      "Bash(python3 -)"
     ]
   }
 }
