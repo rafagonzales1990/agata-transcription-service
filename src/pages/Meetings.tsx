@@ -200,7 +200,9 @@ export default function MeetingsPage() {
     const q = search.toLowerCase();
 
     let result = meetings.filter(m => {
-      if (selectedProjectId !== 'all' && m.projectId !== selectedProjectId) return false;
+      if (selectedProjectId === '__none__' && m.projectId) return false;
+      if (selectedProjectId === '__none__' && !m.projectId) { /* pass */ }
+      else if (selectedProjectId !== 'all' && m.projectId !== selectedProjectId) return false;
       if (statusFilter !== 'all' && m.status !== statusFilter) return false;
 
       if (dateRange !== 'all') {
@@ -257,6 +259,16 @@ export default function MeetingsPage() {
             }`}
           >
             Todos
+          </button>
+          <button
+            onClick={() => setProjectFilter('__none__')}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+              selectedProjectId === '__none__'
+                ? 'bg-muted-foreground text-background'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            }`}
+          >
+            Sem projeto
           </button>
           {projects.map(p => (
             <div key={p.id} className="flex items-center gap-0.5">
