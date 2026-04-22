@@ -6,6 +6,7 @@ const corsHeaders = {
 }
 
 const MAX_CHUNK_BYTES = 4 * 1024 * 1024
+const GEMINI_MODEL = 'gemini-2.5-flash'
 
 async function fetchWithRetry(
   url: string,
@@ -16,7 +17,16 @@ async function fetchWithRetry(
   let lastError: unknown = null
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const response = await fetch(url, init)
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 90000)
+      let response: Response
+      try {
+        response = await fetch(url, { ...init, signal: controller.signal })
+        clearTimeout(timeout)
+      } catch (err) {
+        clearTimeout(timeout)
+        throw err
+      }
       if (response.status === 503 || response.status === 429) {
         if (attempt === maxRetries) return response
         console.warn(`Gemini ${response.status}, retry ${attempt + 1}/${maxRetries} in ${retryDelayMs}ms`)
@@ -68,7 +78,7 @@ async function transcribeChunk(
   totalChunks: number
 ): Promise<string> {
   const response = await fetchWithRetry(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiApiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -85,9 +95,9 @@ async function transcribeChunk(
   )
 
   if (!response.ok) {
-    const errorText = await response.text()
-    console.error(`Gemini API error:`, errorText)
-    throw new Error(`Gemini error: ${response.status}`)
+    const errorBody = await response.text()
+    console.error(`Gemini error ${response.status}:`, errorBody)
+    throw new Error(`Gemini error ${response.status}: ${errorBody.substring(0, 500)}`)
   }
 
   const result = await response.json()
@@ -305,7 +315,7 @@ Deno.serve(async (req) => {
       await waitForFileActive(fileUri, geminiApiKey)
 
       const geminiResponse = await fetchWithRetry(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiApiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -323,8 +333,8 @@ Deno.serve(async (req) => {
 
       if (!geminiResponse.ok) {
         const errText = await geminiResponse.text()
-        console.error('Gemini transcription error:', errText)
-        throw new Error(`Gemini transcription failed: ${geminiResponse.status}`)
+        console.error(`Gemini transcription error ${geminiResponse.status}:`, errText)
+        throw new Error(`Gemini transcription failed ${geminiResponse.status}: ${errText.substring(0, 500)}`)
       }
 
       const geminiResult = await geminiResponse.json()
