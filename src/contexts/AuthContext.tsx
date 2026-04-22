@@ -3,6 +3,7 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import * as Sentry from '@sentry/react';
 import { pushEvent, gtag, GA_MEASUREMENT_ID } from '@/lib/gtag';
+import { queryClient } from '@/App';
 
 export interface UserProfile {
   id: string;
