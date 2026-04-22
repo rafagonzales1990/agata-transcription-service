@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { LogoIcon } from '@/components/LogoIcon';
 import { Loader2, X } from 'lucide-react';
@@ -34,30 +33,23 @@ function maskCpf(value: string): string {
 
 interface CpfRequiredModalProps {
   userId: string;
-  isAdmin?: boolean;
   onSaved: () => void;
   onDismiss?: () => void;
 }
 
-export function CpfRequiredModal({ userId, isAdmin, onSaved, onDismiss }: CpfRequiredModalProps) {
+export function CpfRequiredModal({ userId, onSaved, onDismiss }: CpfRequiredModalProps) {
   const [cpf, setCpf] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
-  const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCpf(maskCpf(e.target.value));
     setError('');
   };
 
-  const handleClose = useCallback(async () => {
-    if (isAdmin) {
-      onDismiss?.();
-    } else {
-      await supabase.auth.signOut();
-      navigate('/auth/login');
-    }
-  }, [isAdmin, onDismiss, navigate]);
+  const handleClose = useCallback(() => {
+    onDismiss?.();
+  }, [onDismiss]);
 
   const handleSubmit = useCallback(async () => {
     const clean = cpf.replace(/\D/g, '');
@@ -122,6 +114,7 @@ export function CpfRequiredModal({ userId, isAdmin, onSaved, onDismiss }: CpfReq
         </div>
 
         <button
+          type="button"
           onClick={handleSubmit}
           disabled={saving || cpf.replace(/\D/g, '').length < 11}
           className="w-full h-11 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"

@@ -54,7 +54,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isEnterpriseAdmin, setIsEnterpriseAdmin] = useState(false);
   const [userCpf, setUserCpf] = useState<string | null>(null);
-  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean>(true);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
   const [userDataLoaded, setUserDataLoaded] = useState(false);
   const [pwaModalOpen, setPwaModalOpen] = useState(false);
   const [hasCompletedMeetings, setHasCompletedMeetings] = useState(false);
@@ -403,7 +403,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       </main>
       <TrialUpgradeBanners />
       {needsCpf && authUser && (
-        <CpfRequiredModal userId={authUser.user_id} isAdmin={isAdmin} onSaved={fetchCpfAndAdmin} onDismiss={() => setUserCpf('dismissed')} />
+        <CpfRequiredModal userId={authUser.user_id} onSaved={fetchCpfAndAdmin} onDismiss={() => setUserCpf('dismissed')} />
       )}
       <PWAInstallModal open={pwaModalOpen} onOpenChange={setPwaModalOpen} />
     </div>
