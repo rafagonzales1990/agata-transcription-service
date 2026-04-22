@@ -120,7 +120,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     navigate('/');
   };
 
-  const needsCpf = userCpf !== undefined && !userCpf && !hasCompletedOnboarding;
+  const needsCpf = !isAdmin && userCpf !== undefined && !userCpf && !hasCompletedOnboarding;
   const authUser = profile;
 
   const initial = profile?.name?.charAt(0)?.toUpperCase() || profile?.email?.charAt(0)?.toUpperCase() || '?';
