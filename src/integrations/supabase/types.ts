@@ -556,6 +556,7 @@ export type Database = {
           features: string[]
           id: string
           maxDurationMinutes: number | null
+          maxProjects: number | null
           maxTranscriptions: number
           name: string
           popular: boolean
@@ -572,6 +573,7 @@ export type Database = {
           features?: string[]
           id: string
           maxDurationMinutes?: number | null
+          maxProjects?: number | null
           maxTranscriptions: number
           name: string
           popular?: boolean
@@ -588,6 +590,7 @@ export type Database = {
           features?: string[]
           id?: string
           maxDurationMinutes?: number | null
+          maxProjects?: number | null
           maxTranscriptions?: number
           name?: string
           popular?: boolean
