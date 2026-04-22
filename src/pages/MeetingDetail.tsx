@@ -105,44 +105,70 @@ export default function MeetingDetail() {
 
   const isPaidPlan = PAID_PLANS.includes(profile?.plan_id || "basic");
 
-  useEffect(() => {
-    async function fetchMeeting() {
-      if (!id) return;
-      const { data, error } = await supabase
-        .from("Meeting")
-        .select(
-          "id, title, fileName, cloudStoragePath, status, createdAt, summary, transcription, participants, meetingDate, meetingTime, actionItems, responsible, location, description, ataTemplate, fileDuration, followupDraft",
-        )
-        .eq("id", id)
-        .single();
+  const fetchMeeting = useCallback(async () => {
+    if (!id) return;
+    const { data, error } = await supabase
+      .from("Meeting")
+      .select(
+        "id, title, fileName, cloudStoragePath, status, createdAt, summary, transcription, participants, meetingDate, meetingTime, actionItems, responsible, location, description, ataTemplate, fileDuration, followupDraft",
+      )
+      .eq("id", id)
+      .maybeSingle();
 
-      if (error) console.error("Error fetching meeting:", error);
-      else {
-        const m = data as unknown as MeetingRow;
-        setMeeting(m);
-        if (m.ataTemplate && TEMPLATE_LABELS[m.ataTemplate]) {
-          setSelectedTemplate(m.ataTemplate);
-        }
-        setMeeting(m);
-        if (m.summary) {
-          const depthMatch = m.summary.match(/^<!-- depth:(\w+) -->\n/);
-          if (depthMatch) {
-            setSummaryDepth(depthMatch[1]);
-            setSummaryContent(m.summary.slice(depthMatch[0].length));
-          } else {
-            setSummaryContent(m.summary);
-          }
-        }
-        if (m.followupDraft) {
-          setFollowupDraft(m.followupDraft);
-          setFollowupSubject(m.followupDraft.subject);
-          setFollowupBody(m.followupDraft.body);
+    if (error) console.error("Error fetching meeting:", error);
+    else if (data) {
+      const m = data as unknown as MeetingRow;
+      setMeeting(m);
+      if (m.ataTemplate && TEMPLATE_LABELS[m.ataTemplate]) {
+        setSelectedTemplate(m.ataTemplate);
+      }
+      if (m.summary) {
+        const depthMatch = m.summary.match(/^<!-- depth:(\w+) -->\n/);
+        if (depthMatch) {
+          setSummaryDepth(depthMatch[1]);
+          setSummaryContent(m.summary.slice(depthMatch[0].length));
+        } else {
+          setSummaryContent(m.summary);
         }
       }
-      setLoading(false);
+      if (m.followupDraft) {
+        setFollowupDraft(m.followupDraft);
+        setFollowupSubject(m.followupDraft.subject);
+        setFollowupBody(m.followupDraft.body);
+      }
     }
-    fetchMeeting();
+    setLoading(false);
   }, [id]);
+
+  useEffect(() => {
+    fetchMeeting();
+  }, [fetchMeeting]);
+
+  // Realtime subscription for transcription updates
+  useEffect(() => {
+    if (!id) return;
+    const channel = supabase
+      .channel(`meeting-status-${id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'Meeting', filter: `id=eq.${id}` },
+        () => {
+          fetchMeeting();
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [id, fetchMeeting]);
+
+  // Polling fallback every 10s while processing
+  useEffect(() => {
+    if (meeting?.status !== 'processing') return;
+    const interval = setInterval(() => {
+      fetchMeeting();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [meeting?.status, fetchMeeting]);
 
   const trialEndsAt = profile?.trial_ends_at;
   const isTrialing = trialEndsAt ? new Date(trialEndsAt) > new Date() : false;
@@ -484,13 +510,11 @@ export default function MeetingDetail() {
         body: { meetingId: id, storagePath: meeting.cloudStoragePath },
       });
 
-      if (error) throw error;
+      // Treat 202 (async) as success
+      if (error && !(error as any)?.status?.toString().startsWith('2')) throw error;
       if (data?.error) throw new Error(data.error);
 
-      toast.success("Transcrição reiniciada com sucesso!");
-      // Refresh meeting data
-      const { data: updated } = await supabase.from("Meeting").select("id, title, fileName, cloudStoragePath, status, createdAt, summary, transcription, participants, meetingDate, meetingTime, actionItems, responsible, location, description, ataTemplate, fileDuration").eq("id", id).maybeSingle();
-      if (updated) setMeeting(updated as MeetingRow);
+      toast.success("Transcrição reiniciada! Acompanhe o progresso aqui.");
     } catch (err: any) {
       toast.error(err.message || "Erro ao tentar novamente");
       setMeeting((prev) => prev ? { ...prev, status: "failed" } : prev);
@@ -573,6 +597,13 @@ export default function MeetingDetail() {
             </div>
           </div>
           {meeting.description && <p className="text-sm text-muted-foreground mt-2">{meeting.description}</p>}
+
+          {meeting.status === "processing" && (
+            <div className="mt-3 p-3 rounded-md bg-primary/10 border border-primary/20 flex items-center gap-3">
+              <Loader2 className="h-4 w-4 text-primary animate-spin shrink-0" />
+              <span className="text-sm text-foreground">Transcrevendo com IA... isso pode levar alguns minutos</span>
+            </div>
+          )}
 
           {meeting.status === "failed" && (
             <div className="mt-3 p-3 rounded-md bg-destructive/10 border border-destructive/20 flex items-center gap-3">

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -65,6 +65,34 @@ export default function MeetingsPage() {
   const [assignMenuMeetingId, setAssignMenuMeetingId] = useState<string | null>(null);
 
   const invalidateMeetings = () => queryClient.invalidateQueries({ queryKey: ['meetings', user?.id] });
+
+  // Realtime subscription for meeting status changes
+  useEffect(() => {
+    if (!user?.id) return;
+    const channel = supabase
+      .channel('meetings-list-status')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'Meeting' },
+        (payload) => {
+          if ((payload.new as any)?.userId === user.id) {
+            invalidateMeetings();
+          }
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id]);
+
+  // Polling fallback while any meeting is processing
+  const hasProcessing = meetings.some(m => m.status === 'processing');
+  useEffect(() => {
+    if (!hasProcessing) return;
+    const interval = setInterval(() => {
+      invalidateMeetings();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [hasProcessing]);
 
   const setProjectFilter = (id: string) => {
     if (id === 'all') {
