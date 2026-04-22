@@ -214,7 +214,7 @@ export default function PlansPage() {
                         </p>
                       )}
                       <ul className="space-y-2 mb-6">
-                        {plan.features.map((f, j) => (
+                        {(FEATURE_OVERRIDES[plan.id] || plan.features).map((f, j) => (
                           <li key={j} className="text-sm text-muted-foreground flex items-center gap-2">
                             <CheckCircle className="h-4 w-4 text-primary shrink-0" /> {f}
                           </li>
