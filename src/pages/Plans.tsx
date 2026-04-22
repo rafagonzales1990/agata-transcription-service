@@ -139,6 +139,12 @@ export default function PlansPage() {
   const currentPlanId = profile?.plan_id || 'basic';
   const isPaid = currentPlanId !== 'basic';
 
+  const FEATURE_OVERRIDES: Record<string, string[]> = {
+    inteligente: ['15 transcrições/mês', 'Até 1h por áudio', 'Resumo avançado com IA', 'Ata em PDF profissional', 'Sem marca d\'água'],
+    automacao: ['30 transcrições/mês', 'Até 1h30 por áudio', 'Todos os recursos', 'Templates customizados', 'Suporte prioritário'],
+    enterprise: ['Transcrições ilimitadas*', 'Duração ilimitada*', 'Grupos de trabalho', 'Gestão de usuários', 'Suporte dedicado', 'SLA personalizado'],
+  };
+
   return (
     <AppLayout>
       <div className="max-w-6xl mx-auto space-y-8">
@@ -208,7 +214,7 @@ export default function PlansPage() {
                         </p>
                       )}
                       <ul className="space-y-2 mb-6">
-                        {plan.features.map((f, j) => (
+                        {(FEATURE_OVERRIDES[plan.id] || plan.features).map((f, j) => (
                           <li key={j} className="text-sm text-muted-foreground flex items-center gap-2">
                             <CheckCircle className="h-4 w-4 text-primary shrink-0" /> {f}
                           </li>
@@ -229,6 +235,10 @@ export default function PlansPage() {
                 );
               })}
             </div>
+
+            <p className="text-center text-xs text-muted-foreground mt-4">
+              * Sujeito ao pacote contratado. Consulte condições com nossa equipe comercial.
+            </p>
 
             {/* Annual Upfront Savings Card */}
             <Card className="border-l-4 border-l-primary bg-gradient-to-br from-primary/5 to-transparent">

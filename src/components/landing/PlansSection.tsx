@@ -23,7 +23,7 @@ const plans = [
     originalPrice: 'R$ 53',
     period: '/mês',
     description: 'Para profissionais',
-    features: ['15 transcrições/mês', 'Até 45min por áudio', 'Resumo avançado com IA', 'Ata em PDF profissional', 'Sem marca d\'água'],
+    features: ['15 transcrições/mês', 'Até 1h por áudio', 'Resumo avançado com IA', 'Ata em PDF profissional', 'Sem marca d\'água'],
     cta: 'Assinar Agora',
     popular: true,
     badge: 'MAIS POPULAR',
@@ -35,7 +35,7 @@ const plans = [
     originalPrice: 'R$ 196',
     period: '/mês',
     description: 'Para equipes com volume',
-    features: ['30 transcrições/mês', 'Até 1h por áudio', 'Todos os recursos', 'Templates customizados', 'Suporte prioritário'],
+    features: ['30 transcrições/mês', 'Até 1h30 por áudio', 'Todos os recursos', 'Templates customizados', 'Suporte prioritário'],
     cta: 'Assinar Agora',
     popular: false,
     badge: undefined,
@@ -46,7 +46,7 @@ const plans = [
     price: 'Sob consulta',
     period: '',
     description: 'Para grandes operações',
-    features: ['100+ transcrições/mês', 'Até 2h por áudio', 'Grupos de trabalho', 'Gestão de usuários', 'Suporte dedicado', 'SLA personalizado'],
+    features: ['Transcrições ilimitadas*', 'Duração ilimitada*', 'Grupos de trabalho', 'Gestão de usuários', 'Suporte dedicado', 'SLA personalizado'],
     cta: 'Falar com Vendas',
     popular: false,
     badge: undefined,
@@ -122,7 +122,11 @@ export function PlansSection() {
           ))}
         </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-6 mt-8 text-sm text-muted-foreground">
+        <p className="text-center text-xs text-muted-foreground mt-6">
+          * Sujeito ao pacote contratado. Consulte condições com nossa equipe comercial.
+        </p>
+
+        <div className="flex flex-wrap items-center justify-center gap-6 mt-4 text-sm text-muted-foreground">
           <span className="flex items-center gap-1"><Shield className="h-4 w-4" /> Garantia de 7 dias</span>
           <span className="flex items-center gap-1"><Lock className="h-4 w-4" /> Pagamento seguro via Stripe</span>
           <span className="flex items-center gap-1"><CheckCircle className="h-4 w-4" /> Cancele a qualquer momento</span>
