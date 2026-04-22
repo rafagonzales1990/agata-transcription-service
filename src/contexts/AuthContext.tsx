@@ -3,6 +3,7 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import * as Sentry from '@sentry/react';
 import { pushEvent, gtag, GA_MEASUREMENT_ID } from '@/lib/gtag';
+import { queryClient } from '@/App';
 
 export interface UserProfile {
   id: string;
@@ -63,6 +64,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (event, session) => {
         setSession(session);
         setLoading(false);
+
+        if (event === 'SIGNED_OUT') {
+          queryClient.clear();
+        }
+
         if (session?.user) {
           Sentry.setUser({ id: session.user.id, email: session.user.email });
           setTimeout(() => fetchProfile(session.user.id), 0);

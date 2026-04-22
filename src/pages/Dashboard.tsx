@@ -78,7 +78,7 @@ export default function DashboardPage() {
       subtext: 'Transcrições realizadas',
     },
     {
-      label: 'Plano Atual', value: loading ? null : usage.limits.planName,
+      label: 'Plano Atual', value: loading ? null : (usage.isTrial ? `${usage.limits.planName} (Trial)` : usage.limits.planName),
       icon: Zap, iconColor: 'text-orange-500', border: 'border-l-orange-500',
       subtext: 'plans',
     },
