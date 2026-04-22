@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   RefreshCw, Plus, Pencil, Trash2, Shield, X, Copy, ChevronDown,
@@ -303,6 +304,11 @@ export default function AdminPanel() {
   const [costsData, setCostsData] = useState<any>(null);
   const [costsLoading, setCostsLoading] = useState(false);
 
+  // Dashboard metrics
+  const [dashMetrics, setDashMetrics] = useState({
+    meetingsThisMonth: 0, completedMeetings: 0, failedMeetings: 0, processingMeetings: 0, totalMinutes: 0, avgDurationMin: 0,
+  });
+
   // Dialog states
   const [editOpen, setEditOpen] = useState(false);
   const [assignGroupOpen, setAssignGroupOpen] = useState(false);
@@ -435,6 +441,29 @@ export default function AdminPanel() {
       })));
     } catch (e: any) { toast.error('Erro: ' + e.message); }
     setLoading(false);
+    // Fetch dashboard metrics
+    try {
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+      const [meetingsMonthRes, completedRes, failedRes, processingRes, usageTotalRes, avgDurRes] = await Promise.all([
+        supabase.from('Meeting').select('id', { count: 'exact', head: true }).gte('createdAt', thirtyDaysAgo),
+        supabase.from('Meeting').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
+        supabase.from('Meeting').select('id', { count: 'exact', head: true }).eq('status', 'failed'),
+        supabase.from('Meeting').select('id', { count: 'exact', head: true }).eq('status', 'processing'),
+        supabase.from('Usage').select('totalMinutesTranscribed'),
+        supabase.from('Meeting').select('fileDuration').eq('status', 'completed').not('fileDuration', 'is', null),
+      ]);
+      const totalMin = (usageTotalRes.data || []).reduce((s, u) => s + (u.totalMinutesTranscribed || 0), 0);
+      const durations = (avgDurRes.data || []).map(m => m.fileDuration || 0).filter(d => d > 0);
+      const avgSec = durations.length > 0 ? durations.reduce((a, b) => a + b, 0) / durations.length : 0;
+      setDashMetrics({
+        meetingsThisMonth: meetingsMonthRes.count || 0,
+        completedMeetings: completedRes.count || 0,
+        failedMeetings: failedRes.count || 0,
+        processingMeetings: processingRes.count || 0,
+        totalMinutes: totalMin,
+        avgDurationMin: Math.round(avgSec / 60),
+      });
+    } catch (e) { console.error('dashboard metrics error', e); }
   }, []);
 
   const fetchGroups = useCallback(async () => {
@@ -675,21 +704,21 @@ export default function AdminPanel() {
           </TabsList>
 
           {/* ── Dashboard Tab ──────────────────────────────── */}
-          <TabsContent value="dashboard" className="space-y-6">
+           <TabsContent value="dashboard" className="space-y-6">
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'MRR', value: 'R$ 0', sub: 'ARR: R$ 0', icon: DollarSign },
-                { label: 'Assinaturas Ativas', value: String(activeSubscriptions), sub: `${totalUsers > 0 ? Math.round((activeSubscriptions / totalUsers) * 100) : 0}% conversão`, icon: TrendingUp },
-                { label: 'Em Trial', value: String(trialUsers), sub: `${freeUsers} expirados`, icon: Clock },
-                { label: 'Churn Rate', value: '0%', sub: `${freeUsers} usuários free`, icon: BarChart3 },
+                { label: 'RECEITA MENSAL', value: 'R$ 0,00', sub: 'Integração Stripe', icon: DollarSign },
+                { label: 'CRESCIMENTO', value: `+${newLast30}`, sub: 'usuários nos últimos 30 dias', icon: TrendingUp },
+                { label: 'REUNIÕES ESTE MÊS', value: `${dashMetrics.meetingsThisMonth}`, sub: `${dashMetrics.completedMeetings} concluídas`, icon: FileAudio },
+                { label: 'MINUTOS TRANSCRITOS', value: String(dashMetrics.totalMinutes), sub: `~${Math.round(dashMetrics.totalMinutes / 60)}h acumuladas`, icon: Clock },
               ].map((c, i) => (
-                <Card key={i} className="bg-card border-border text-white [&_p]:text-white [&_span]:text-white" style={{ color: 'white' }}>
+                <Card key={i} className="bg-card border-border">
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between mb-1">
-                      <p className="text-sm text-muted-foreground">{c.label}</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{c.label}</p>
                       <c.icon className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <p className="text-2xl font-bold text-white" style={{ color: 'white' }}>{c.value}</p>
+                    <p className="text-2xl font-bold text-foreground font-mono">{c.value}</p>
                     <p className="text-xs text-muted-foreground mt-1">{c.sub}</p>
                   </CardContent>
                 </Card>
@@ -697,19 +726,32 @@ export default function AdminPanel() {
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'Total Usuários', value: String(totalUsers), sub: `${newLast7} novos (7d)`, icon: Users },
-                { label: 'Novos (30d)', value: String(newLast30), icon: Zap },
-                { label: 'Reuniões', value: String(totalMeetings), icon: FileAudio },
-                { label: 'Grupos', value: String(groups.length), icon: Clock },
+                { label: 'USUÁRIOS ATIVOS', value: String(totalUsers), sub: `${newLast7} novos (7d)`, icon: Users, tooltip: '' },
+                { label: 'TRIALS ATIVOS', value: String(trialUsers), sub: `${freeUsers} expirados`, icon: Zap, tooltip: '' },
+                { label: 'REUNIÕES CONCLUÍDAS', value: `${dashMetrics.completedMeetings} concluídas`, sub: (() => { const denom = dashMetrics.completedMeetings + dashMetrics.failedMeetings; const rate = denom > 0 ? Math.round((dashMetrics.completedMeetings / denom) * 100) : 0; return `${dashMetrics.failedMeetings} falharam / ${dashMetrics.processingMeetings} processando — ${rate}% taxa`; })(), icon: BarChart3, tooltip: 'Total de reuniões com transcrição finalizada vs. falhas de transcrição. Reuniões em processamento não entram no cálculo.' },
+                { label: 'TEMPO MÉDIO', value: `${dashMetrics.avgDurationMin} min`, sub: 'por reunião concluída', icon: Clock, tooltip: '' },
               ].map((c, i) => (
-                <Card key={i} className="bg-card border-border text-white [&_p]:text-white [&_span]:text-white" style={{ color: 'white' }}>
+                <Card key={i} className="bg-card border-border">
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between mb-1">
-                      <p className="text-sm text-muted-foreground">{c.label}</p>
+                      {c.tooltip ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <p className="text-xs text-muted-foreground uppercase tracking-wide cursor-help underline decoration-dotted">{c.label}</p>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">
+                              <p>{c.tooltip}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">{c.label}</p>
+                      )}
                       <c.icon className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <p className="text-2xl font-bold text-white" style={{ color: 'white' }}>{c.value}</p>
-                    {'sub' in c && c.sub && <p className="text-xs text-muted-foreground mt-1">{c.sub}</p>}
+                    <p className="text-2xl font-bold text-foreground font-mono">{c.value}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{c.sub}</p>
                   </CardContent>
                 </Card>
               ))}
