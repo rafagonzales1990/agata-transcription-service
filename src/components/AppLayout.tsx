@@ -35,6 +35,7 @@ const menuItems = [
   { label: 'Perguntar às Reuniões', href: '/ask', icon: MessageCircle, requiresMeetings: true, paidOnly: true },
   { label: 'Rotinas', href: '/routines', icon: Repeat },
   { label: 'Documentos', href: '/documents', icon: FolderOpen },
+  { label: 'Projetos', href: '/projects', icon: FolderOpen },
   { label: 'Planos', href: '/plans', icon: CreditCard },
   { label: 'Equipe', href: '/teams', icon: Users, enterpriseOnly: true },
 ];

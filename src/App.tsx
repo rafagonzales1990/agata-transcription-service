@@ -45,6 +45,7 @@ const EnterpriseAdmin = lazy(() => import("./pages/EnterpriseAdmin"));
 const DesktopAuth = lazy(() => import("./pages/DesktopAuth"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const AskMeetings = lazy(() => import("./pages/AskMeetings"));
+const Projects = lazy(() => import("./pages/Projects"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -117,6 +118,7 @@ const App = () => (
               <Route path="/routines" element={<ProtectedRoute><Routines /></ProtectedRoute>} />
               <Route path="/routines/:id" element={<ProtectedRoute><RoutineDetail /></ProtectedRoute>} />
               <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
+              <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
               <Route path="/settings/security" element={<ProtectedRoute><SettingsSecurity /></ProtectedRoute>} />
               <Route path="/settings/branding" element={<ProtectedRoute><SettingsBranding /></ProtectedRoute>} />
