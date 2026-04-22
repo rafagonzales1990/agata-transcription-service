@@ -20,6 +20,19 @@ Vá direto ao ponto técnico. Nunca snippets parciais — sempre arquivos comple
 - NUNCA expor chaves de API no frontend — sempre Edge Functions + Secrets
 - Primeira hipótese em falha silenciosa: RLS
 
+## ⚠️ REGRAS ABSOLUTAS — JAMAIS ALTERAR
+
+### Gemini Model
+- SEMPRE: `gemini-2.5-flash` no endpoint `v1beta`
+- NUNCA trocar para: preview, flash-latest, 1.5, 2.0, flash-preview-04-17 ou qualquer variante
+- Esta é a ÚNICA versão que funciona nas Edge Functions do Supabase
+- Qualquer troca do modelo causa falha silenciosa em produção
+
+### Supabase Queries
+- SEMPRE `.maybeSingle()` — NUNCA `.single()`
+- Tabelas com aspas duplas: "Meeting", "User", "Plan", "Usage"
+- Colunas camelCase com aspas: "planId", "createdAt", "userId"
+
 ## Versão atual
 - Web App: v1.1.0 (`src/config/appVersion.ts`)
 - Desktop: v1.0.4
