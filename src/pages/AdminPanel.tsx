@@ -443,9 +443,11 @@ export default function AdminPanel() {
     // Fetch dashboard metrics
     try {
       const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
-      const [meetingsMonthRes, completedRes, usageTotalRes, avgDurRes] = await Promise.all([
+      const [meetingsMonthRes, completedRes, failedRes, processingRes, usageTotalRes, avgDurRes] = await Promise.all([
         supabase.from('Meeting').select('id', { count: 'exact', head: true }).gte('createdAt', thirtyDaysAgo),
         supabase.from('Meeting').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
+        supabase.from('Meeting').select('id', { count: 'exact', head: true }).eq('status', 'failed'),
+        supabase.from('Meeting').select('id', { count: 'exact', head: true }).eq('status', 'processing'),
         supabase.from('Usage').select('totalMinutesTranscribed'),
         supabase.from('Meeting').select('fileDuration').eq('status', 'completed').not('fileDuration', 'is', null),
       ]);
@@ -455,6 +457,8 @@ export default function AdminPanel() {
       setDashMetrics({
         meetingsThisMonth: meetingsMonthRes.count || 0,
         completedMeetings: completedRes.count || 0,
+        failedMeetings: failedRes.count || 0,
+        processingMeetings: processingRes.count || 0,
         totalMinutes: totalMin,
         avgDurationMin: Math.round(avgSec / 60),
       });
