@@ -23,9 +23,8 @@ Vá direto ao ponto técnico. Nunca snippets parciais — sempre arquivos comple
 ## ⚠️ REGRAS ABSOLUTAS — JAMAIS ALTERAR
 
 ### Gemini Model
-- SEMPRE: `gemini-2.0-flash` no endpoint `v1beta`
-- NUNCA trocar para: 2.5-flash, preview, flash-latest, 1.5, flash-preview-04-17 ou qualquer variante
-- **gemini-2.5-flash estava instável (503 generalizado em 22/04/2026) — migrado para gemini-2.0-flash**
+- Modelo atual: `gemini-2.5-flash` (CASCADE: 2.5 → 2.0 → OpenAI)
+- NUNCA trocar para: preview, flash-latest, 1.5, flash-preview-04-17 ou qualquer variante não estável
 - Qualquer troca do modelo pode causar falha silenciosa em produção
 
 ### Supabase Queries
@@ -34,13 +33,13 @@ Vá direto ao ponto técnico. Nunca snippets parciais — sempre arquivos comple
 - Colunas camelCase com aspas: "planId", "createdAt", "userId"
 
 ## Versão atual
-- Web App: v1.2.0 (`src/config/appVersion.ts`)
+- Web App: v1.3.0 (`src/config/appVersion.ts`)
 - Desktop: v1.0.4
 - Extensão Chrome: v1.0.2 ✅ aprovada
 
 ## Histórico de Releases
 
-### DEV 5 (DEV 12 interno) — Consolidação e Correções (v1.1.2) ✅ — 22/04/2026
+### DEV 5 — 22/04/2026
 
 | Feature | Detalhe |
 |---------|---------|
@@ -51,6 +50,8 @@ Vá direto ao ponto técnico. Nunca snippets parciais — sempre arquivos comple
 | Markdown rendering | SharedMeeting migrado para markdown-rendered + overflow-x-auto |
 | check-trials bug | Root cause: query em profiles.trial_ends_at em vez de User.trialEndsAt; corrigido e deployado; 4 e-mails de expiração enviados manualmente |
 | Gemini cascade | 4 edge functions: gemini-2.5-flash → gemini-2.0-flash → OpenAI; provider logado no TranscriptionLog |
+| v1.2.0 versionamento | package.json, appVersion.ts, CLAUDE.md atualizados |
+| v1.3.0 Projetos | Página /projects, modal criar/editar, bulk categorizar, filtro histórico, badge, upload, limites por plano |
 
 ### DEV 11 — Resiliência e Monitoramento (v1.1.1) ✅ — 22/04/2026
 
