@@ -113,7 +113,7 @@ export default function SharedMeeting() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="prose prose-sm max-w-none dark:prose-invert">
+              <div className="markdown-rendered overflow-x-auto">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{summaryContent}</ReactMarkdown>
               </div>
             </CardContent>
