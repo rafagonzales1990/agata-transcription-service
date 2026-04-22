@@ -726,28 +726,13 @@ export default function AdminPanel() {
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'USUÁRIOS ATIVOS', value: String(totalUsers), sub: `${newLast7} novos (7d)`, icon: Users, tooltip: '' },
-                { label: 'TRIALS ATIVOS', value: String(trialUsers), sub: `${freeUsers} expirados`, icon: Zap, tooltip: '' },
-                { label: 'REUNIÕES CONCLUÍDAS', value: `${dashMetrics.completedMeetings} concluídas`, sub: (() => { const denom = dashMetrics.completedMeetings + dashMetrics.failedMeetings; const rate = denom > 0 ? Math.round((dashMetrics.completedMeetings / denom) * 100) : 0; return `${dashMetrics.failedMeetings} falharam / ${dashMetrics.processingMeetings} processando — ${rate}% taxa`; })(), icon: BarChart3, tooltip: 'Total de reuniões com transcrição finalizada vs. falhas de transcrição. Reuniões em processamento não entram no cálculo.' },
-                { label: 'TEMPO MÉDIO', value: `${dashMetrics.avgDurationMin} min`, sub: 'por reunião concluída', icon: Clock, tooltip: '' },
+                { label: 'USUÁRIOS ATIVOS', value: String(totalUsers), sub: `${newLast7} novos (7d)`, icon: Users },
+                { label: 'TRIALS ATIVOS', value: String(trialUsers), sub: `${freeUsers} expirados`, icon: Zap },
               ].map((c, i) => (
                 <Card key={i} className="bg-card border-border">
                   <CardContent className="p-5">
                     <div className="flex items-center justify-between mb-1">
-                      {c.tooltip ? (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <p className="text-xs text-muted-foreground uppercase tracking-wide cursor-help underline decoration-dotted">{c.label}</p>
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs text-xs">
-                              <p>{c.tooltip}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      ) : (
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">{c.label}</p>
-                      )}
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">{c.label}</p>
                       <c.icon className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <p className="text-2xl font-bold text-foreground font-mono">{c.value}</p>
@@ -755,6 +740,51 @@ export default function AdminPanel() {
                   </CardContent>
                 </Card>
               ))}
+
+              {/* Reuniões — breakdown card */}
+              <Card className="bg-card border-border">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between mb-1">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide cursor-help underline decoration-dotted">REUNIÕES</p>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs text-xs">
+                          <p>Total de reuniões com transcrição finalizada vs. falhas de transcrição. Reuniões em processamento não entram no cálculo.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <p className="text-2xl font-bold text-foreground font-mono">{dashMetrics.completedMeetings + dashMetrics.failedMeetings + dashMetrics.processingMeetings}</p>
+                  <div className="mt-2 space-y-1">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1.5"><span className="text-emerald-500">✅</span> Concluídas</span>
+                      <span className="font-mono font-medium text-foreground">{dashMetrics.completedMeetings}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1.5"><span className="text-red-500">❌</span> Com erro</span>
+                      <span className="font-mono font-medium text-foreground">{dashMetrics.failedMeetings}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1.5"><span className="text-yellow-500">⏳</span> Processando</span>
+                      <span className="font-mono font-medium text-foreground">{dashMetrics.processingMeetings}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card border-border">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">TEMPO MÉDIO</p>
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <p className="text-2xl font-bold text-foreground font-mono">{dashMetrics.avgDurationMin} min</p>
+                  <p className="text-xs text-muted-foreground mt-1">por reunião concluída</p>
+                </CardContent>
+              </Card>
             </div>
             <Card className="bg-card border-border">
               <CardHeader><CardTitle className="text-base">Distribuição por Plano</CardTitle></CardHeader>
