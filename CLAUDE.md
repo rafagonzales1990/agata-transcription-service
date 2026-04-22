@@ -23,7 +23,7 @@ Vá direto ao ponto técnico. Nunca snippets parciais — sempre arquivos comple
 ## ⚠️ REGRAS ABSOLUTAS — JAMAIS ALTERAR
 
 ### Gemini Model
-- SEMPRE: `gemini-2.5-flash` no endpoint `v1beta`
+- SEMPRE: `gemini-2.5-flash-preview-04-17` no endpoint `v1beta`
 - NUNCA trocar para: preview, flash-latest, 1.5, 2.0, flash-preview-04-17 ou qualquer variante
 - Esta é a ÚNICA versão que funciona nas Edge Functions do Supabase
 - Qualquer troca do modelo causa falha silenciosa em produção
