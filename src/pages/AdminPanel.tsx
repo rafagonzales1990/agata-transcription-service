@@ -23,6 +23,7 @@ import { LogoIcon } from '@/components/LogoIcon';
 import { VersionBadge } from '@/components/VersionBadge';
 import { appVersion } from '@/config/appVersion';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { AIStatusMonitor, AIStatusBanner } from '@/components/dev/AIStatusMonitor';
 
 // ── Constants ──────────────────────────────────────────────
 const PLAN_COLORS: Record<string, string> = {
@@ -669,6 +670,7 @@ export default function AdminPanel() {
             <TabsTrigger value="users">Usuários ({totalUsers})</TabsTrigger>
             <TabsTrigger value="groups" onClick={fetchGroups}>Grupos ({groups.length})</TabsTrigger>
             <TabsTrigger value="costs" onClick={fetchCosts}>Custos</TabsTrigger>
+            <TabsTrigger value="ai-status">Status IAs</TabsTrigger>
           </TabsList>
 
           {/* ── Dashboard Tab ──────────────────────────────── */}
@@ -966,86 +968,123 @@ export default function AdminPanel() {
             {costsLoading ? (
               <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
             ) : costsData ? (
-              <>
-                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {[
-                    { label: 'Total Transcrições', value: String(costsData.totalTranscriptions) },
-                    { label: 'Minutos Transcritos', value: String(costsData.totalMinutes), sub: `~${Math.round(costsData.totalMinutes / 60)}h` },
-                    { label: 'Custo Total', value: `R$ ${(costsData.totalCostCents / 100).toFixed(2)}` },
-                    { label: 'Economia Gemini', value: 'Free Tier', sub: 'Gemini 2.5 Flash' },
-                  ].map((c, i) => (
-                    <Card key={i} className="bg-card border-border">
-                      <CardContent className="p-5">
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">{c.label}</p>
-                        <p className="text-2xl font-bold font-mono text-foreground mt-1">{c.value}</p>
-                        {c.sub && <p className="text-xs text-muted-foreground mt-1">{c.sub}</p>}
+              (() => {
+                const gemini = costsData.currentMonthProviders?.gemini || { count: 0, minutes: 0, cost: 0 };
+                const openai = costsData.currentMonthProviders?.openai || { count: 0, minutes: 0, cost: 0 };
+                const totalMonth = gemini.count + openai.count;
+                const fallbackPct = totalMonth > 0 ? ((openai.count / totalMonth) * 100) : 0;
+                const fallbackColor = fallbackPct > 20 ? 'text-red-600' : fallbackPct > 5 ? 'text-yellow-600' : 'text-emerald-600';
+                const fallbackBg = fallbackPct > 20 ? 'bg-red-50 border-red-200' : fallbackPct > 5 ? 'bg-yellow-50 border-yellow-200' : 'bg-emerald-50 border-emerald-200';
+
+                return (
+                  <>
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {[
+                        { label: 'Total Transcrições', value: String(costsData.totalTranscriptions) },
+                        { label: 'Minutos Transcritos', value: String(costsData.totalMinutes), sub: `~${Math.round(costsData.totalMinutes / 60)}h` },
+                        { label: 'Custo Total', value: `R$ ${(costsData.totalCostCents / 100).toFixed(2)}` },
+                        { label: 'Economia Gemini', value: 'Free Tier', sub: 'Gemini 2.5 Flash' },
+                      ].map((c, i) => (
+                        <Card key={i} className="bg-card border-border">
+                          <CardContent className="p-5">
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">{c.label}</p>
+                            <p className="text-2xl font-bold font-mono text-foreground mt-1">{c.value}</p>
+                            {c.sub && <p className="text-xs text-muted-foreground mt-1">{c.sub}</p>}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+
+                    {/* Provider cards */}
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <Card className="bg-card border-border border-l-4 border-l-emerald-500">
+                        <CardContent className="p-5">
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-lg">🟢</span>
+                            <span className="font-semibold text-foreground">Gemini 2.5 Flash</span>
+                          </div>
+                          <div className="space-y-2 font-mono text-sm">
+                            <div className="flex justify-between"><span className="text-muted-foreground">Transcrições</span><span className="font-bold">{gemini.count}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Minutos</span><span className="font-bold">{gemini.minutes}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Custo</span><span className="font-bold">R$ {(gemini.cost / 100).toFixed(2)}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Custo/min</span><span className="text-xs">R$ 0,043 (US$0,007 × R$6,20)</span></div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="bg-card border-border border-l-4 border-l-blue-500">
+                        <CardContent className="p-5">
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-lg">🔵</span>
+                            <span className="font-semibold text-foreground">OpenAI Whisper</span>
+                          </div>
+                          <div className="space-y-2 font-mono text-sm">
+                            <div className="flex justify-between"><span className="text-muted-foreground">Transcrições</span><span className="font-bold">{openai.count}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Minutos</span><span className="font-bold">{openai.minutes}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Custo</span><span className="font-bold">R$ {(openai.cost / 100).toFixed(2)}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Custo/min</span><span className="text-xs">R$ 0,037 (US$0,006 × R$6,20)</span></div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    {/* Fallback indicator */}
+                    <div className={`rounded-lg border p-4 ${fallbackBg}`}>
+                      <p className="text-sm">
+                        <span className="text-muted-foreground">Taxa de fallback OpenAI: </span>
+                        <span className={`font-mono font-bold ${fallbackColor}`}>{fallbackPct.toFixed(1)}%</span>
+                        <span className="text-muted-foreground"> das transcrições este mês ({openai.count} de {totalMonth})</span>
+                      </p>
+                    </div>
+
+                    <Card className="bg-card border-border">
+                      <CardHeader><CardTitle className="text-base">Logs Recentes</CardTitle></CardHeader>
+                      <CardContent>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Data</TableHead>
+                              <TableHead>Provedor</TableHead>
+                              <TableHead>Duração</TableHead>
+                              <TableHead>Chunks</TableHead>
+                              <TableHead>Custo</TableHead>
+                              <TableHead>Status</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {(costsData.recentLogs || []).map((log: any) => (
+                              <TableRow key={log.id}>
+                                <TableCell className="text-xs font-mono">{new Date(log.createdAt).toLocaleDateString('pt-BR')}</TableCell>
+                                <TableCell>
+                                  <Badge className={['groq', 'gemini'].includes(log.provider) ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}>
+                                    {log.provider === 'gemini' || log.provider === 'groq' ? 'Gemini' : 'OpenAI'}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="font-mono text-sm">{Math.round(log.durationSecs / 60)}min</TableCell>
+                                <TableCell className="font-mono text-sm">{log.chunks}</TableCell>
+                                <TableCell className="font-mono text-sm">R$ {(log.costCents / 100).toFixed(2)}</TableCell>
+                                <TableCell>
+                                  <Badge className={log.success ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
+                                    {log.success ? 'OK' : 'FALHA'}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
                       </CardContent>
                     </Card>
-                  ))}
-                </div>
-                <Card className="bg-card border-border">
-                  <CardHeader><CardTitle className="text-base">Uso por Provedor — Mês Atual</CardTitle></CardHeader>
-                  <CardContent>
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      {Object.entries(costsData.currentMonthProviders || {}).map(([provider, stats]: [string, any]) => (
-                        <div key={provider} className="border rounded-lg p-4">
-                          <Badge className={['groq', 'gemini'].includes(provider) ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}>
-                            {provider === 'gemini' || provider === 'groq' ? 'Gemini (Free Tier)' : provider}
-                          </Badge>
-                          <div className="mt-3 space-y-1">
-                            <p className="text-sm"><span className="text-muted-foreground">Minutos:</span> <span className="font-mono font-medium">{stats.minutes}</span></p>
-                            <p className="text-sm"><span className="text-muted-foreground">Custo:</span> <span className="font-mono font-medium">R$ {(stats.cost / 100).toFixed(2)}</span></p>
-                            <p className="text-sm"><span className="text-muted-foreground">Transcrições:</span> <span className="font-mono font-medium">{stats.count}</span></p>
-                          </div>
-                        </div>
-                      ))}
-                      {Object.keys(costsData.currentMonthProviders || {}).length === 0 && (
-                        <p className="text-sm text-muted-foreground col-span-2 text-center py-4">Sem dados este mês</p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card className="bg-card border-border">
-                  <CardHeader><CardTitle className="text-base">Logs Recentes</CardTitle></CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Data</TableHead>
-                          <TableHead>Provedor</TableHead>
-                          <TableHead>Duração</TableHead>
-                          <TableHead>Chunks</TableHead>
-                          <TableHead>Custo</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {(costsData.recentLogs || []).map((log: any) => (
-                          <TableRow key={log.id}>
-                            <TableCell className="text-xs font-mono">{new Date(log.createdAt).toLocaleDateString('pt-BR')}</TableCell>
-                            <TableCell>
-                              <Badge className={['groq', 'gemini'].includes(log.provider) ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}>
-                                {log.provider === 'gemini' || log.provider === 'groq' ? 'Gemini (Free Tier)' : log.provider}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="font-mono text-sm">{Math.round(log.durationSecs / 60)}min</TableCell>
-                            <TableCell className="font-mono text-sm">{log.chunks}</TableCell>
-                            <TableCell className="font-mono text-sm">R$ {(log.costCents / 100).toFixed(2)}</TableCell>
-                            <TableCell>
-                              <Badge className={log.success ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
-                                {log.success ? 'OK' : 'FALHA'}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              </>
+                  </>
+                );
+              })()
             ) : (
               <p className="text-center text-muted-foreground py-8">Clique na aba para carregar os dados de custos</p>
             )}
+          </TabsContent>
+
+          {/* ── AI Status Tab ─────────────────────────────── */}
+          <TabsContent value="ai-status" className="space-y-6">
+            <AIStatusMonitor />
           </TabsContent>
         </Tabs>
       </div>
