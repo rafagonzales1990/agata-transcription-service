@@ -122,15 +122,17 @@ export function useProjects() {
       teamId = userData?.teamId || null;
     }
 
+    const insertPayload: Record<string, unknown> = {
+      name,
+      color,
+      userId: user.id,
+      teamId,
+    };
+    if (description) insertPayload.description = description;
+
     const { data, error } = await supabase
       .from('Project')
-      .insert({
-        name,
-        color,
-        description: description || null,
-        userId: user.id,
-        teamId,
-      })
+      .insert(insertPayload as any)
       .select()
       .maybeSingle();
 
@@ -148,7 +150,7 @@ export function useProjects() {
   const updateProject = async (id: string, updates: { name?: string; description?: string; color?: string; teamId?: string | null }) => {
     const { error } = await supabase
       .from('Project')
-      .update({ ...updates, updatedAt: new Date().toISOString() })
+      .update({ ...updates, updatedAt: new Date().toISOString() } as any)
       .eq('id', id);
 
     if (error) {
