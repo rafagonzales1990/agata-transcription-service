@@ -1,26 +1,42 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 export interface Project {
   id: string;
   name: string;
+  description: string | null;
   userId: string;
   teamId: string | null;
   color: string;
   createdAt: string;
   updatedAt: string;
+  meetingCount?: number;
+}
+
+export interface ProjectLimits {
+  maxProjects: number | null; // null = unlimited
+  used: number;
+  isAtLimit: boolean;
+  isUnlimited: boolean;
 }
 
 export function useProjects() {
+  const { profile } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [limits, setLimits] = useState<ProjectLimits>({
+    maxProjects: 3, used: 0, isAtLimit: false, isUnlimited: false,
+  });
+  const [uncategorizedCount, setUncategorizedCount] = useState(0);
 
   const fetchProjects = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     const user = session?.user;
     if (!user) { setLoading(false); return; }
 
+    // Fetch projects (own + team)
     const { data, error } = await supabase
       .from('Project')
       .select('*')
@@ -28,22 +44,93 @@ export function useProjects() {
 
     if (error) {
       console.error('Error fetching projects:', error);
-    } else {
-      setProjects((data as Project[]) || []);
+      setLoading(false);
+      return;
     }
+
+    const projectList = (data || []) as Project[];
+
+    // Fetch meeting counts per project
+    const { data: meetings } = await supabase
+      .from('Meeting')
+      .select('id, projectId')
+      .eq('userId', user.id);
+
+    const countMap: Record<string, number> = {};
+    let uncategorized = 0;
+    (meetings || []).forEach((m: any) => {
+      if (m.projectId) {
+        countMap[m.projectId] = (countMap[m.projectId] || 0) + 1;
+      } else {
+        uncategorized++;
+      }
+    });
+
+    const enriched = projectList.map(p => ({
+      ...p,
+      meetingCount: countMap[p.id] || 0,
+    }));
+
+    setProjects(enriched);
+    setUncategorizedCount(uncategorized);
+
+    // Fetch plan limits
+    const { data: userData } = await supabase
+      .from('User')
+      .select('planId')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const planId = userData?.planId || 'basic';
+    const { data: planData } = await supabase
+      .from('Plan')
+      .select('maxProjects')
+      .eq('id', planId)
+      .maybeSingle();
+
+    const maxProjects = planData?.maxProjects ?? 3;
+    const isUnlimited = maxProjects === null;
+    setLimits({
+      maxProjects,
+      used: enriched.filter(p => p.userId === user.id).length,
+      isAtLimit: !isUnlimited && enriched.filter(p => p.userId === user.id).length >= (maxProjects ?? 0),
+      isUnlimited,
+    });
+
     setLoading(false);
   }, []);
 
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
 
-  const createProject = async (name: string, color: string) => {
+  const createProject = async (name: string, color: string, description?: string, shareWithTeam?: boolean) => {
     const { data: { session } } = await supabase.auth.getSession();
     const user = session?.user;
     if (!user) return null;
 
+    if (limits.isAtLimit) {
+      toast.error(`Você atingiu o limite de ${limits.maxProjects} projetos do seu plano.`);
+      return null;
+    }
+
+    let teamId: string | null = null;
+    if (shareWithTeam) {
+      const { data: userData } = await supabase
+        .from('User')
+        .select('teamId')
+        .eq('id', user.id)
+        .maybeSingle();
+      teamId = userData?.teamId || null;
+    }
+
     const { data, error } = await supabase
       .from('Project')
-      .insert({ name, color, userId: user.id })
+      .insert({
+        name,
+        color,
+        description: description || null,
+        userId: user.id,
+        teamId,
+      })
       .select()
       .maybeSingle();
 
@@ -52,26 +139,33 @@ export function useProjects() {
       return null;
     }
     if (data) {
-      setProjects(prev => [...prev, data as Project].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')));
+      await fetchProjects();
+      toast.success('Projeto criado!');
     }
     return data as Project | null;
   };
 
-  const renameProject = async (id: string, name: string) => {
+  const updateProject = async (id: string, updates: { name?: string; description?: string; color?: string; teamId?: string | null }) => {
     const { error } = await supabase
       .from('Project')
-      .update({ name, updatedAt: new Date().toISOString() })
+      .update({ ...updates, updatedAt: new Date().toISOString() })
       .eq('id', id);
 
     if (error) {
-      toast.error('Erro ao renomear projeto');
+      toast.error('Erro ao atualizar projeto');
       return false;
     }
-    setProjects(prev => prev.map(p => p.id === id ? { ...p, name } : p));
+    await fetchProjects();
     return true;
   };
 
   const deleteProject = async (id: string) => {
+    // First remove projectId from all meetings in this project
+    await supabase
+      .from('Meeting')
+      .update({ projectId: null, updatedAt: new Date().toISOString() })
+      .eq('projectId', id);
+
     const { error } = await supabase
       .from('Project')
       .delete()
@@ -81,10 +175,21 @@ export function useProjects() {
       toast.error('Erro ao excluir projeto');
       return false;
     }
-    setProjects(prev => prev.filter(p => p.id !== id));
+    await fetchProjects();
     toast.success('Projeto excluído');
     return true;
   };
 
-  return { projects, loading, createProject, renameProject, deleteProject, refetch: fetchProjects };
+  return {
+    projects,
+    loading,
+    limits,
+    uncategorizedCount,
+    createProject,
+    updateProject,
+    deleteProject,
+    refetch: fetchProjects,
+    // Keep backward compatibility
+    renameProject: async (id: string, name: string) => updateProject(id, { name }),
+  };
 }
