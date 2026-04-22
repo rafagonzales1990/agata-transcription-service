@@ -298,6 +298,8 @@ async function processTranscription(
     // pois o Gemini rejeita audio/webm com codec de vídeo
     const effectiveMimeType = (ext === 'webm') ? 'video/webm' : mimeType
 
+    let transcriptionProvider = 'gemini'
+
     // Transcribe based on file size
     const arrayBuffer = await fileData.arrayBuffer()
     const totalBytes = arrayBuffer.byteLength
@@ -318,6 +320,7 @@ async function processTranscription(
         if (!openaiApiKey) throw geminiErr
         const fileName = storagePath.split('/').pop() || 'audio'
         fullTranscriptionText = await transcribeWithOpenAI(arrayBuffer, effectiveMimeType, fileName, openaiApiKey)
+        transcriptionProvider = 'openai'
         console.log('OpenAI Whisper fallback concluído com sucesso')
       }
     } else {
@@ -382,6 +385,7 @@ async function processTranscription(
         if (!openaiApiKey) throw geminiErr
         const fileName = storagePath.split('/').pop() || 'audio'
         fullTranscriptionText = await transcribeWithOpenAI(arrayBuffer, effectiveMimeType, fileName, openaiApiKey)
+        transcriptionProvider = 'openai'
         console.log('OpenAI Whisper fallback concluído com sucesso')
       }
     }
@@ -478,7 +482,7 @@ async function processTranscription(
         await supabase.from('TranscriptionLog').insert({
           meetingId,
           userId: meetingData.userId,
-          provider: 'gemini',
+          provider: transcriptionProvider,
           durationSecs: realDurationSeconds > 0 ? realDurationSeconds : Math.round(totalBytes / 16000),
           fileSizeBytes: totalBytes,
           chunks: 1,
