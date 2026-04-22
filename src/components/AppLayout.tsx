@@ -120,7 +120,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     navigate('/');
   };
 
-  const needsCpf = userCpf !== undefined && !userCpf && !hasCompletedOnboarding;
+  const needsCpf = !isAdmin && userCpf !== undefined && !userCpf && !hasCompletedOnboarding;
   const authUser = profile;
 
   const initial = profile?.name?.charAt(0)?.toUpperCase() || profile?.email?.charAt(0)?.toUpperCase() || '?';
@@ -400,7 +400,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       </main>
       <TrialUpgradeBanners />
       {needsCpf && authUser && (
-        <CpfRequiredModal userId={authUser.user_id} onSaved={fetchCpfAndAdmin} />
+        <CpfRequiredModal userId={authUser.user_id} isAdmin={isAdmin} onSaved={fetchCpfAndAdmin} onDismiss={() => setUserCpf('dismissed')} />
       )}
       <PWAInstallModal open={pwaModalOpen} onOpenChange={setPwaModalOpen} />
     </div>

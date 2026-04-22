@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { LogoIcon } from '@/components/LogoIcon';
-import { Loader2 } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 
 function validateCpf(cpf: string): boolean {
   const digits = cpf.replace(/\D/g, '');
@@ -33,18 +34,30 @@ function maskCpf(value: string): string {
 
 interface CpfRequiredModalProps {
   userId: string;
+  isAdmin?: boolean;
   onSaved: () => void;
+  onDismiss?: () => void;
 }
 
-export function CpfRequiredModal({ userId, onSaved }: CpfRequiredModalProps) {
+export function CpfRequiredModal({ userId, isAdmin, onSaved, onDismiss }: CpfRequiredModalProps) {
   const [cpf, setCpf] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCpf(maskCpf(e.target.value));
     setError('');
   };
+
+  const handleClose = useCallback(async () => {
+    if (isAdmin) {
+      onDismiss?.();
+    } else {
+      await supabase.auth.signOut();
+      navigate('/login');
+    }
+  }, [isAdmin, onDismiss, navigate]);
 
   const handleSubmit = useCallback(async () => {
     const clean = cpf.replace(/\D/g, '');
@@ -74,7 +87,15 @@ export function CpfRequiredModal({ userId, onSaved }: CpfRequiredModalProps) {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-[420px] mx-4 p-8 flex flex-col items-center gap-5">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-[420px] mx-4 p-8 flex flex-col items-center gap-5 relative">
+        <button
+          onClick={handleClose}
+          className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
+          title="Fechar"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
         <LogoIcon size={48} />
         <div className="text-center space-y-2">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Complete seu cadastro</h2>
