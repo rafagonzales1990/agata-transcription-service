@@ -43,6 +43,7 @@ async function fetchWithRetry(
   }
   throw lastError ?? new Error('fetchWithRetry exhausted')
 }
+
 const TRANSCRIPTION_PROMPT = `No início da sua resposta, antes da transcrição, adicione uma linha:
 DURACAO_SEGUNDOS: [número inteiro de segundos do áudio]
 
@@ -121,39 +122,13 @@ async function waitForFileActive(fileUri: string, geminiApiKey: string): Promise
   console.warn('File polling timed out, proceeding anyway')
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
-
-  let meetingId: string | null = null
-
+async function processTranscription(
+  meetingId: string,
+  storagePath: string,
+  supabase: any,
+  geminiApiKey: string
+): Promise<void> {
   try {
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing authorization' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    const body = await req.json()
-    meetingId = body.meetingId
-    const storagePath = body.storagePath
-
-    if (!meetingId || !storagePath) {
-      return new Response(JSON.stringify({ error: 'meetingId and storagePath are required' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const geminiApiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY')
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
-
     // Rate limiting: max 10 transcription attempts per user per hour
     const { data: meetingOwner } = await supabase
       .from('Meeting')
@@ -171,10 +146,17 @@ Deno.serve(async (req) => {
         .gte('createdAt', oneHourAgo)
 
       if ((count || 0) >= 10) {
-        return new Response(
-          JSON.stringify({ error: 'Limite de transcrições por hora atingido. Tente novamente em 1 hora.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+        await supabase.from('Meeting').update({
+          status: 'failed',
+          errorMessage: 'Limite de transcrições por hora atingido',
+          updatedAt: new Date().toISOString(),
+        }).eq('id', meetingId)
+        await supabase.channel('meeting-status').send({
+          type: 'broadcast',
+          event: 'transcription_update',
+          payload: { meetingId, status: 'failed' },
+        })
+        return
       }
 
       // Plan limit enforcement: check minutes used vs plan limit
@@ -210,11 +192,12 @@ Deno.serve(async (req) => {
             errorMessage: 'Limite de minutos do plano atingido',
             updatedAt: new Date().toISOString(),
           }).eq('id', meetingId)
-
-          return new Response(
-            JSON.stringify({ error: 'PLAN_LIMIT_EXCEEDED', message: 'Limite de minutos do plano atingido' }),
-            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
+          await supabase.channel('meeting-status').send({
+            type: 'broadcast',
+            event: 'transcription_update',
+            payload: { meetingId, status: 'failed' },
+          })
+          return
         }
       }
     }
@@ -230,24 +213,12 @@ Deno.serve(async (req) => {
         errorMessage: `Failed to download file: ${downloadError?.message}`,
         updatedAt: new Date().toISOString(),
       }).eq('id', meetingId)
-
-      return new Response(JSON.stringify({ error: 'Failed to download file' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      await supabase.channel('meeting-status').send({
+        type: 'broadcast',
+        event: 'transcription_update',
+        payload: { meetingId, status: 'failed' },
       })
-    }
-
-    if (!geminiApiKey) {
-      await supabase.from('Meeting').update({
-        status: 'failed',
-        errorMessage: 'GOOGLE_GEMINI_API_KEY not configured',
-        updatedAt: new Date().toISOString(),
-      }).eq('id', meetingId)
-
-      return new Response(JSON.stringify({ error: 'Transcription API key not configured' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return
     }
 
     // Determine MIME type
@@ -380,7 +351,7 @@ Deno.serve(async (req) => {
 
     // Update Meeting with transcription
     const { data: meetingData } = await supabase.from('Meeting').select('userId').eq('id', meetingId).maybeSingle()
-    
+
     await supabase.from('Meeting').update({
       status: 'completed',
       transcription,
@@ -492,31 +463,76 @@ Deno.serve(async (req) => {
         })
     }
 
-    return new Response(JSON.stringify({ success: true, meetingId }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    await supabase.channel('meeting-status').send({
+      type: 'broadcast',
+      event: 'transcription_update',
+      payload: { meetingId, status: 'completed' },
     })
   } catch (error) {
     console.error('Transcription error:', error)
-
-    if (meetingId) {
-      try {
-        const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-        const supabase = createClient(supabaseUrl, supabaseServiceKey)
-        await supabase.from('Meeting').update({
-          status: 'failed',
-          errorMessage: (error as Error).message,
-          updatedAt: new Date().toISOString(),
-        }).eq('id', meetingId)
-      } catch (_) {
-        console.error('Failed to update meeting status to failed')
-      }
+    try {
+      await supabase.from('Meeting').update({
+        status: 'failed',
+        errorMessage: (error as Error).message,
+        updatedAt: new Date().toISOString(),
+      }).eq('id', meetingId)
+      await supabase.channel('meeting-status').send({
+        type: 'broadcast',
+        event: 'transcription_update',
+        payload: { meetingId, status: 'failed' },
+      })
+    } catch (_) {
+      console.error('Failed to update meeting status to failed')
     }
+  }
+}
 
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader) {
+    return new Response(JSON.stringify({ error: 'Missing authorization' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  const body = await req.json()
+  const meetingId = body.meetingId
+  const storagePath = body.storagePath
+
+  if (!meetingId || !storagePath) {
+    return new Response(JSON.stringify({ error: 'meetingId and storagePath are required' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  const geminiApiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY')
+
+  if (!geminiApiKey) {
+    return new Response(JSON.stringify({ error: 'Transcription API key not configured' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+  await supabase.from('Meeting').update({
+    status: 'processing',
+    updatedAt: new Date().toISOString(),
+  }).eq('id', meetingId)
+
+  EdgeRuntime.waitUntil(processTranscription(meetingId, storagePath, supabase, geminiApiKey))
+
+  return new Response(
+    JSON.stringify({ success: true, status: 'processing', meetingId }),
+    { status: 202, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  )
 })
