@@ -52,6 +52,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const qc = useQueryClient();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isEnterpriseAdmin, setIsEnterpriseAdmin] = useState(false);
   const [userCpf, setUserCpf] = useState<string | null | undefined>(undefined);
   const [pwaModalOpen, setPwaModalOpen] = useState(false);
   const [hasCompletedMeetings, setHasCompletedMeetings] = useState(false);
@@ -63,10 +64,11 @@ export function AppLayout({ children }: AppLayoutProps) {
       if (!user) return;
       const { data } = await supabase
         .from('User')
-        .select('isAdmin, cpf')
+        .select('isAdmin, cpf, role, isTeamOwner')
         .eq('id', user.id)
         .maybeSingle();
       if (data?.isAdmin) setIsAdmin(true);
+      if (data?.role === 'enterprise_admin' || data?.isTeamOwner) setIsEnterpriseAdmin(true);
       setUserCpf(data?.cpf ?? null);
     } catch (error: any) {
       if (error?.message?.includes('lock') || error?.message?.includes('stolen')) {
@@ -76,10 +78,11 @@ export function AppLayout({ children }: AppLayoutProps) {
         if (!user) return;
         const { data } = await supabase
           .from('User')
-          .select('isAdmin, cpf')
+          .select('isAdmin, cpf, role, isTeamOwner')
           .eq('id', user.id)
           .maybeSingle();
         if (data?.isAdmin) setIsAdmin(true);
+        if (data?.role === 'enterprise_admin' || data?.isTeamOwner) setIsEnterpriseAdmin(true);
         setUserCpf(data?.cpf ?? null);
       }
     }
