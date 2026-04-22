@@ -20,6 +20,7 @@ export interface UsageData {
   maxPercent: number;
   isNearLimit: boolean;
   isAtLimit: boolean;
+  isTrial: boolean;
   loading: boolean;
 }
 
@@ -32,6 +33,7 @@ const DEFAULTS: UsageData = {
   maxPercent: 0,
   isNearLimit: false,
   isAtLimit: false,
+  isTrial: false,
   loading: true,
 };
 
