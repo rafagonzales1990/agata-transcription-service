@@ -196,7 +196,7 @@ export default function ProjectsPage() {
                 : `${limits.used} de ${limits.maxProjects} projetos utilizados`}
             </p>
           </div>
-          <Button onClick={openCreateModal} className="bg-primary text-primary-foreground hover:bg-primary/90">
+          <Button onClick={openCreateModal} disabled={limits.isAtLimit} title={limits.isAtLimit ? 'Limite de projetos atingido — faça upgrade' : undefined} className="bg-primary text-primary-foreground hover:bg-primary/90">
             <Plus className="h-4 w-4 mr-1" />
             Novo Projeto
           </Button>
