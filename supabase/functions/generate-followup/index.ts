@@ -5,6 +5,31 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+async function generateFollowupWithOpenAI(
+  prompt: string,
+  openaiApiKey: string
+): Promise<string> {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openaiApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 1024,
+      temperature: 0.3,
+    })
+  })
+  if (!response.ok) {
+    const err = await response.text()
+    throw new Error(`OpenAI error ${response.status}: ${err.substring(0, 300)}`)
+  }
+  const result = await response.json()
+  return result.choices?.[0]?.message?.content || ''
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -36,6 +61,7 @@ Deno.serve(async (req) => {
     if (!meeting.summary && !meeting.transcription) return new Response(JSON.stringify({ error: 'Reunião sem conteúdo para gerar follow-up' }), { status: 400, headers: corsHeaders })
 
     const geminiApiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY')!
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
     const content = meeting.summary || meeting.transcription || ''
 
     const toneInstruction = tone === 'formal'
@@ -81,22 +107,30 @@ REGRAS para o corpo do e-mail:
 10. Se não houver decisões claras, omita a seção
 11. Para recipients: use os e-mails dos participantes se mencionados, senão retorne array vazio`
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 1024 }
-        })
-      }
-    )
+    let rawText = ''
+    try {
+      const geminiRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.3, maxOutputTokens: 1024 }
+          })
+        }
+      )
 
-    if (!geminiRes.ok) throw new Error(`Gemini error: ${geminiRes.status}`)
+      if (!geminiRes.ok) throw new Error(`Gemini error: ${geminiRes.status}`)
 
-    const geminiData = await geminiRes.json()
-    const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || ''
+      const geminiData = await geminiRes.json()
+      rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || ''
+    } catch (geminiErr) {
+      console.warn('Gemini falhou no generate-followup, usando OpenAI:', (geminiErr as Error).message)
+      if (!openaiApiKey) throw geminiErr
+      rawText = await generateFollowupWithOpenAI(prompt, openaiApiKey)
+      console.log('OpenAI fallback para followup concluído')
+    }
 
     const cleanText = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
     let followupData: { subject: string; body: string; recipients: string[] }

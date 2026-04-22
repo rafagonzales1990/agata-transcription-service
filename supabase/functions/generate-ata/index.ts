@@ -401,28 +401,39 @@ async function generateCustomContent(
   const apiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY')
   if (!apiKey) throw new Error('GOOGLE_GEMINI_API_KEY not configured')
 
+  const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
   const prompt = buildCustomPrompt(sections, transcription, summaryContent)
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 4000 },
-      }),
-    }
-  )
+  let ataText = ''
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.3, maxOutputTokens: 4000 },
+        }),
+      }
+    )
 
-  if (!response.ok) {
-    const errText = await response.text()
-    console.error('Gemini error:', errText)
-    throw new Error('Erro ao gerar conteúdo com IA')
+    if (!response.ok) {
+      const errText = await response.text()
+      console.error('Gemini error:', errText)
+      throw new Error('Erro ao gerar conteúdo com IA')
+    }
+
+    const result = await response.json()
+    ataText = result.candidates?.[0]?.content?.parts?.[0]?.text || ''
+  } catch (geminiErr) {
+    console.warn('Gemini falhou no generate-ata (custom), usando OpenAI:', (geminiErr as Error).message)
+    if (!openaiApiKey) throw geminiErr
+    ataText = await generateAtaWithOpenAI(prompt, openaiApiKey)
+    console.log('OpenAI fallback para ATA custom concluído')
   }
 
-  const result = await response.json()
-  return result.candidates?.[0]?.content?.parts?.[0]?.text || ''
+  return ataText
 }
 
 // Build markdown content for custom template (combining AI output + special sections)
@@ -460,6 +471,31 @@ function buildCustomMarkdown(
 
 function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+async function generateAtaWithOpenAI(
+  prompt: string,
+  openaiApiKey: string
+): Promise<string> {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openaiApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 8192,
+      temperature: 0.2,
+    })
+  })
+  if (!response.ok) {
+    const err = await response.text()
+    throw new Error(`OpenAI error ${response.status}: ${err.substring(0, 300)}`)
+  }
+  const result = await response.json()
+  return result.choices?.[0]?.message?.content || ''
 }
 
 Deno.serve(async (req) => {
@@ -616,26 +652,38 @@ ${meeting.transcription?.slice(0, 8000) || summaryContent?.slice(0, 4000) || '(n
       const apiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY')
       if (!apiKey) throw new Error('GOOGLE_GEMINI_API_KEY not configured')
 
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: geminiPrompt }] }],
-            generationConfig: { temperature: 0.3, maxOutputTokens: 8192 },
-          }),
-        }
-      )
+      const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
 
-      if (!response.ok) {
-        const errText = await response.text()
-        console.error('Gemini error:', errText)
-        throw new Error('Erro ao gerar conteúdo com IA')
+      let ataText = ''
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: geminiPrompt }] }],
+              generationConfig: { temperature: 0.3, maxOutputTokens: 8192 },
+            }),
+          }
+        )
+
+        if (!response.ok) {
+          const errText = await response.text()
+          console.error('Gemini error:', errText)
+          throw new Error('Erro ao gerar conteúdo com IA')
+        }
+
+        const result = await response.json()
+        ataText = result.candidates?.[0]?.content?.parts?.[0]?.text || summaryContent
+      } catch (geminiErr) {
+        console.warn('Gemini falhou no generate-ata, usando OpenAI:', (geminiErr as Error).message)
+        if (!openaiApiKey) throw geminiErr
+        ataText = await generateAtaWithOpenAI(geminiPrompt, openaiApiKey)
+        console.log('OpenAI fallback para ATA concluído')
       }
 
-      const result = await response.json()
-      finalMarkdown = result.candidates?.[0]?.content?.parts?.[0]?.text || summaryContent
+      finalMarkdown = ataText
     } else {
       finalMarkdown = summaryContent
     }

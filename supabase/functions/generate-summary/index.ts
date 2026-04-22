@@ -97,6 +97,49 @@ const maxTokens: Record<string, number> = {
   ata_completa: 8192,
 }
 
+async function generateSummaryWithOpenAI(
+  transcription: string,
+  summaryType: string,
+  openaiApiKey: string
+): Promise<string> {
+  const openaiPrompts: Record<string, string> = {
+    executivo: `Você é um assistente especializado em resumos executivos.
+Gere um resumo executivo conciso da seguinte transcrição de reunião em português brasileiro.
+Inclua: principais decisões, pontos-chave e próximos passos.
+Transcrição: ${transcription}`,
+    detalhado: `Você é um assistente especializado em análise de reuniões.
+Gere um resumo detalhado da seguinte transcrição em português brasileiro.
+Inclua: todos os tópicos discutidos, decisões tomadas, responsáveis e prazos mencionados.
+Transcrição: ${transcription}`,
+    ata_completa: `Você é um assistente especializado em atas de reunião.
+Gere uma ATA completa e profissional da seguinte transcrição em português brasileiro.
+Inclua: identificação da reunião, pauta, decisões, itens de ação com responsáveis e prazos, próximos passos.
+Transcrição: ${transcription}`
+  }
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openaiApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: openaiPrompts[summaryType] || openaiPrompts.executivo }],
+      max_tokens: 4096,
+      temperature: 0.3,
+    })
+  })
+
+  if (!response.ok) {
+    const err = await response.text()
+    throw new Error(`OpenAI error ${response.status}: ${err.substring(0, 300)}`)
+  }
+
+  const result = await response.json()
+  return result.choices?.[0]?.message?.content || ''
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -113,6 +156,7 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const geminiApiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY')
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
 
     if (!geminiApiKey) {
       return new Response(JSON.stringify({ error: 'Gemini API key not configured' }), {
@@ -199,27 +243,35 @@ Deno.serve(async (req) => {
 
     const prompt = prompts[depth](meeting.title, meeting.transcription)
 
-    // Call Gemini
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.2, maxOutputTokens: maxTokens[depth] },
-        }),
+    // Call Gemini with OpenAI fallback
+    let summaryText = ''
+    try {
+      const geminiResponse = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.2, maxOutputTokens: maxTokens[depth] },
+          }),
+        }
+      )
+
+      if (!geminiResponse.ok) {
+        const errText = await geminiResponse.text()
+        console.error('Gemini error:', errText)
+        throw new Error(`Gemini API error: ${geminiResponse.status}`)
       }
-    )
 
-    if (!geminiResponse.ok) {
-      const errText = await geminiResponse.text()
-      console.error('Gemini error:', errText)
-      throw new Error(`Gemini API error: ${geminiResponse.status}`)
+      const geminiResult = await geminiResponse.json()
+      summaryText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || ''
+    } catch (geminiErr) {
+      console.warn('Gemini falhou no generate-summary, usando OpenAI:', (geminiErr as Error).message)
+      if (!openaiApiKey) throw geminiErr
+      summaryText = await generateSummaryWithOpenAI(meeting.transcription, depth, openaiApiKey)
+      console.log('OpenAI fallback para summary concluído')
     }
-
-    const geminiResult = await geminiResponse.json()
-    const summaryText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || ''
 
     // Save to meeting
     const fullSummary = `<!-- depth:${depth} -->\n${summaryText}`
