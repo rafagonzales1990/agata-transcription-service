@@ -63,7 +63,7 @@ const rows: CompRow[] = [
   },
   {
     feature: 'Preço entrada pago',
-    agata: { status: 'check', label: 'R$ 61/mês' },
+    agata: { status: 'check', label: 'R$ 37/mês' },
     fireflies: { status: 'partial', label: 'R$ 58/mês*' },
     otter: { status: 'partial', label: 'R$ 48/mês*' },
     sonix: { status: 'partial', label: 'R$ 128/mês*' },
