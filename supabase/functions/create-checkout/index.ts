@@ -8,14 +8,14 @@ const corsHeaders = {
 
 const STRIPE_PRICES: Record<string, { monthly: string; annual: string; annual_upfront: string }> = {
   inteligente: {
-    monthly:        'price_1TMZz0FadSjglwHIm3THKpZZ',
-    annual:         'price_1TMZz4FadSjglwHIOr1pi7x9',
-    annual_upfront: 'price_1TMZz8FadSjglwHIgaJHAA2u',
+    monthly:        'price_1TP3mhFadSjglwHIiWU3TMcn',
+    annual:         'price_1TP3moFadSjglwHIzMtLp79M',
+    annual_upfront: 'price_1TP3mvFadSjglwHIumBHCZ2N',
   },
   automacao: {
-    monthly:        'price_1TMZzBFadSjglwHIKxVdb4y1',
-    annual:         'price_1TMZzEFadSjglwHI3p7GhXRb',
-    annual_upfront: 'price_1TMZzIFadSjglwHIUlksn0FY',
+    monthly:        'price_1TP3n0FadSjglwHIqmkA4etb',
+    annual:         'price_1TP3n5FadSjglwHITmKUgjgN',
+    annual_upfront: 'price_1TP3nBFadSjglwHIM52JMQv2',
   },
   enterprise: {
     monthly:        'price_1TK4xaFadSjglwHIggSyDPti',
@@ -25,8 +25,8 @@ const STRIPE_PRICES: Record<string, { monthly: string; annual: string; annual_up
 }
 
 const PLAN_VALUES: Record<string, Record<string, number>> = {
-  inteligente: { monthly: 49, yearly: 37, annual_upfront: 444 },
-  automacao:   { monthly: 183, yearly: 137, annual_upfront: 1644 },
+  inteligente: { monthly: 53, annual: 37, annual_upfront: 408 },
+  automacao:   { monthly: 196, annual: 137, annual_upfront: 1524 },
   enterprise:  { monthly: 0, yearly: 0, annual_upfront: 0 },
 }
 
@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
     }
     const priceId = billingCycle === 'annual_upfront'
       ? planPrices.annual_upfront
-      : billingCycle === 'yearly'
+      : billingCycle === 'annual'
         ? planPrices.annual
         : planPrices.monthly
 
