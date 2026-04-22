@@ -33,11 +33,23 @@ Vá direto ao ponto técnico. Nunca snippets parciais — sempre arquivos comple
 - Colunas camelCase com aspas: "planId", "createdAt", "userId"
 
 ## Versão atual
-- Web App: v1.3.0 (`src/config/appVersion.ts`)
+- Web App: v1.4.0 (`src/config/appVersion.ts`)
 - Desktop: v1.0.4
 - Extensão Chrome: v1.0.2 ✅ aprovada
 
 ## Histórico de Releases
+
+### v1.4.0 — Enterprise Admin — 22/04/2026
+
+| Feature | Detalhe |
+|---------|---------|
+| Enterprise Admin | Rota /enterprise/admin com acesso role=enterprise_admin ou isTeamOwner |
+| Dashboard | 4 cards de métricas + gráfico Recharts por membro (últimas 4 semanas) |
+| Membros | Convidar, remover membros; painel de convites pendentes |
+| Reuniões do Time | Todas as reuniões scoped ao teamId, filtros |
+| Projetos do Time | Projetos compartilhados scoped ao teamId |
+| Configurações | Editar nome/empresa, dissolver time, sair do time |
+| RLS | Meeting, Usage, User, TeamInvite todos scoped ao teamId |
 
 ### DEV 5 — 22/04/2026
 
