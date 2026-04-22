@@ -105,6 +105,34 @@ async function transcribeChunk(
   return result.candidates?.[0]?.content?.parts?.[0]?.text || ''
 }
 
+async function transcribeWithGroq(
+  arrayBuffer: ArrayBuffer,
+  mimeType: string,
+  fileName: string,
+  groqApiKey: string
+): Promise<string> {
+  const formData = new FormData()
+  const blob = new Blob([arrayBuffer], { type: mimeType })
+  formData.append('file', blob, fileName)
+  formData.append('model', 'whisper-large-v3')
+  formData.append('language', 'pt')
+  formData.append('response_format', 'text')
+
+  const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${groqApiKey}` },
+    body: formData,
+  })
+
+  if (!response.ok) {
+    const err = await response.text()
+    throw new Error(`Groq error ${response.status}: ${err.substring(0, 300)}`)
+  }
+
+  const text = await response.text()
+  return `## Transcrição\n${text}\n\n## Resumo\n(Resumo não disponível — gerado via fallback Groq)\n\n## Itens de Ação\n`
+}
+
 async function waitForFileActive(fileUri: string, geminiApiKey: string): Promise<void> {
   const fileName = fileUri.split('/').pop()
   for (let i = 0; i < 15; i++) {
@@ -120,6 +148,34 @@ async function waitForFileActive(fileUri: string, geminiApiKey: string): Promise
     } catch (err) { console.warn(`Polling error attempt ${i+1}:`, err) }
   }
   console.warn('File polling timed out, proceeding anyway')
+}
+
+async function transcribeWithOpenAI(
+  arrayBuffer: ArrayBuffer,
+  mimeType: string,
+  fileName: string,
+  openaiApiKey: string
+): Promise<string> {
+  const formData = new FormData()
+  const blob = new Blob([arrayBuffer], { type: mimeType })
+  formData.append('file', blob, fileName)
+  formData.append('model', 'whisper-1')
+  formData.append('language', 'pt')
+  formData.append('response_format', 'text')
+
+  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${openaiApiKey}` },
+    body: formData,
+  })
+
+  if (!response.ok) {
+    const err = await response.text()
+    throw new Error(`OpenAI Whisper error ${response.status}: ${err.substring(0, 300)}`)
+  }
+
+  const text = await response.text()
+  return `## Transcrição\n${text}\n\n## Resumo\n(Resumo gerado via OpenAI Whisper — fallback automático)\n\n## Itens de Ação\n`
 }
 
 async function processTranscription(
@@ -202,6 +258,8 @@ async function processTranscription(
       }
     }
 
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
+
     // Download file from storage
     const { data: fileData, error: downloadError } = await supabase.storage
       .from('meetings')
@@ -251,65 +309,81 @@ async function processTranscription(
         new Uint8Array(arrayBuffer)
           .reduce((data, byte) => data + String.fromCharCode(byte), '')
       )
-      fullTranscriptionText = await transcribeChunk(
-        base64Data, effectiveMimeType, geminiApiKey, 0, 1
-      )
+      try {
+        fullTranscriptionText = await transcribeChunk(
+          base64Data, effectiveMimeType, geminiApiKey, 0, 1
+        )
+      } catch (geminiErr) {
+        console.warn('Gemini falhou para arquivo pequeno, usando OpenAI Whisper:', (geminiErr as Error).message)
+        if (!openaiApiKey) throw geminiErr
+        const fileName = storagePath.split('/').pop() || 'audio'
+        fullTranscriptionText = await transcribeWithOpenAI(arrayBuffer, effectiveMimeType, fileName, openaiApiKey)
+        console.log('OpenAI Whisper fallback concluído com sucesso')
+      }
     } else {
       console.log(`Large file (${totalBytes} bytes), using Gemini Files API`)
 
-      const uploadResponse = await fetch(
-        `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${geminiApiKey}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': effectiveMimeType,
-            'X-Goog-Upload-Protocol': 'raw',
-            'X-Goog-Upload-Header-Content-Length': totalBytes.toString(),
-            'X-Goog-Upload-Header-Content-Type': effectiveMimeType,
-          },
-          body: new Uint8Array(arrayBuffer),
+      try {
+        const uploadResponse = await fetch(
+          `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${geminiApiKey}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': effectiveMimeType,
+              'X-Goog-Upload-Protocol': 'raw',
+              'X-Goog-Upload-Header-Content-Length': totalBytes.toString(),
+              'X-Goog-Upload-Header-Content-Type': effectiveMimeType,
+            },
+            body: new Uint8Array(arrayBuffer),
+          }
+        )
+
+        if (!uploadResponse.ok) {
+          const errText = await uploadResponse.text()
+          console.error('Gemini file upload error:', errText)
+          throw new Error(`Gemini file upload failed: ${uploadResponse.status}`)
         }
-      )
 
-      if (!uploadResponse.ok) {
-        const errText = await uploadResponse.text()
-        console.error('Gemini file upload error:', errText)
-        throw new Error(`Gemini file upload failed: ${uploadResponse.status}`)
-      }
+        const uploadResult = await uploadResponse.json()
+        const fileUri = uploadResult.file?.uri
+        if (!fileUri) throw new Error('Gemini file upload did not return a URI')
 
-      const uploadResult = await uploadResponse.json()
-      const fileUri = uploadResult.file?.uri
-      if (!fileUri) throw new Error('Gemini file upload did not return a URI')
+        console.log(`File uploaded to Gemini: ${fileUri}`)
 
-      console.log(`File uploaded to Gemini: ${fileUri}`)
+        await waitForFileActive(fileUri, geminiApiKey)
 
-      await waitForFileActive(fileUri, geminiApiKey)
+        const geminiResponse = await fetchWithRetry(
+          `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiApiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  { file_data: { mime_type: effectiveMimeType, file_uri: fileUri } },
+                  { text: TRANSCRIPTION_PROMPT }
+                ]
+              }],
+              generationConfig: { temperature: 0.1, maxOutputTokens: 16384 }
+            })
+          }
+        )
 
-      const geminiResponse = await fetchWithRetry(
-        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiApiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [
-                { file_data: { mime_type: effectiveMimeType, file_uri: fileUri } },
-                { text: TRANSCRIPTION_PROMPT }
-              ]
-            }],
-            generationConfig: { temperature: 0.1, maxOutputTokens: 16384 }
-          })
+        if (!geminiResponse.ok) {
+          const errText = await geminiResponse.text()
+          console.error(`Gemini transcription error ${geminiResponse.status}:`, errText)
+          throw new Error(`Gemini transcription failed ${geminiResponse.status}: ${errText.substring(0, 500)}`)
         }
-      )
 
-      if (!geminiResponse.ok) {
-        const errText = await geminiResponse.text()
-        console.error(`Gemini transcription error ${geminiResponse.status}:`, errText)
-        throw new Error(`Gemini transcription failed ${geminiResponse.status}: ${errText.substring(0, 500)}`)
+        const geminiResult = await geminiResponse.json()
+        fullTranscriptionText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || ''
+      } catch (geminiErr) {
+        console.warn('Gemini falhou para arquivo grande, usando OpenAI Whisper:', (geminiErr as Error).message)
+        if (!openaiApiKey) throw geminiErr
+        const fileName = storagePath.split('/').pop() || 'audio'
+        fullTranscriptionText = await transcribeWithOpenAI(arrayBuffer, effectiveMimeType, fileName, openaiApiKey)
+        console.log('OpenAI Whisper fallback concluído com sucesso')
       }
-
-      const geminiResult = await geminiResponse.json()
-      fullTranscriptionText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || ''
     }
 
     // Parse real duration from Gemini response
