@@ -430,9 +430,9 @@ export default function MeetingsPage() {
                 </p>
                 {hasActiveFilters ? (
                   <Button variant="outline" onClick={clearFilters}>Limpar filtros</Button>
-                ) : (
-                  {!isTrialExpired && <Link to="/upload"><Button variant="outline">Fazer Upload</Button></Link>}
-                )}
+                ) : !isTrialExpired ? (
+                  <Link to="/upload"><Button variant="outline">Fazer Upload</Button></Link>
+                ) : null}
               </div>
             </CardContent>
           </Card>
