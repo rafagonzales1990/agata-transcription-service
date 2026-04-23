@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { TrialExpiredUploadGuard } from "@/components/TrialExpiredUploadGuard";
 import { pageview } from "@/lib/gtag";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -114,7 +115,7 @@ const App = () => (
               <Route path="/auth/forgot-password" element={<ForgotPassword />} />
               <Route path="/auth/reset-password" element={<ResetPassword />} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/upload" element={<ProtectedRoute><UploadPage /></ProtectedRoute>} />
+              <Route path="/upload" element={<ProtectedRoute><TrialExpiredUploadGuard><UploadPage /></TrialExpiredUploadGuard></ProtectedRoute>} />
               <Route path="/meetings" element={<ProtectedRoute><Meetings /></ProtectedRoute>} />
               <Route path="/meetings/:id" element={<ProtectedRoute><MeetingDetail /></ProtectedRoute>} />
               <Route path="/ask" element={<ProtectedRoute><AskMeetings /></ProtectedRoute>} />
