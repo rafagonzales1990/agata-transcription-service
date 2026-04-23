@@ -1167,8 +1167,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_my_role: { Args: never; Returns: string }
+      get_my_team_id: { Args: never; Returns: string }
       get_old_user_id: { Args: { _auth_uid: string }; Returns: string }
       is_admin: { Args: never; Returns: boolean }
+      is_enterprise_admin: { Args: never; Returns: boolean }
       match_meeting_embeddings:
         | {
             Args: {
