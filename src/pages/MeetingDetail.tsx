@@ -292,6 +292,7 @@ export default function MeetingDetail() {
       setSummaryDepth(depth);
 
       try {
+        await saveCurrentAtaVersion();
         const { data, error } = await supabase.functions.invoke("generate-summary", {
           body: { meetingId: id, depth },
         });
@@ -299,6 +300,8 @@ export default function MeetingDetail() {
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
         setSummaryContent(data.summary);
+        await fetchMeeting();
+        await fetchAtaVersions();
         toast.success("Resumo gerado com sucesso!");
       } catch (err: any) {
         toast.error(err.message || "Erro ao gerar resumo");
@@ -308,8 +311,43 @@ export default function MeetingDetail() {
         setSummaryLoading(false);
       }
     },
-    [id],
+    [id, saveCurrentAtaVersion, fetchMeeting, fetchAtaVersions],
   );
+
+  const restoreAtaVersion = useCallback(async () => {
+    if (!id || !selectedAtaVersion) return;
+
+    const confirmed = window.confirm(
+      `Deseja restaurar a versão ${selectedAtaVersion.versionNumber}? A versão atual será salva como nova versão.`,
+    );
+    if (!confirmed) return;
+
+    setRestoreLoading(true);
+    try {
+      await saveCurrentAtaVersion();
+      const { error } = await supabase
+        .from("Meeting")
+        .update({
+          summary: selectedAtaVersion.ataContent,
+          ataTemplate: selectedAtaVersion.ataTemplate,
+          updatedAt: new Date().toISOString(),
+        } as any)
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setSummaryContent(displayAtaContent(selectedAtaVersion.ataContent));
+      setSelectedTemplate(selectedAtaVersion.ataTemplate);
+      setSelectedAtaVersion(null);
+      await fetchMeeting();
+      await fetchAtaVersions();
+      toast.success("Versão restaurada com sucesso!");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao restaurar versão");
+    } finally {
+      setRestoreLoading(false);
+    }
+  }, [id, selectedAtaVersion, saveCurrentAtaVersion, fetchMeeting, fetchAtaVersions]);
 
   const convertMarkdownToHtml = (md: string): string => {
     let html = md;
