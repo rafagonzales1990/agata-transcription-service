@@ -62,6 +62,7 @@ function getDaysRemaining(trialEndsAt: string | null): number {
 interface AdminUser {
   id: string; name: string | null; email: string; cpf: string | null; phone: string | null;
   planId: string | null; billingCycle: string | null; isAdmin: boolean; createdAt: string;
+  hasCompletedOnboarding: boolean;
   trialEndsAt: string | null; stripeCustomerId: string | null;
   stripeSubscriptionId: string | null; stripePriceId: string | null;
   adminGroupId: string | null; meetingCount: number;
@@ -404,7 +405,7 @@ export default function AdminPanel() {
       const currentMonth = new Date().toISOString().slice(0, 7);
       const { data: usersData, error } = await supabase
         .from('User')
-        .select('id, name, email, cpf, phone, planId, isAdmin, billingCycle, trialEndsAt, stripeCustomerId, stripeSubscriptionId, stripePriceId, adminGroupId, createdAt, giftPlanId, giftEndsAt')
+        .select('id, name, email, cpf, phone, planId, isAdmin, billingCycle, hasCompletedOnboarding, trialEndsAt, stripeCustomerId, stripeSubscriptionId, stripePriceId, adminGroupId, createdAt, giftPlanId, giftEndsAt')
         .order('createdAt', { ascending: false });
       if (error) throw error;
 
@@ -652,6 +653,15 @@ export default function AdminPanel() {
     if (u.giftPlanId && u.giftEndsAt && new Date(u.giftEndsAt) > now) {
       const d = new Date(u.giftEndsAt);
       return { label: `🎁 Gift até ${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`, cls: 'bg-amber-100 text-amber-700' };
+    }
+    if (!u.trialEndsAt && !u.hasCompletedOnboarding) {
+      return { label: 'Cadastro incompleto', cls: 'border border-border bg-background text-muted-foreground' };
+    }
+    if (u.trialEndsAt && new Date(u.trialEndsAt) < now && !u.stripeSubscriptionId) {
+      return { label: 'Trial expirado', cls: 'bg-destructive text-destructive-foreground' };
+    }
+    if (!u.trialEndsAt && u.hasCompletedOnboarding) {
+      return { label: 'Trial pendente', cls: 'bg-amber-100 text-amber-700' };
     }
     // 2. Basic plan: trial active → Trial Xd, else Gratuito
     if (!u.planId || u.planId === 'basic') {
