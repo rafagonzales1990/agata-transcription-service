@@ -37,7 +37,7 @@ const FinalCTASection = lazy(() => lazyRetry(() => import('@/components/landing/
 const LandingFooter = lazy(() => lazyRetry(() => import('@/components/landing/LandingFooter').then(m => ({ default: m.LandingFooter }))));
 
 const metrics = [
-  { number: '95%+', label: 'Precisão em PT-BR', icon: <BadgeCheck className="h-5 w-5" /> },
+  { number: '95%+', label: 'Precisão em PT-BR, EN e ES', icon: <BadgeCheck className="h-5 w-5" /> },
   { number: '2min', label: 'Tempo médio p/ 1h de áudio', icon: <Timer className="h-5 w-5" /> },
   { number: '10h', label: 'Economizadas por semana', icon: <TrendingUp className="h-5 w-5" /> },
   { number: '24h', label: 'Exclusão automática de dados', icon: <Lock className="h-5 w-5" /> },
