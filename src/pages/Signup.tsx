@@ -69,6 +69,20 @@ export default function SignupPage() {
     if (error) {
       toast.error(error.message);
     } else {
+      // Save terms acceptance
+      try {
+        const { data: { session: sess } } = await supabase.auth.getSession();
+        if (sess?.user) {
+          await supabase.from('User').update({
+            termsAcceptedAt: new Date().toISOString(),
+            termsVersion: '1.0.0',
+          } as any).eq('id', sess.user.id);
+        }
+      } catch (e) {
+        console.error('Terms acceptance save error:', e);
+      }
+      toast.error(error.message);
+    } else {
       // Send welcome email
       try {
         await supabase.functions.invoke('send-email', {

@@ -10,10 +10,10 @@ export function LandingFooter() {
           <LogoIcon size={24} />
           <span className="font-semibold text-foreground text-sm">Ágata Transcription</span>
         </div>
-        <div className="flex gap-6 text-sm text-muted-foreground">
-          <Link to="/legal/terms" className="hover:text-foreground transition-colors">Termos de Uso</Link>
-          <Link to="/privacy" className="hover:text-foreground transition-colors">Política de Privacidade</Link>
-          <Link to="/legal/lgpd" className="hover:text-foreground transition-colors">Política LGPD</Link>
+        <div className="flex flex-wrap gap-6 text-sm text-muted-foreground">
+          <Link to="/termos" className="hover:text-foreground transition-colors">Termos de Uso</Link>
+          <Link to="/privacidade" className="hover:text-foreground transition-colors">Política de Privacidade</Link>
+          <Link to="/eula" className="hover:text-foreground transition-colors">EULA</Link>
           <Link to="/blog" className="hover:text-foreground transition-colors">Blog</Link>
           <Link to="/ajuda" className="hover:text-foreground transition-colors">Ajuda</Link>
         </div>
