@@ -576,7 +576,7 @@ Deno.serve(async (req) => {
     }
 
     const { data: profile } = await supabase
-      .from('profiles').select('plan_id').eq('user_id', user.id).single()
+      .from('profiles').select('plan_id').eq('user_id', user.id).maybeSingle()
     const planId = profile?.plan_id || 'basic'
     const isPaid = PAID_PLANS.includes(planId)
 
@@ -602,7 +602,7 @@ Deno.serve(async (req) => {
 
     const { data: meeting, error: meetingError } = await supabase
       .from('Meeting')
-      .select('title, summary, transcription, userId, meetingDate, meetingTime, location, responsible, participants')
+      .select('title, summary, transcription, userId, meetingDate, meetingTime, location, responsible, participants, ataTemplate')
       .eq('id', meetingId).maybeSingle()
 
     if (meetingError || !meeting) {
@@ -619,6 +619,35 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'No summary or transcription available.' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
+    }
+
+    if (meeting.summary) {
+      const { data: latestVersion } = await supabase
+        .from('AtaVersion')
+        .select('versionNumber')
+        .eq('meetingId', meetingId)
+        .order('versionNumber', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      await supabase.from('AtaVersion').insert({
+        meetingId,
+        userId: user.id,
+        ataTemplate: meeting.ataTemplate || template || 'custom',
+        ataContent: meeting.summary,
+        versionNumber: ((latestVersion?.versionNumber as number | undefined) || 0) + 1,
+      })
+
+      const { data: versionsToKeep } = await supabase
+        .from('AtaVersion')
+        .select('id')
+        .eq('meetingId', meetingId)
+        .order('versionNumber', { ascending: false })
+
+      const staleIds = (versionsToKeep || []).slice(5).map((version) => version.id)
+      if (staleIds.length > 0) {
+        await supabase.from('AtaVersion').delete().in('id', staleIds)
+      }
     }
 
     let summaryContent = meeting.summary || ''
