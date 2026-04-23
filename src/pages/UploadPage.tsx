@@ -61,6 +61,7 @@ export default function UploadPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const routineId = searchParams.get('routineId');
+  const prefillTitle = searchParams.get('title');
   const usage = useUsage();
   const { templates: ataTemplates, defaultTemplate } = useAtaTemplates();
   const { projects } = useProjects();
@@ -91,6 +92,10 @@ export default function UploadPage() {
   const remainingMinutes = Math.max(0, usage.limits.maxDurationMinutes - usage.totalMinutesTranscribed);
 
   // When recording finishes, feed file into upload flow
+  useEffect(() => {
+    if (prefillTitle && !title) setTitle(prefillTitle);
+  }, [prefillTitle, title]);
+
   useEffect(() => {
     if (recorder.resultFile) {
       setFile(recorder.resultFile);
