@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   Loader2,
   ChevronLeft,
@@ -28,6 +30,9 @@ import {
   Copy,
   Check,
   MessageCircle,
+  ChevronDown,
+  Eye,
+  History,
 } from "lucide-react";
 import { ShareMeetingModal } from "@/components/ShareMeetingModal";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,6 +74,16 @@ interface MeetingRow {
   followupDraft: FollowupDraft | null;
 }
 
+interface AtaVersionRow {
+  id: string;
+  meetingId: string;
+  userId: string;
+  ataTemplate: string;
+  ataContent: string;
+  createdAt: string;
+  versionNumber: number;
+}
+
 const statusConfig: Record<
   string,
   { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: typeof CheckCircle }
@@ -101,6 +116,9 @@ export default function MeetingDetail() {
   const [followupSubject, setFollowupSubject] = useState('');
   const [followupBody, setFollowupBody] = useState('');
   const [copied, setCopied] = useState(false);
+  const [ataVersions, setAtaVersions] = useState<AtaVersionRow[]>([]);
+  const [selectedAtaVersion, setSelectedAtaVersion] = useState<AtaVersionRow | null>(null);
+  const [restoreLoading, setRestoreLoading] = useState(false);
   const navigate = useNavigate();
   const { templates: ataTemplates, defaultTemplate } = useAtaTemplates();
   const { isTrialExpired } = useTrialExpiredStatus();
@@ -145,6 +163,62 @@ export default function MeetingDetail() {
   useEffect(() => {
     fetchMeeting();
   }, [fetchMeeting]);
+
+  const fetchAtaVersions = useCallback(async () => {
+    if (!id) return;
+    const { data, error } = await supabase
+      .from("AtaVersion")
+      .select("id, meetingId, userId, ataTemplate, ataContent, createdAt, versionNumber")
+      .eq("meetingId", id)
+      .order("versionNumber", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching ATA versions:", error);
+      return;
+    }
+    setAtaVersions((data || []) as AtaVersionRow[]);
+  }, [id]);
+
+  useEffect(() => {
+    fetchAtaVersions();
+  }, [fetchAtaVersions]);
+
+  const displayAtaContent = (content: string) => content.replace(/^<!-- depth:\w+ -->\n/, "");
+
+  const saveCurrentAtaVersion = useCallback(async () => {
+    if (!id || !meeting?.summary || !profile?.user_id) return;
+
+    const { data: latest } = await supabase
+      .from("AtaVersion")
+      .select("versionNumber")
+      .eq("meetingId", id)
+      .order("versionNumber", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const nextVersion = ((latest as { versionNumber?: number } | null)?.versionNumber || 0) + 1;
+
+    const { error } = await supabase.from("AtaVersion").insert({
+      meetingId: id,
+      userId: profile.user_id,
+      ataTemplate: selectedTemplate,
+      ataContent: meeting.summary,
+      versionNumber: nextVersion,
+    });
+
+    if (error) throw error;
+
+    const { data: versions } = await supabase
+      .from("AtaVersion")
+      .select("id")
+      .eq("meetingId", id)
+      .order("versionNumber", { ascending: false });
+
+    const staleIds = (versions || []).slice(5).map((version) => version.id);
+    if (staleIds.length > 0) {
+      await supabase.from("AtaVersion").delete().in("id", staleIds);
+    }
+  }, [id, meeting?.summary, profile?.user_id, selectedTemplate]);
 
   // Realtime subscription for transcription updates
   useEffect(() => {
