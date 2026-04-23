@@ -974,7 +974,14 @@ export default function AdminPanel() {
                           <TableCell className="text-xs font-mono">{formatCPF(u.cpf)}</TableCell>
                           <TableCell className="text-xs">{formatPhone(u.phone)}</TableCell>
                           <TableCell>
-                            <Badge className={`${PLAN_COLORS[u.planId || 'basic']} text-[10px]`}>{PLAN_LABELS[u.planId || 'basic']}</Badge>
+                            {(() => {
+                              const isActiveBasicTrial = (u.planId || 'basic') === 'basic' && u.trialEndsAt && new Date(u.trialEndsAt) > now;
+                              return isActiveBasicTrial ? (
+                                <Badge className="bg-amber-100 text-amber-700 text-[10px]">Trial</Badge>
+                              ) : (
+                                <Badge className={`${PLAN_COLORS[u.planId || 'basic']} text-[10px]`}>{PLAN_LABELS[u.planId || 'basic']}</Badge>
+                              );
+                            })()}
                             {u.giftPlanId && u.giftEndsAt && new Date(u.giftEndsAt) > now && (
                               <Badge className="bg-amber-100 text-amber-700 text-[9px] ml-1">
                                 🎁 gift até {new Date(u.giftEndsAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
