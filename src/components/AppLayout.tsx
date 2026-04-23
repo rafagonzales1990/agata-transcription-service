@@ -27,6 +27,8 @@ import { fetchMeetingsList } from '@/hooks/useMeetings';
 import { CpfRequiredModal } from '@/components/CpfRequiredModal';
 import { useTheme } from '@/hooks/useTheme';
 import { PWAInstallModal } from '@/components/PWAInstallModal';
+import { TrialExpiredOverlay } from '@/components/TrialExpiredOverlay';
+import { useTrialExpiredStatus } from '@/hooks/useTrialExpiredStatus';
 
 const menuItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -58,6 +60,8 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [userDataLoaded, setUserDataLoaded] = useState(false);
   const [pwaModalOpen, setPwaModalOpen] = useState(false);
   const [hasCompletedMeetings, setHasCompletedMeetings] = useState(false);
+  const [trialOverlayDismissed, setTrialOverlayDismissed] = useState(false);
+  const { isTrialExpired } = useTrialExpiredStatus();
 
   const fetchCpfAndAdmin = useCallback(async () => {
     try {
@@ -151,6 +155,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           .filter(item => !('enterpriseOnly' in item && item.enterpriseOnly) || isEnterprise)
           .filter(item => !('requiresMeetings' in item && item.requiresMeetings) || hasCompletedMeetings)
           .filter(item => !('paidOnly' in item && item.paidOnly) || isPaid)
+          .filter(item => !(isTrialExpired && item.href === '/upload'))
           .map((item) => (
           <Link
             key={item.href}
@@ -386,7 +391,15 @@ export function AppLayout({ children }: AppLayoutProps) {
       )}
 
       <main className="flex-1 md:ml-64 pt-14 lg:pt-16 overflow-y-auto bg-background">
-        <TrialBanner />
+        {!isTrialExpired && <TrialBanner />}
+        {isTrialExpired && trialOverlayDismissed && (
+          <div className="px-4 py-2.5 text-sm flex items-center justify-between gap-4 bg-destructive text-destructive-foreground border-b border-destructive">
+            <span>Seu trial expirou</span>
+            <Link to="/plans" className="text-xs font-semibold px-3 py-1 rounded-md bg-background text-destructive hover:opacity-90 transition-opacity whitespace-nowrap">
+              Fazer upgrade
+            </Link>
+          </div>
+        )}
         {profile?.gift_plan_id && profile?.gift_ends_at && new Date(profile.gift_ends_at) > new Date() && (
           <div className="mx-4 md:mx-8 mt-3 px-4 py-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-sm text-amber-800 dark:text-amber-300 flex items-center gap-2">
             <span>🎁</span>
@@ -402,6 +415,13 @@ export function AppLayout({ children }: AppLayoutProps) {
         <TrialAds />
       </main>
       <TrialUpgradeBanners />
+      {authUser && (
+        <TrialExpiredOverlay
+          userId={authUser.user_id}
+          open={isTrialExpired && !trialOverlayDismissed}
+          onDismiss={() => setTrialOverlayDismissed(true)}
+        />
+      )}
       {needsCpf && authUser && (
         <CpfRequiredModal userId={authUser.user_id} onSaved={fetchCpfAndAdmin} onDismiss={() => setUserCpf('dismissed')} />
       )}
