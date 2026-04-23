@@ -16,7 +16,7 @@ Deno.serve(async () => {
     .not('trialEndsAt', 'is', null)
     .is('stripeSubscriptionId', null)
     .eq('hasCompletedOnboarding', true)
-    .neq('email', 'adm@agatatranscription.com');
+    .neq('isInternal', true);
 
   for (const user of users || []) {
     const daysSince = Math.floor(
@@ -38,8 +38,8 @@ Deno.serve(async () => {
     let subject = '';
     let html = '';
 
-    // DAY 1
-    if (daysSince >= 1 && !sent.has('day1')) {
+    // DAY 1 — sent between day 1 and day 2
+    if (daysSince >= 1 && daysSince < 3 && !sent.has('day1')) {
       emailType = 'day1';
       subject = `${firstName}, sua conta Ágata está pronta 🎙️`;
       html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
@@ -63,8 +63,8 @@ Deno.serve(async () => {
         </div>
       </div>`;
     }
-    // DAY 3
-    else if (daysSince >= 3 && !sent.has('day3')) {
+    // DAY 3 — sent between day 3 and day 9
+    else if (daysSince >= 3 && daysSince < 10 && !sent.has('day3')) {
       emailType = 'day3';
       subject = `Dica: como extrair o máximo do Ágata 💡`;
       html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
@@ -92,8 +92,8 @@ Deno.serve(async () => {
         </div>
       </div>`;
     }
-    // DAY 10
-    else if (daysSince >= 10 && !sent.has('day10') && daysLeft > 0) {
+    // DAY 10 — sent when 2-4 days remaining
+    else if (daysLeft >= 2 && daysLeft <= 4 && !sent.has('day10')) {
       emailType = 'day10';
       subject = `${firstName}, restam apenas ${daysLeft} dias do seu trial ⏳`;
       html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
@@ -124,8 +124,8 @@ Deno.serve(async () => {
         </div>
       </div>`;
     }
-    // DAY 13
-    else if (daysSince >= 13 && !sent.has('day13') && daysLeft > 0) {
+    // DAY 13 — sent when exactly 1 day remaining
+    else if (daysLeft === 1 && !sent.has('day13')) {
       emailType = 'day13';
       subject = `Último aviso: seu trial expira amanhã ⚠️`;
       html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
@@ -150,6 +150,9 @@ Deno.serve(async () => {
         </div>
       </div>`;
     }
+
+    // Skip users with expired trial who haven't received day1 yet
+    if (daysLeft <= 0) continue;
 
     if (!emailType) continue;
 
