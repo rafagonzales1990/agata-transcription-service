@@ -78,10 +78,9 @@ export default function PoliticaPrivacidade() {
             <h2 className="text-xl font-semibold text-gray-900">5. Retenção de Dados</h2>
             <ul className="list-disc pl-6 space-y-1">
               <li>Dados da conta são mantidos enquanto a conta estiver ativa</li>
-              <li>Arquivos de áudio originais são excluídos automaticamente em até 24 horas após a transcrição</li>
-              <li>Transcrições e resumos permanecem disponíveis enquanto a conta estiver ativa</li>
-              <li>Após cancelamento, os dados ficam disponíveis por 90 dias para download</li>
-              <li>Após solicitação de exclusão, todos os dados são removidos em até 30 dias</li>
+              <li><strong>Arquivos de áudio:</strong> excluídos automaticamente em até 24 horas após o processamento — os arquivos originais nunca ficam armazenados permanentemente</li>
+              <li><strong>Transcrições e atas:</strong> disponíveis enquanto a conta estiver ativa</li>
+              <li><strong>Após cancelamento:</strong> dados disponíveis para exportação por 30 dias, excluídos permanentemente após esse prazo</li>
             </ul>
           </section>
 
