@@ -974,6 +974,8 @@ export type Database = {
           stripePriceId: string | null
           stripeSubscriptionId: string | null
           teamId: string | null
+          termsAcceptedAt: string | null
+          termsVersion: string | null
           trialEndsAt: string | null
           trialExpiredEmailSent: boolean
           trialWarningEmailSent: boolean
@@ -1003,6 +1005,8 @@ export type Database = {
           stripePriceId?: string | null
           stripeSubscriptionId?: string | null
           teamId?: string | null
+          termsAcceptedAt?: string | null
+          termsVersion?: string | null
           trialEndsAt?: string | null
           trialExpiredEmailSent?: boolean
           trialWarningEmailSent?: boolean
@@ -1032,6 +1036,8 @@ export type Database = {
           stripePriceId?: string | null
           stripeSubscriptionId?: string | null
           teamId?: string | null
+          termsAcceptedAt?: string | null
+          termsVersion?: string | null
           trialEndsAt?: string | null
           trialExpiredEmailSent?: boolean
           trialWarningEmailSent?: boolean
