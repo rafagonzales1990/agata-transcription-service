@@ -38,6 +38,7 @@ import remarkGfm from "remark-gfm";
 import { useAtaTemplates } from "@/hooks/useAtaTemplates";
 import { useNavigate } from "react-router-dom";
 import { MEETING_TEMPLATES, MEETING_TEMPLATE_GROUPS, TEMPLATE_LABELS } from "@/lib/meetingTemplates";
+import { useTrialExpiredStatus } from "@/hooks/useTrialExpiredStatus";
 
 interface FollowupDraft {
   subject: string;
@@ -102,6 +103,7 @@ export default function MeetingDetail() {
   const [copied, setCopied] = useState(false);
   const navigate = useNavigate();
   const { templates: ataTemplates, defaultTemplate } = useAtaTemplates();
+  const { isTrialExpired } = useTrialExpiredStatus();
 
   const isPaidPlan = PAID_PLANS.includes(profile?.plan_id || "basic");
 
@@ -588,12 +590,13 @@ export default function MeetingDetail() {
                   <MessageCircle className="h-3.5 w-3.5" /> Perguntar sobre esta reunião
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={() => setShareOpen(true)} className="flex items-center gap-1.5">
+              {!isTrialExpired && <Button variant="outline" size="sm" onClick={() => setShareOpen(true)} className="flex items-center gap-1.5">
                 <Share2 className="h-3.5 w-3.5" /> Compartilhar
-              </Button>
+              </Button>}
               <Badge variant={cfg.variant} className="shrink-0 flex items-center gap-1">
                 <StatusIcon className="h-3 w-3" /> {cfg.label}
               </Badge>
+              {isTrialExpired && <Badge variant="outline" className="shrink-0">Somente leitura</Badge>}
             </div>
           </div>
           {meeting.description && <p className="text-sm text-muted-foreground mt-2">{meeting.description}</p>}
@@ -670,7 +673,7 @@ export default function MeetingDetail() {
                   size="sm"
                   variant={summaryDepth === "executivo" ? "default" : "outline"}
                   onClick={() => generateSummary("executivo")}
-                  disabled={summaryLoading}
+                  disabled={summaryLoading || isTrialExpired}
                 >
                   Executivo
                 </Button>
@@ -680,7 +683,7 @@ export default function MeetingDetail() {
                   onClick={() =>
                     isPaidPlan ? generateSummary("detalhado") : toast.error("Disponível apenas para planos pagos")
                   }
-                  disabled={summaryLoading}
+                  disabled={summaryLoading || isTrialExpired}
                 >
                   {!isPaidPlan && <Lock className="h-3 w-3 mr-1" />}
                   Detalhado
@@ -691,7 +694,7 @@ export default function MeetingDetail() {
                   onClick={() =>
                     isPaidPlan ? generateSummary("ata_completa") : toast.error("Disponível apenas para planos pagos")
                   }
-                  disabled={summaryLoading}
+                  disabled={summaryLoading || isTrialExpired}
                 >
                   {!isPaidPlan && <Lock className="h-3 w-3 mr-1" />}
                   ATA Completa
@@ -762,7 +765,7 @@ export default function MeetingDetail() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button size="sm" onClick={generatePDF} disabled={pdfLoading || wordLoading}>
+                    <Button size="sm" onClick={generatePDF} disabled={pdfLoading || wordLoading || isTrialExpired}>
                       {pdfLoading ? (
                         <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                       ) : (
@@ -770,7 +773,7 @@ export default function MeetingDetail() {
                       )}
                       Baixar PDF
                     </Button>
-                    <Button size="sm" variant="outline" onClick={generateWord} disabled={pdfLoading || wordLoading}>
+                    <Button size="sm" variant="outline" onClick={generateWord} disabled={pdfLoading || wordLoading || isTrialExpired}>
                       {wordLoading ? (
                         <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                       ) : (
@@ -804,7 +807,13 @@ export default function MeetingDetail() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {!isPaidPlan && !isTrialing ? (
+              {isTrialExpired ? (
+                <div className="text-center py-6 space-y-3">
+                  <Lock className="h-8 w-8 mx-auto text-muted-foreground opacity-40" />
+                  <p className="text-sm text-muted-foreground">Seu trial expirou. Faça upgrade para gerar novos follow-ups.</p>
+                  <Button size="sm" variant="outline" onClick={() => navigate('/plans')}>Fazer upgrade →</Button>
+                </div>
+              ) : !isPaidPlan && !isTrialing ? (
                 <div className="text-center py-6 space-y-3">
                   <Lock className="h-8 w-8 mx-auto text-muted-foreground opacity-40" />
                   <p className="text-sm text-muted-foreground">

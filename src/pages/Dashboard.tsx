@@ -13,6 +13,7 @@ import { OnboardingWelcome } from '@/components/OnboardingWelcome';
 import { OnboardingChecklist } from '@/components/OnboardingChecklist';
 import { UsageBanner } from '@/components/UsageBanner';
 import { useUsage } from '@/hooks/useUsage';
+import { useTrialExpiredStatus } from '@/hooks/useTrialExpiredStatus';
 import { toast } from 'sonner';
 
 const isMobile = typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0;
@@ -24,6 +25,7 @@ export default function DashboardPage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const usage = useUsage();
+  const { isTrialExpired } = useTrialExpiredStatus();
 
 
 
@@ -126,22 +128,24 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          <Link to="/upload" className="block">
-            <button
-              className="w-full py-5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-lg flex items-center justify-center gap-3 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={usage.isAtLimit}
-            >
-              {usage.isAtLimit ? (
-                'Limite atingido'
-              ) : (
-                <>
-                  <Mic className="h-6 w-6" />
-                  Nova Transcrição
-                  <span className="text-sm font-normal opacity-80">Gravar ou fazer upload</span>
-                </>
-              )}
-            </button>
-          </Link>
+          {!isTrialExpired && (
+            <Link to="/upload" className="block">
+              <button
+                className="w-full py-5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-lg flex items-center justify-center gap-3 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={usage.isAtLimit}
+              >
+                {usage.isAtLimit ? (
+                  'Limite atingido'
+                ) : (
+                  <>
+                    <Mic className="h-6 w-6" />
+                    Nova Transcrição
+                    <span className="text-sm font-normal opacity-80">Gravar ou fazer upload</span>
+                  </>
+                )}
+              </button>
+            </Link>
+          )}
 
           <div className="flex gap-2">
             <Link to="/meetings" className="flex-1">
@@ -213,7 +217,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="shadow-lg hover:shadow-xl transition-shadow">
+          {!isTrialExpired && <Card className="shadow-lg hover:shadow-xl transition-shadow">
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-purple-100"><Upload className="h-5 w-5 text-purple-600" /></div>
@@ -228,7 +232,7 @@ export default function DashboardPage() {
                 </Button>
               </Link>
             </CardContent>
-          </Card>
+          </Card>}
 
           <Card className="shadow-lg hover:shadow-xl transition-shadow">
             <CardHeader>
