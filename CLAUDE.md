@@ -35,11 +35,39 @@ Vá direto ao ponto técnico. Nunca snippets parciais — sempre arquivos comple
 - Colunas camelCase com aspas: "planId", "createdAt", "userId"
 
 ## Versão atual
-- Web App: v1.4.0 (`src/config/appVersion.ts`)
+- Web App: v1.5.0 (`src/config/appVersion.ts`)
 - Desktop: v1.0.5
 - Extensão Chrome: v1.0.2 ✅ aprovada
 
 ## Histórico de Releases
+
+### v1.5.0 — DEV 8 — Conversão Trial — 23/04/2026
+
+#### Banco
+
+| Item | Detalhe |
+|------|---------|
+| trialEndsAt corrigido | 13 usuários sem `trialEndsAt` corrigidos: `createdAt + 14 dias` |
+| isInternal | Campo adicionado na tabela `User` — exclui adm@ do nurturing |
+| rafa_rez@msn.com | `trialEndsAt` ajustado para 11 dias restantes |
+| NurturingLog | Tabela criada: `userId`, `emailType`, `sentAt` |
+
+#### Edge function nurturing-emails
+
+| Item | Detalhe |
+|------|---------|
+| Sequência | day1 (dia 1-2), day3 (dia 3-9), day10 (2-4 dias restantes), day13 (1 dia restante) |
+| Exclusão | `isInternal = true` excluído |
+| Guard | Skip se trial expirado (`daysLeft <= 0`) |
+| Cron | Todo dia às 10h UTC (7h Brasília) |
+| Alcance | 21 usuários elegíveis no primeiro disparo |
+
+#### Frontend (Lovable)
+
+| Item | Detalhe |
+|------|---------|
+| Checklist onboarding | Dashboard para contas < 7 dias com 0 meetings — 4 passos: conta criada, primeira transcrição, ver resumo, baixar ATA — progress bar + success state + hide após 24h |
+| Status admin corrigido | `null trialEndsAt + onboarding false` → "Cadastro incompleto"; trial expirado sem subscription → "Trial expirado"; `basic + trial ativo` → badge "Trial Xd" (amber); `basic sem trial` → "Gratuito" (gray) |
 
 ### DEV 6 — Infra Desktop + Legal + RLS — 23/04/2026
 
