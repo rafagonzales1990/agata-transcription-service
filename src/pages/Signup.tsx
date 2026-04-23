@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Sparkles, Eye, EyeOff, CheckCircle, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,6 +19,7 @@ export default function SignupPage() {
   const [signupEmail, setSignupEmail] = useState('');
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSent, setResendSent] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const leadId = searchParams.get('leadId');
@@ -247,7 +249,22 @@ export default function SignupPage() {
                   </button>
                 </div>
               </div>
-              <Button type="submit" className="w-full bg-primary hover:bg-emerald-600 text-primary-foreground" disabled={loading}>
+              <div className="flex items-start space-x-2">
+                <Checkbox
+                  id="terms"
+                  checked={termsAccepted}
+                  onCheckedChange={(checked) => setTermsAccepted(checked === true)}
+                  className="mt-0.5"
+                />
+                <label htmlFor="terms" className="text-sm text-muted-foreground leading-snug cursor-pointer">
+                  Li e concordo com os{' '}
+                  <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">Termos de Uso</a>,{' '}
+                  a <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">Política de Privacidade</a>{' '}
+                  e o <a href="/eula" target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">Contrato de Licença (EULA)</a>{' '}
+                  da Ágata Transcription.
+                </label>
+              </div>
+              <Button type="submit" className="w-full bg-primary hover:bg-emerald-600 text-primary-foreground" disabled={loading || !termsAccepted}>
                 {loading ? 'Criando...' : inviteToken ? 'Criar Conta e Aceitar Convite' : 'Criar Conta'}
               </Button>
             </form>

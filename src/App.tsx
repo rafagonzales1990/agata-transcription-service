@@ -38,6 +38,9 @@ const Teams = lazy(() => import("./pages/Teams"));
 const LegalTerms = lazy(() => import("./pages/LegalTerms"));
 const LegalLgpd = lazy(() => import("./pages/LegalLgpd"));
 const Privacy = lazy(() => import("./pages/Privacy"));
+const TermosDeUso = lazy(() => import("./pages/TermosDeUso"));
+const PoliticaPrivacidade = lazy(() => import("./pages/PoliticaPrivacidade"));
+const Eula = lazy(() => import("./pages/Eula"));
 const Demo = lazy(() => import("./pages/Demo"));
 const AdminLeads = lazy(() => import("./pages/AdminLeads"));
 const SharedMeeting = lazy(() => import("./pages/SharedMeeting"));
@@ -134,6 +137,9 @@ const App = () => (
               <Route path="/legal/terms" element={<LegalTerms />} />
               <Route path="/legal/lgpd" element={<LegalLgpd />} />
               <Route path="/privacy" element={<Privacy />} />
+              <Route path="/termos" element={<TermosDeUso />} />
+              <Route path="/privacidade" element={<PoliticaPrivacidade />} />
+              <Route path="/eula" element={<Eula />} />
               <Route path="/demo" element={<Demo />} />
               <Route path="/shared/:token" element={<SharedMeeting />} />
               <Route path="/desktop-auth" element={<DesktopAuth />} />
