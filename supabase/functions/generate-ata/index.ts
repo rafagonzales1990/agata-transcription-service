@@ -16,6 +16,8 @@ const PAID_PLANS = ['inteligente', 'automacao', 'enterprise']
 
 const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash']
 
+const detectLanguageInstruction = `Analyze the transcription language and respond entirely in that same language. If the transcription is in English, respond in English. If in Spanish, respond in Spanish. If in Portuguese, respond in Portuguese. Never mix languages in your response.`
+
 async function callGeminiCascade(
   apiKey: string,
   payload: object
@@ -405,8 +407,10 @@ function buildCustomPrompt(
     })
     .join('\n\n')
 
-  return `Você é um assistente especialista em documentação de reuniões.
-Com base na transcrição e no resumo da reunião abaixo, gere o conteúdo para cada seção solicitada em português brasileiro.
+  return `${detectLanguageInstruction}
+
+Você é um assistente especialista em documentação de reuniões.
+Com base na transcrição e no resumo da reunião abaixo, gere o conteúdo para cada seção solicitada.
 Para cada seção, use o cabeçalho ## exatamente como especificado abaixo.
 Seja objetivo e profissional. Use listas com - para itens múltiplos.
 Para itens de ação, use tabela markdown com colunas: | Ação | Responsável | Prazo |
@@ -643,7 +647,9 @@ Deno.serve(async (req) => {
         ? meeting.participants.join(', ')
         : 'Não especificados'
 
-      const geminiPrompt = `Você é um especialista em documentação de reuniões.
+      const geminiPrompt = `${detectLanguageInstruction}
+
+Você é um especialista em documentação de reuniões.
 
 ${templatePrompt}
 

@@ -9,6 +9,8 @@ const PAID_PLANS = ['inteligente', 'automacao', 'enterprise']
 
 const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash']
 
+const detectLanguageInstruction = `Analyze the transcription language and respond entirely in that same language. If the transcription is in English, respond in English. If in Spanish, respond in Spanish. If in Portuguese, respond in Portuguese. Never mix languages in your response.`
+
 async function callGeminiCascade(
   apiKey: string,
   payload: object
@@ -132,16 +134,22 @@ async function generateSummaryWithOpenAI(
   openaiApiKey: string
 ): Promise<string> {
   const openaiPrompts: Record<string, string> = {
-    executivo: `Você é um assistente especializado em resumos executivos.
-Gere um resumo executivo conciso da seguinte transcrição de reunião em português brasileiro.
+    executivo: `${detectLanguageInstruction}
+
+Você é um assistente especializado em resumos executivos.
+Gere um resumo executivo conciso da seguinte transcrição de reunião.
 Inclua: principais decisões, pontos-chave e próximos passos.
 Transcrição: ${transcription}`,
-    detalhado: `Você é um assistente especializado em análise de reuniões.
-Gere um resumo detalhado da seguinte transcrição em português brasileiro.
+    detalhado: `${detectLanguageInstruction}
+
+Você é um assistente especializado em análise de reuniões.
+Gere um resumo detalhado da seguinte transcrição.
 Inclua: todos os tópicos discutidos, decisões tomadas, responsáveis e prazos mencionados.
 Transcrição: ${transcription}`,
-    ata_completa: `Você é um assistente especializado em atas de reunião.
-Gere uma ATA completa e profissional da seguinte transcrição em português brasileiro.
+    ata_completa: `${detectLanguageInstruction}
+
+Você é um assistente especializado em atas de reunião.
+Gere uma ATA completa e profissional da seguinte transcrição.
 Inclua: identificação da reunião, pauta, decisões, itens de ação com responsáveis e prazos, próximos passos.
 Transcrição: ${transcription}`
   }
@@ -270,7 +278,7 @@ Deno.serve(async (req) => {
       })
     }
 
-    const prompt = prompts[depth](meeting.title, meeting.transcription)
+    const prompt = `${detectLanguageInstruction}\n\n${prompts[depth](meeting.title, meeting.transcription)}`
 
     // Call Gemini cascade with OpenAI fallback
     let summaryText = ''

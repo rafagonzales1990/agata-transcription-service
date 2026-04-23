@@ -7,6 +7,8 @@ const corsHeaders = {
 
 const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash']
 
+const detectLanguageInstruction = `Analyze the transcription language and respond entirely in that same language. If the transcription is in English, respond in English. If in Spanish, respond in Spanish. If in Portuguese, respond in Portuguese. Never mix languages in your response.`
+
 async function callGeminiCascade(
   apiKey: string,
   payload: object
@@ -101,9 +103,11 @@ Deno.serve(async (req) => {
       ? new Date(meeting.meetingDate).toLocaleDateString('pt-BR')
       : new Date().toLocaleDateString('pt-BR')
 
-    const prompt = `Você é um assistente especialista em comunicação corporativa brasileira.
+    const prompt = `${detectLanguageInstruction}
 
-Com base no conteúdo da reunião abaixo, gere um e-mail de follow-up profissional em português brasileiro.
+Você é um assistente especialista em comunicação corporativa.
+
+Com base no conteúdo da reunião abaixo, gere um e-mail de follow-up profissional no mesmo idioma da reunião.
 
 INFORMAÇÕES DA REUNIÃO:
 - Título: ${meeting.title}
@@ -124,13 +128,13 @@ Retorne APENAS um JSON válido com esta estrutura exata (sem markdown, sem texto
 }
 
 REGRAS para o corpo do e-mail:
-1. Comece com saudação: "Olá [nome/time],"
+1. Comece com saudação adequada ao idioma da reunião
 2. Parágrafo introdutório referenciando a reunião e data
 3. Seção "✅ Decisões tomadas:" com lista de decisões (use - para cada item)
 4. Seção "📋 Action items:" com cada tarefa, responsável e prazo quando mencionado
 5. Seção "📅 Próximos passos:" com encaminhamentos
 6. Fechamento profissional
-7. Assinatura genérica: "Atenciosamente,"
+7. Assinatura genérica adequada ao idioma da reunião
 8. Máximo 400 palavras
 9. NÃO invente informações — use apenas o que está no conteúdo
 10. Se não houver decisões claras, omita a seção
