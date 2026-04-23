@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { OnboardingWelcome } from '@/components/OnboardingWelcome';
+import { OnboardingChecklist } from '@/components/OnboardingChecklist';
 import { UsageBanner } from '@/components/UsageBanner';
 import { useUsage } from '@/hooks/useUsage';
 import { toast } from 'sonner';
@@ -17,7 +18,7 @@ import { toast } from 'sonner';
 const isMobile = typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0;
 
 export default function DashboardPage() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const [totalMeetings, setTotalMeetings] = useState(0);
   const [meetingsLoading, setMeetingsLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -176,6 +177,8 @@ export default function DashboardPage() {
         </div>
 
         <UsageBanner isNearLimit={usage.isNearLimit} isAtLimit={usage.isAtLimit} planId={usage.limits.planId} />
+
+        <OnboardingChecklist userId={user?.id} accountCreatedAt={user?.created_at} />
 
         {showOnboarding && !onboardingDismissed && (
           <OnboardingWelcome onDismiss={() => setOnboardingDismissed(true)} />
