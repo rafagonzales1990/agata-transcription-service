@@ -292,7 +292,6 @@ export default function MeetingDetail() {
       setSummaryDepth(depth);
 
       try {
-        await saveCurrentAtaVersion();
         const { data, error } = await supabase.functions.invoke("generate-summary", {
           body: { meetingId: id, depth },
         });
@@ -311,7 +310,7 @@ export default function MeetingDetail() {
         setSummaryLoading(false);
       }
     },
-    [id, saveCurrentAtaVersion, fetchMeeting, fetchAtaVersions],
+    [id, fetchMeeting, fetchAtaVersions],
   );
 
   const restoreAtaVersion = useCallback(async () => {
