@@ -41,6 +41,49 @@ Vá direto ao ponto técnico. Nunca snippets parciais — sempre arquivos comple
 
 ## Histórico de Releases
 
+### DEV 9 — Upgrade Overlay + Google Calendar + ATA Versions — 23/04/2026
+
+#### Frente 1 — Tela de upgrade suave (trial expirado)
+
+| Item | Detalhe |
+|------|---------|
+| Overlay | Full-screen quando `trialEndsAt < now` + sem `stripeSubscriptionId` |
+| Métricas | Exibe reuniões e minutos transcritos no trial |
+| CTAs | Primário → `/plans`; secundário → modo somente leitura |
+| Upload bloqueado | Toast + redirect para `/plans` |
+| Banner leitura | Banner persistente vermelho no topo em modo somente leitura |
+
+#### Frente 2 — Google Calendar (read-only)
+
+| Item | Detalhe |
+|------|---------|
+| OAuth | `signInWithOAuth` com scope `calendar.readonly` |
+| Token | Salvo em `User.googleCalendarToken` |
+| Hook | `useGoogleCalendar` — busca eventos nas próximas 24h |
+| Dashboard | Card "Próximas reuniões" |
+| Gravar | Botão → `/upload?title=EventTitle` (pré-preenche título) |
+| Desconectar | Limpa token do banco |
+| Reconectar | Automático se token expirado (401) |
+| Config | Settings › Integrações |
+
+#### Frente 3 — Histórico de versões de ATA
+
+| Item | Detalhe |
+|------|---------|
+| Tabela | `AtaVersion` (meetingId, userId, ataContent, versionNumber) + RLS owner-only |
+| Trigger | Salva versão atual antes de cada geração/regeneração |
+| Limite | 5 versões por reunião (deleta mais antigas) |
+| UI | Collapsible "Versões anteriores" na aba ATA |
+| Modal | Conteúdo read-only + botão "Restaurar" |
+| Restaurar | Salva versão atual antes de sobrescrever |
+
+#### DB migrations
+
+| Migration | Detalhe |
+|-----------|---------|
+| `20260423204718` | `CREATE TABLE AtaVersion` com RLS owner-only |
+| `20260423205121` | `ALTER TABLE User ADD COLUMN googleCalendarToken TEXT` |
+
 ### v1.5.0 — DEV 8 — Conversão Trial — 23/04/2026
 
 #### Banco
