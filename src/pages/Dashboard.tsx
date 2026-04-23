@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { OnboardingWelcome } from '@/components/OnboardingWelcome';
 import { OnboardingChecklist } from '@/components/OnboardingChecklist';
 import { UsageBanner } from '@/components/UsageBanner';
+import { GoogleCalendarMeetingsCard } from '@/components/GoogleCalendarMeetingsCard';
 import { useUsage } from '@/hooks/useUsage';
 import { useTrialExpiredStatus } from '@/hooks/useTrialExpiredStatus';
 import { toast } from 'sonner';
@@ -187,6 +188,8 @@ export default function DashboardPage() {
         {showOnboarding && !onboardingDismissed && (
           <OnboardingWelcome onDismiss={() => setOnboardingDismissed(true)} />
         )}
+
+        <GoogleCalendarMeetingsCard />
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat, i) => (
