@@ -137,6 +137,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   const activeClasses = 'bg-sidebar-accent text-primary border-l-2 border-primary font-medium';
   const inactiveClasses = 'text-foreground/70 hover:bg-sidebar-accent hover:text-foreground';
+  const shouldShowTrialOverlay = isTrialExpired && !trialOverlayDismissed && location.pathname !== '/plans';
 
   const LogoBrand = ({ logoSize = 32 }: { logoSize?: number }) => (
     <Link to="/" className="flex items-center gap-2.5">
@@ -418,7 +419,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       {authUser && (
         <TrialExpiredOverlay
           userId={authUser.user_id}
-          open={isTrialExpired && !trialOverlayDismissed}
+          open={shouldShowTrialOverlay}
           onDismiss={() => setTrialOverlayDismissed(true)}
         />
       )}
