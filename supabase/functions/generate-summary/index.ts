@@ -243,7 +243,7 @@ Deno.serve(async (req) => {
         .from('profiles')
         .select('plan_id')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
 
       const planId = profile?.plan_id || 'basic'
       if (!PAID_PLANS.includes(planId)) {
@@ -256,9 +256,9 @@ Deno.serve(async (req) => {
     // Fetch meeting
     const { data: meeting, error: meetingError } = await supabase
       .from('Meeting')
-      .select('title, transcription, userId')
+      .select('title, transcription, userId, summary, ataTemplate')
       .eq('id', meetingId)
-      .single()
+      .maybeSingle()
 
     if (meetingError || !meeting) {
       return new Response(JSON.stringify({ error: 'Meeting not found' }), {
@@ -293,6 +293,35 @@ Deno.serve(async (req) => {
       if (!openaiApiKey) throw geminiErr
       summaryText = await generateSummaryWithOpenAI(meeting.transcription, depth, openaiApiKey)
       console.log('OpenAI fallback para summary concluído')
+    }
+
+    if (meeting.summary) {
+      const { data: latestVersion } = await supabase
+        .from('AtaVersion')
+        .select('versionNumber')
+        .eq('meetingId', meetingId)
+        .order('versionNumber', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      await supabase.from('AtaVersion').insert({
+        meetingId,
+        userId: user.id,
+        ataTemplate: meeting.ataTemplate || depth,
+        ataContent: meeting.summary,
+        versionNumber: ((latestVersion?.versionNumber as number | undefined) || 0) + 1,
+      })
+
+      const { data: versionsToKeep } = await supabase
+        .from('AtaVersion')
+        .select('id')
+        .eq('meetingId', meetingId)
+        .order('versionNumber', { ascending: false })
+
+      const staleIds = (versionsToKeep || []).slice(5).map((version) => version.id)
+      if (staleIds.length > 0) {
+        await supabase.from('AtaVersion').delete().in('id', staleIds)
+      }
     }
 
     // Save to meeting

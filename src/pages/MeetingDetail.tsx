@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   Loader2,
   ChevronLeft,
@@ -28,6 +30,9 @@ import {
   Copy,
   Check,
   MessageCircle,
+  ChevronDown,
+  Eye,
+  History,
 } from "lucide-react";
 import { ShareMeetingModal } from "@/components/ShareMeetingModal";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,6 +74,16 @@ interface MeetingRow {
   followupDraft: FollowupDraft | null;
 }
 
+interface AtaVersionRow {
+  id: string;
+  meetingId: string;
+  userId: string;
+  ataTemplate: string;
+  ataContent: string;
+  createdAt: string;
+  versionNumber: number;
+}
+
 const statusConfig: Record<
   string,
   { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: typeof CheckCircle }
@@ -101,6 +116,9 @@ export default function MeetingDetail() {
   const [followupSubject, setFollowupSubject] = useState('');
   const [followupBody, setFollowupBody] = useState('');
   const [copied, setCopied] = useState(false);
+  const [ataVersions, setAtaVersions] = useState<AtaVersionRow[]>([]);
+  const [selectedAtaVersion, setSelectedAtaVersion] = useState<AtaVersionRow | null>(null);
+  const [restoreLoading, setRestoreLoading] = useState(false);
   const navigate = useNavigate();
   const { templates: ataTemplates, defaultTemplate } = useAtaTemplates();
   const { isTrialExpired } = useTrialExpiredStatus();
@@ -145,6 +163,62 @@ export default function MeetingDetail() {
   useEffect(() => {
     fetchMeeting();
   }, [fetchMeeting]);
+
+  const fetchAtaVersions = useCallback(async () => {
+    if (!id) return;
+    const { data, error } = await supabase
+      .from("AtaVersion")
+      .select("id, meetingId, userId, ataTemplate, ataContent, createdAt, versionNumber")
+      .eq("meetingId", id)
+      .order("versionNumber", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching ATA versions:", error);
+      return;
+    }
+    setAtaVersions((data || []) as AtaVersionRow[]);
+  }, [id]);
+
+  useEffect(() => {
+    fetchAtaVersions();
+  }, [fetchAtaVersions]);
+
+  const displayAtaContent = (content: string) => content.replace(/^<!-- depth:\w+ -->\n/, "");
+
+  const saveCurrentAtaVersion = useCallback(async () => {
+    if (!id || !meeting?.summary || !profile?.user_id) return;
+
+    const { data: latest } = await supabase
+      .from("AtaVersion")
+      .select("versionNumber")
+      .eq("meetingId", id)
+      .order("versionNumber", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const nextVersion = ((latest as { versionNumber?: number } | null)?.versionNumber || 0) + 1;
+
+    const { error } = await supabase.from("AtaVersion").insert({
+      meetingId: id,
+      userId: profile.user_id,
+      ataTemplate: selectedTemplate,
+      ataContent: meeting.summary,
+      versionNumber: nextVersion,
+    });
+
+    if (error) throw error;
+
+    const { data: versions } = await supabase
+      .from("AtaVersion")
+      .select("id")
+      .eq("meetingId", id)
+      .order("versionNumber", { ascending: false });
+
+    const staleIds = (versions || []).slice(5).map((version) => version.id);
+    if (staleIds.length > 0) {
+      await supabase.from("AtaVersion").delete().in("id", staleIds);
+    }
+  }, [id, meeting?.summary, profile?.user_id, selectedTemplate]);
 
   // Realtime subscription for transcription updates
   useEffect(() => {
@@ -225,6 +299,8 @@ export default function MeetingDetail() {
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
         setSummaryContent(data.summary);
+        await fetchMeeting();
+        await fetchAtaVersions();
         toast.success("Resumo gerado com sucesso!");
       } catch (err: any) {
         toast.error(err.message || "Erro ao gerar resumo");
@@ -234,8 +310,43 @@ export default function MeetingDetail() {
         setSummaryLoading(false);
       }
     },
-    [id],
+    [id, fetchMeeting, fetchAtaVersions],
   );
+
+  const restoreAtaVersion = useCallback(async () => {
+    if (!id || !selectedAtaVersion) return;
+
+    const confirmed = window.confirm(
+      `Deseja restaurar a versão ${selectedAtaVersion.versionNumber}? A versão atual será salva como nova versão.`,
+    );
+    if (!confirmed) return;
+
+    setRestoreLoading(true);
+    try {
+      await saveCurrentAtaVersion();
+      const { error } = await supabase
+        .from("Meeting")
+        .update({
+          summary: selectedAtaVersion.ataContent,
+          ataTemplate: selectedAtaVersion.ataTemplate,
+          updatedAt: new Date().toISOString(),
+        } as any)
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setSummaryContent(displayAtaContent(selectedAtaVersion.ataContent));
+      setSelectedTemplate(selectedAtaVersion.ataTemplate);
+      setSelectedAtaVersion(null);
+      await fetchMeeting();
+      await fetchAtaVersions();
+      toast.success("Versão restaurada com sucesso!");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao restaurar versão");
+    } finally {
+      setRestoreLoading(false);
+    }
+  }, [id, selectedAtaVersion, saveCurrentAtaVersion, fetchMeeting, fetchAtaVersions]);
 
   const convertMarkdownToHtml = (md: string): string => {
     let html = md;
@@ -714,6 +825,32 @@ export default function MeetingDetail() {
                 </div>
               )}
 
+              {summaryContent && !summaryLoading && ataVersions.length > 0 && (
+                <Collapsible className="border-t pt-4">
+                  <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border border-border px-3 py-2 text-left text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground">
+                    <span className="flex items-center gap-2">
+                      <History className="h-4 w-4 text-primary" /> Versões anteriores
+                    </span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-3 space-y-2">
+                    {ataVersions.map((version) => (
+                      <div key={version.id} className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground">
+                            Versão {version.versionNumber} — {new Date(version.createdAt).toLocaleDateString("pt-BR")} às{" "}
+                            {new Date(version.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        </div>
+                        <Button size="sm" variant="outline" onClick={() => setSelectedAtaVersion(version)}>
+                          <Eye className="h-3.5 w-3.5 mr-1.5" /> Ver
+                        </Button>
+                      </div>
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+
               {/* Action buttons after summary */}
               {summaryContent && !summaryLoading && (
                 <div className="border-t pt-4 flex flex-wrap gap-3 items-end">
@@ -935,6 +1072,29 @@ export default function MeetingDetail() {
           </Card>
         )}
         <ShareMeetingModal open={shareOpen} onOpenChange={setShareOpen} meetingId={meeting.id} />
+        <Dialog open={!!selectedAtaVersion} onOpenChange={(open) => !open && setSelectedAtaVersion(null)}>
+          <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden">
+            <DialogHeader>
+              <DialogTitle>
+                Versão {selectedAtaVersion?.versionNumber} — {selectedAtaVersion && new Date(selectedAtaVersion.createdAt).toLocaleString("pt-BR")}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="markdown-rendered max-h-[60vh] overflow-y-auto overflow-x-auto rounded-md border border-border p-4 text-sm">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {selectedAtaVersion ? displayAtaContent(selectedAtaVersion.ataContent) : ""}
+              </ReactMarkdown>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSelectedAtaVersion(null)}>
+                Fechar
+              </Button>
+              <Button onClick={restoreAtaVersion} disabled={restoreLoading || isTrialExpired}>
+                {restoreLoading && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                Restaurar esta versão
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );
