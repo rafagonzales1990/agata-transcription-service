@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 
 import {
   ChevronDown, ChevronUp, Star, CheckCircle,
-  BadgeCheck, Timer, TrendingUp, Lock, Shield,
+  BadgeCheck, Timer, TrendingUp, Lock, Shield, Globe,
 } from 'lucide-react';
 
 import { LandingHeader } from '@/components/landing/LandingHeader';
