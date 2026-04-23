@@ -34,18 +34,29 @@ export function DesktopAppSection() {
           </div>
 
           <Button asChild size="lg" className="text-base px-8">
-            <a href="https://github.com/rafagonzales1990/agata-desktop/releases/latest/download/Agata-Transcription-1.0.4-Windows.exe" target="_blank" rel="noopener noreferrer">
+            <a href="https://storage.googleapis.com/agata-desktop-releases/releases/latest/Agata-Transcription-1.0.5-Windows.exe" target="_blank" rel="noopener noreferrer">
               ⬇ Baixar para Windows — Grátis
             </a>
           </Button>
 
           <p className="text-xs text-muted-foreground mt-3 mb-4">
-            v1.0.4 · Windows 10/11 · Sem instalação necessária
+            v1.0.5 · Windows 10/11 · Sem instalação necessária
           </p>
 
-          <Badge variant="secondary" className="text-xs">
-            🍎 Mac — em breve
-          </Badge>
+          <div className="flex flex-col items-center gap-2">
+            <Badge variant="secondary" className="text-xs">
+              🍎 Mac — em breve
+            </Badge>
+            <div className="flex gap-2">
+              <a href="https://storage.googleapis.com/agata-desktop-releases/releases/latest/Agata-Transcription-1.0.5-Mac-x64.zip" target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
+                Intel (x64) beta
+              </a>
+              <span className="text-xs text-muted-foreground">·</span>
+              <a href="https://storage.googleapis.com/agata-desktop-releases/releases/latest/Agata-Transcription-1.0.5-Mac-arm64.zip" target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
+                Apple Silicon beta
+              </a>
+            </div>
+          </div>
         </motion.div>
       </div>
     </section>
