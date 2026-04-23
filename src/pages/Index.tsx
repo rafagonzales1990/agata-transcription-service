@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 
 import {
   ChevronDown, ChevronUp, Star, CheckCircle,
-  BadgeCheck, Timer, TrendingUp, Lock, Shield,
+  BadgeCheck, Timer, TrendingUp, Lock, Shield, Globe,
 } from 'lucide-react';
 
 import { LandingHeader } from '@/components/landing/LandingHeader';
@@ -37,7 +37,7 @@ const FinalCTASection = lazy(() => lazyRetry(() => import('@/components/landing/
 const LandingFooter = lazy(() => lazyRetry(() => import('@/components/landing/LandingFooter').then(m => ({ default: m.LandingFooter }))));
 
 const metrics = [
-  { number: '95%+', label: 'Precisão em PT-BR', icon: <BadgeCheck className="h-5 w-5" /> },
+  { number: '95%+', label: 'Precisão em PT-BR, EN e ES', icon: <BadgeCheck className="h-5 w-5" /> },
   { number: '2min', label: 'Tempo médio p/ 1h de áudio', icon: <Timer className="h-5 w-5" /> },
   { number: '10h', label: 'Economizadas por semana', icon: <TrendingUp className="h-5 w-5" /> },
   { number: '24h', label: 'Exclusão automática de dados', icon: <Lock className="h-5 w-5" /> },
@@ -52,10 +52,13 @@ const testimonials = [
 const faqs = [
   { question: 'Quais formatos de áudio são suportados?', answer: 'Suportamos MP3, WAV, M4A, AAC, CAF, OGG, WebM e MP4. Isso inclui gravações de Samsung, iPhone e a maioria dos dispositivos.' },
   { question: 'Quanto tempo leva para transcrever?', answer: 'A transcrição é feita em tempo real. Um áudio de 30 minutos geralmente é processado em 1-2 minutos.' },
-  { question: 'Meus dados estão seguros?', answer: 'Sim! Somos LGPD compliant. Arquivos são excluídos automaticamente após 24 horas e usamos criptografia em todo o processo.' },
+  { question: 'Meus dados estão seguros?', answer: 'Sim! Somos LGPD compliant. Arquivos de áudio são excluídos automaticamente em até 24 horas após o processamento. Transcrições ficam disponíveis enquanto sua conta estiver ativa.' },
   { question: 'Posso cancelar a qualquer momento?', answer: 'Sim, sem fidelidade ou multas. Cancele sua assinatura a qualquer momento.' },
   { question: 'A transcrição funciona bem em português?', answer: 'Sim! Nossa IA é otimizada para português brasileiro com excelente precisão, mesmo com sotaques regionais.' },
   { question: 'Preciso de cartão de crédito para testar?', answer: 'Não! O teste grátis não exige cartão de crédito. Crie sua conta e comece a transcrever imediatamente.' },
+  { question: 'O app funciona com reuniões em inglês ou espanhol?', answer: 'Sim! A IA detecta automaticamente o idioma da reunião e gera transcrição, resumo e ATA no mesmo idioma. Suportamos português (PT-BR), inglês e espanhol.' },
+  { question: 'Preciso instalar algum programa?', answer: 'Não é obrigatório. Você pode usar direto pelo navegador em agatatranscription.com. Também oferecemos extensão Chrome (gravação no Meet, Zoom e Teams) e app desktop para Windows (funciona com qualquer app, inclusive Teams e Zoom nativos).' },
+  { question: 'O app desktop funciona sem permissão de administrador?', answer: 'Sim! O Ágata Desktop é portátil e instala sem necessidade de privilégios de administrador — ideal para computadores corporativos com restrições de TI.' },
 ];
 
 export default function LandingPage() {
@@ -81,6 +84,7 @@ export default function LandingPage() {
             <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-primary" /> Engenharia</span>
             <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-primary" /> Financeiro</span>
             <span className="flex items-center gap-1.5"><Shield className="h-4 w-4 text-primary" /> LGPD Compliant</span>
+            <span className="flex items-center gap-1.5"><Globe className="h-4 w-4 text-primary" /> PT-BR · EN · ES</span>
           </div>
         </div>
       </section>
@@ -144,6 +148,9 @@ export default function LandingPage() {
               </Card>
             ))}
           </div>
+          <p className="text-center text-xs text-muted-foreground mt-8 italic">
+            * Depoimentos representativos baseados em casos de uso reais.
+          </p>
         </div>
       </section>
 
