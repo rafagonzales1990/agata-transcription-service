@@ -135,6 +135,51 @@ export type Database = {
           },
         ]
       }
+      AtaVersion: {
+        Row: {
+          ataContent: string
+          ataTemplate: string
+          createdAt: string
+          id: string
+          meetingId: string
+          userId: string
+          versionNumber: number
+        }
+        Insert: {
+          ataContent: string
+          ataTemplate: string
+          createdAt?: string
+          id?: string
+          meetingId: string
+          userId: string
+          versionNumber?: number
+        }
+        Update: {
+          ataContent?: string
+          ataTemplate?: string
+          createdAt?: string
+          id?: string
+          meetingId?: string
+          userId?: string
+          versionNumber?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "AtaVersion_meetingId_fkey"
+            columns: ["meetingId"]
+            isOneToOne: false
+            referencedRelation: "Meeting"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "AtaVersion_userId_fkey"
+            columns: ["userId"]
+            isOneToOne: false
+            referencedRelation: "User"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       BlogPost: {
         Row: {
           category: string
@@ -988,6 +1033,7 @@ export type Database = {
           emailVerified: string | null
           giftEndsAt: string | null
           giftPlanId: string | null
+          googleCalendarToken: string | null
           hasCompletedOnboarding: boolean
           id: string
           image: string | null
@@ -1019,6 +1065,7 @@ export type Database = {
           emailVerified?: string | null
           giftEndsAt?: string | null
           giftPlanId?: string | null
+          googleCalendarToken?: string | null
           hasCompletedOnboarding?: boolean
           id?: string
           image?: string | null
@@ -1050,6 +1097,7 @@ export type Database = {
           emailVerified?: string | null
           giftEndsAt?: string | null
           giftPlanId?: string | null
+          googleCalendarToken?: string | null
           hasCompletedOnboarding?: boolean
           id?: string
           image?: string | null
