@@ -826,6 +826,32 @@ export default function MeetingDetail() {
                 </div>
               )}
 
+              {summaryContent && !summaryLoading && ataVersions.length > 0 && (
+                <Collapsible className="border-t pt-4">
+                  <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md border border-border px-3 py-2 text-left text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground">
+                    <span className="flex items-center gap-2">
+                      <History className="h-4 w-4 text-primary" /> Versões anteriores
+                    </span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-3 space-y-2">
+                    {ataVersions.map((version) => (
+                      <div key={version.id} className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground">
+                            Versão {version.versionNumber} — {new Date(version.createdAt).toLocaleDateString("pt-BR")} às{" "}
+                            {new Date(version.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        </div>
+                        <Button size="sm" variant="outline" onClick={() => setSelectedAtaVersion(version)}>
+                          <Eye className="h-3.5 w-3.5 mr-1.5" /> Ver
+                        </Button>
+                      </div>
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+
               {/* Action buttons after summary */}
               {summaryContent && !summaryLoading && (
                 <div className="border-t pt-4 flex flex-wrap gap-3 items-end">
@@ -1047,6 +1073,29 @@ export default function MeetingDetail() {
           </Card>
         )}
         <ShareMeetingModal open={shareOpen} onOpenChange={setShareOpen} meetingId={meeting.id} />
+        <Dialog open={!!selectedAtaVersion} onOpenChange={(open) => !open && setSelectedAtaVersion(null)}>
+          <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden">
+            <DialogHeader>
+              <DialogTitle>
+                Versão {selectedAtaVersion?.versionNumber} — {selectedAtaVersion && new Date(selectedAtaVersion.createdAt).toLocaleString("pt-BR")}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="markdown-rendered max-h-[60vh] overflow-y-auto overflow-x-auto rounded-md border border-border p-4 text-sm">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {selectedAtaVersion ? displayAtaContent(selectedAtaVersion.ataContent) : ""}
+              </ReactMarkdown>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSelectedAtaVersion(null)}>
+                Fechar
+              </Button>
+              <Button onClick={restoreAtaVersion} disabled={restoreLoading || isTrialExpired}>
+                {restoreLoading && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
+                Restaurar esta versão
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );
