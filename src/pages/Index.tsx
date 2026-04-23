@@ -81,6 +81,7 @@ export default function LandingPage() {
             <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-primary" /> Engenharia</span>
             <span className="flex items-center gap-1.5"><CheckCircle className="h-4 w-4 text-primary" /> Financeiro</span>
             <span className="flex items-center gap-1.5"><Shield className="h-4 w-4 text-primary" /> LGPD Compliant</span>
+            <span className="flex items-center gap-1.5"><Globe className="h-4 w-4 text-primary" /> PT-BR · EN · ES</span>
           </div>
         </div>
       </section>
