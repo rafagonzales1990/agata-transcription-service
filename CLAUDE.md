@@ -20,6 +20,7 @@ Vá direto ao ponto técnico. Nunca snippets parciais — sempre arquivos comple
 - NUNCA expor chaves de API no frontend — sempre Edge Functions + Secrets
 - Primeira hipótese em falha silenciosa: RLS
 - **RLS recursiva**: NUNCA usar subqueries que referenciam tabelas com RLS ativa dentro de policies — causa recursão infinita e quebra todas as queries. Usar `SECURITY DEFINER` functions em vez de subqueries diretas.
+- **Deploy Desktop**: SEMPRE via tag (`npm version patch` + `git push --tags`) — NUNCA fazer push direto do .exe. GitHub Actions compila e sobe para GCS automaticamente.
 
 ## ⚠️ REGRAS ABSOLUTAS — JAMAIS ALTERAR
 
@@ -35,10 +36,34 @@ Vá direto ao ponto técnico. Nunca snippets parciais — sempre arquivos comple
 
 ## Versão atual
 - Web App: v1.4.0 (`src/config/appVersion.ts`)
-- Desktop: v1.0.4
+- Desktop: v1.0.5
 - Extensão Chrome: v1.0.2 ✅ aprovada
 
 ## Histórico de Releases
+
+### DEV 6 — Infra Desktop + Legal + RLS — 23/04/2026
+
+#### Desktop (repo agata-desktop)
+
+| Item | Detalhe |
+|------|---------|
+| GCS bucket | `agata-desktop-releases` (southamerica-east1) |
+| Build automático | GitHub Actions → Windows .exe + Mac .zip no push de tag |
+| Upload automático | Artefatos enviados ao GCS via Actions |
+| Auto-update | `electron-updater` configurado com `latest.yml` |
+| Locale pruning | `electronLanguages: pt-BR + en-US` |
+| Tamanho Windows | 71 MB → 68.3 MB |
+| Node.js Actions | Node 24 (`FORCE_JAVASCRIPT_ACTIONS_TO_NODE24`) |
+| Fluxo de release | `npm version patch` + `git push --tags` |
+
+#### Web (repo agata-transcription-service)
+
+| Item | Detalhe |
+|------|---------|
+| Downloads page | URLs atualizadas para GCS (Desktop v1.0.5) |
+| RLS Enterprise Admin | Refeita com SECURITY DEFINER functions: `get_my_team_id`, `get_my_role`, `is_enterprise_admin` — sem recursão; policies seguras para Meeting, Usage, User, TeamInvite |
+| Documentos legais | Páginas /termos, /privacidade, /eula publicadas |
+| Aceite obrigatório | Checkbox no cadastro; `termsAcceptedAt` e `termsVersion` gravados na tabela User |
 
 ### v1.4.0 — Enterprise Admin — 22/04/2026
 
