@@ -25,6 +25,7 @@ import { useProjects, type Project } from '@/hooks/useProjects';
 import { useMeetings, type MeetingListItem } from '@/hooks/useMeetings';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useTrialExpiredStatus } from '@/hooks/useTrialExpiredStatus';
 
 type Meeting = MeetingListItem;
 
@@ -42,6 +43,7 @@ type DateRange = 'all' | '7' | '30' | '90';
 
 export default function MeetingsPage() {
   const { user } = useAuth();
+  const { isTrialExpired } = useTrialExpiredStatus();
   const queryClient = useQueryClient();
   const { data: meetings = [], isLoading: loading } = useMeetings(user?.id);
 
@@ -239,11 +241,13 @@ export default function MeetingsPage() {
             <h1 className="text-2xl font-bold text-foreground">Reuniões</h1>
             <p className="text-muted-foreground">Gerencie suas transcrições</p>
           </div>
-          <Link to="/upload">
-            <Button className="bg-primary hover:bg-emerald-600 text-primary-foreground">
-              Nova Transcrição
-            </Button>
-          </Link>
+          {!isTrialExpired && (
+            <Link to="/upload">
+              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                Nova Transcrição
+              </Button>
+            </Link>
+          )}
         </div>
 
         {/* Project chips */}
@@ -301,7 +305,7 @@ export default function MeetingsPage() {
             </div>
           ))}
 
-          {showNewProject ? (
+          {!isTrialExpired && (showNewProject ? (
             <div className="flex items-center gap-2">
               <div className="flex gap-1">
                 {PROJECT_COLORS.map(c => (
@@ -333,7 +337,7 @@ export default function MeetingsPage() {
             >
               <Plus className="h-3 w-3" /> Novo Projeto
             </button>
-          )}
+          ))}
         </div>
 
         {/* Search */}
@@ -427,7 +431,7 @@ export default function MeetingsPage() {
                 {hasActiveFilters ? (
                   <Button variant="outline" onClick={clearFilters}>Limpar filtros</Button>
                 ) : (
-                  <Link to="/upload"><Button variant="outline">Fazer Upload</Button></Link>
+                  {!isTrialExpired && <Link to="/upload"><Button variant="outline">Fazer Upload</Button></Link>}
                 )}
               </div>
             </CardContent>
@@ -468,9 +472,10 @@ export default function MeetingsPage() {
                       <StatusIcon className="h-3 w-3" />
                       {cfg.label}
                     </Badge>
+                    {isTrialExpired && <Badge variant="outline" className="shrink-0">Somente leitura</Badge>}
 
                     {/* Assign to project */}
-                    <Popover open={assignMenuMeetingId === meeting.id} onOpenChange={(open) => setAssignMenuMeetingId(open ? meeting.id : null)}>
+                    {!isTrialExpired && <Popover open={assignMenuMeetingId === meeting.id} onOpenChange={(open) => setAssignMenuMeetingId(open ? meeting.id : null)}>
                       <PopoverTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8" title="Mover para projeto">
                           <FolderKanban className="h-3.5 w-3.5" />
@@ -494,16 +499,16 @@ export default function MeetingsPage() {
                           </button>
                         ))}
                       </PopoverContent>
-                    </Popover>
+                    </Popover>}
 
-                    <div className="flex gap-1 shrink-0">
+                    {!isTrialExpired && <div className="flex gap-1 shrink-0">
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(meeting)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteId(meeting.id)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
-                    </div>
+                    </div>}
                   </CardContent>
                 </Card>
               );
