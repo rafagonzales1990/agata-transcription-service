@@ -34,7 +34,7 @@ export function DesktopAppSection() {
           </div>
 
           <Button asChild size="lg" className="text-base px-8">
-            <a href="https://storage.googleapis.com/agata-desktop-releases/releases/latest/Agata-Transcription-1.0.5-Windows.exe" target="_blank" rel="noopener noreferrer">
+            <a href="https://storage.googleapis.com/agata-desktop-releases/releases/latest/Agata-Transcription-Windows-latest.exe" target="_blank" rel="noopener noreferrer">
               ⬇ Baixar para Windows — Grátis
             </a>
           </Button>
@@ -48,11 +48,11 @@ export function DesktopAppSection() {
               🍎 Mac — em breve
             </Badge>
             <div className="flex gap-2">
-              <a href="https://storage.googleapis.com/agata-desktop-releases/releases/latest/Agata-Transcription-1.0.5-Mac-x64.zip" target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
+              <a href="https://storage.googleapis.com/agata-desktop-releases/releases/latest/Agata-Transcription-Mac-x64-latest.zip" target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
                 Intel (x64) beta
               </a>
               <span className="text-xs text-muted-foreground">·</span>
-              <a href="https://storage.googleapis.com/agata-desktop-releases/releases/latest/Agata-Transcription-1.0.5-Mac-arm64.zip" target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
+              <a href="https://storage.googleapis.com/agata-desktop-releases/releases/latest/Agata-Transcription-Mac-arm64-latest.zip" target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
                 Apple Silicon beta
               </a>
             </div>
