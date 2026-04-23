@@ -81,8 +81,7 @@ export default function SignupPage() {
       } catch (e) {
         console.error('Terms acceptance save error:', e);
       }
-      toast.error(error.message);
-    } else {
+
       // Send welcome email
       try {
         await supabase.functions.invoke('send-email', {
