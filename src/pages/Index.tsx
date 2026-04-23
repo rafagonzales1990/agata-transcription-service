@@ -148,6 +148,9 @@ export default function LandingPage() {
               </Card>
             ))}
           </div>
+          <p className="text-center text-xs text-muted-foreground mt-8 italic">
+            * Depoimentos representativos baseados em casos de uso reais.
+          </p>
         </div>
       </section>
 
