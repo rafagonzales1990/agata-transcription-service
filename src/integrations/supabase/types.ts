@@ -546,6 +546,35 @@ export type Database = {
         }
         Relationships: []
       }
+      NurturingLog: {
+        Row: {
+          emailType: string
+          id: string
+          sentAt: string
+          userId: string
+        }
+        Insert: {
+          emailType: string
+          id?: string
+          sentAt?: string
+          userId: string
+        }
+        Update: {
+          emailType?: string
+          id?: string
+          sentAt?: string
+          userId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "NurturingLog_userId_fkey"
+            columns: ["userId"]
+            isOneToOne: false
+            referencedRelation: "User"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       Plan: {
         Row: {
           allowAdvancedSummary: boolean
