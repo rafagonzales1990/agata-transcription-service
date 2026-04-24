@@ -26,19 +26,16 @@ export default function SharedMeeting() {
     async function load() {
       if (!token) { setError(true); setLoading(false); return; }
 
-      // Find share by token
-      const { data: share, error: shareErr } = await supabase
-        .from("MeetingShare" as any)
-        .select("meetingId, expiresAt")
-        .eq("token", token)
-        .maybeSingle();
+      // Find share by token via RPC (MeetingShare blocks direct SELECT)
+      const { data: rpcData, error: shareErr } = await supabase
+        .rpc('get_meeting_by_share_token', { share_token: token });
+
+      const share = (rpcData as any)?.[0] || null;
 
       if (shareErr || !share) { setError(true); setLoading(false); return; }
 
-      const s = share as any;
-
       // Check expiry
-      if (s.expiresAt && new Date(s.expiresAt) < new Date()) {
+      if (share.expiresAt && new Date(share.expiresAt) < new Date()) {
         setError(true); setLoading(false); return;
       }
 
@@ -46,7 +43,7 @@ export default function SharedMeeting() {
       const { data: m, error: mErr } = await supabase
         .from("Meeting")
         .select("title, meetingDate, createdAt, summary, actionItems")
-        .eq("id", s.meetingId)
+        .eq("id", share.meetingId)
         .maybeSingle();
 
       if (mErr || !m) { setError(true); setLoading(false); return; }
