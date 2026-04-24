@@ -6,18 +6,22 @@ import { Loader2, RefreshCw, Activity } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ProviderStatus {
-  status: 'ok' | 'degraded' | 'down';
+  status: 'ok' | 'error' | 'degraded' | 'down';
   latencyMs: number;
+  detail?: string;
 }
 
 interface HealthCheckResult {
-  gemini: ProviderStatus;
+  gemini_2_5: ProviderStatus;
+  gemini_2_0?: ProviderStatus;
+  gemini_2_5_flash_lite?: ProviderStatus;
   openai: ProviderStatus;
-  checkedAt: string;
+  checkedAt?: string;
 }
 
 const STATUS_CONFIG = {
   ok: { emoji: '🟢', label: 'Operacional', badgeClass: 'bg-emerald-100 text-emerald-700' },
+  error: { emoji: '🔴', label: 'Fora do ar', badgeClass: 'bg-red-100 text-red-700' },
   degraded: { emoji: '🟡', label: 'Degradado', badgeClass: 'bg-yellow-100 text-yellow-700' },
   down: { emoji: '🔴', label: 'Fora do ar', badgeClass: 'bg-red-100 text-red-700' },
 };
@@ -31,11 +35,11 @@ export function AIStatusMonitor() {
     setLoading(true);
     setError(null);
     try {
-      const { data: result, error: err } = await supabase.functions.invoke('health-check', { method: 'GET' });
+      const { data: result, error: err } = await supabase.functions.invoke('health-check');
       if (err) throw err;
-      setData(result);
+      setData({ ...result, checkedAt: new Date().toISOString() });
     } catch (e: unknown) {
-      setError((e as Error).message || 'Erro ao verificar');
+      setError((e as Error).message || 'Erro ao verificar status das IAs');
     }
     setLoading(false);
   }, []);
@@ -53,6 +57,7 @@ export function AIStatusMonitor() {
 
   const renderProvider = (name: string, provider: ProviderStatus | undefined) => {
     const cfg = STATUS_CONFIG[provider?.status || 'down'];
+    const isError = provider?.status === 'error' || provider?.status === 'down';
     return (
       <div className="border border-border rounded-lg p-4 space-y-2">
         <div className="flex items-center justify-between">
@@ -63,9 +68,14 @@ export function AIStatusMonitor() {
           <span>Latência: <span className="text-foreground font-medium">{provider?.latencyMs ?? '—'}ms</span></span>
           {data?.checkedAt && <span>Verificado: <span className="text-foreground font-medium">{formatTime(data.checkedAt)}</span></span>}
         </div>
+        {isError && provider?.detail && (
+          <p className="text-xs text-destructive break-words">{provider.detail}</p>
+        )}
       </div>
     );
   };
+
+  const geminiLite = data?.gemini_2_5_flash_lite || data?.gemini_2_0;
 
   return (
     <Card className="bg-card border-border">
@@ -81,7 +91,8 @@ export function AIStatusMonitor() {
       </CardHeader>
       <CardContent className="space-y-3">
         {error && <p className="text-sm text-destructive">Erro: {error}</p>}
-        {renderProvider('Gemini 2.5 Flash', data?.gemini)}
+        {renderProvider('Gemini 2.5 Flash', data?.gemini_2_5)}
+        {renderProvider('Gemini 2.5 Lite', geminiLite)}
         {renderProvider('OpenAI Whisper', data?.openai)}
         {!data && !loading && !error && <p className="text-sm text-muted-foreground text-center py-4">Verificação automática a cada 5 minutos</p>}
       </CardContent>
@@ -93,14 +104,17 @@ export function AIStatusBanner({ data }: { data: HealthCheckResult | null }) {
   if (!data) return null;
 
   const issues: string[] = [];
-  if (data.gemini?.status === 'down') issues.push('Gemini API fora do ar — fallback OpenAI ativo');
-  else if (data.gemini?.status === 'degraded') issues.push('Gemini API com instabilidade detectada — fallback OpenAI pode ativar');
-  if (data.openai?.status === 'down') issues.push('OpenAI API fora do ar — sem fallback disponível');
+  const geminiLite = data.gemini_2_5_flash_lite || data.gemini_2_0;
+  if (data.gemini_2_5?.status === 'error' || data.gemini_2_5?.status === 'down') issues.push('Gemini 2.5 Flash fora do ar — fallback Gemini Lite ativo');
+  else if (data.gemini_2_5?.status === 'degraded') issues.push('Gemini 2.5 Flash com instabilidade detectada — fallback pode ativar');
+  if (geminiLite?.status === 'error' || geminiLite?.status === 'down') issues.push('Gemini 2.5 Lite fora do ar — fallback OpenAI ativo');
+  else if (geminiLite?.status === 'degraded') issues.push('Gemini 2.5 Lite com instabilidade');
+  if (data.openai?.status === 'error' || data.openai?.status === 'down') issues.push('OpenAI API fora do ar — sem fallback disponível');
   else if (data.openai?.status === 'degraded') issues.push('OpenAI API com instabilidade');
 
   if (issues.length === 0) return null;
 
-  const hasDown = data.gemini?.status === 'down' || data.openai?.status === 'down';
+  const hasDown = data.gemini_2_5?.status === 'error' || data.gemini_2_5?.status === 'down' || geminiLite?.status === 'error' || geminiLite?.status === 'down' || data.openai?.status === 'error' || data.openai?.status === 'down';
   const bgClass = hasDown ? 'bg-red-50 border-red-200 text-red-800' : 'bg-yellow-50 border-yellow-200 text-yellow-800';
 
   return (
