@@ -8,6 +8,7 @@ const GEMINI_KEY = Deno.env.get('GOOGLE_GEMINI_API_KEY')!;
 const OPENAI_KEY = Deno.env.get('OPENAI_API_KEY')!;
 const RESEND_KEY = Deno.env.get('RESEND_API_KEY')!;
 const ALERT_EMAIL = 'adm@agatatranscription.com';
+const CONSECUTIVE_FAILURES_TO_ALERT = 2;
 
 async function checkGeminiModel(model: string): Promise<{ status: 'ok' | 'error'; latencyMs: number; detail?: string }> {
   const start = Date.now();
@@ -47,22 +48,14 @@ async function checkOpenAI(): Promise<{ status: 'ok' | 'error'; latencyMs: numbe
   }
 }
 
-async function getLastState(): Promise<Record<string, 'ok' | 'error' | undefined>> {
+async function getRecentHistory(provider: string, limit: number): Promise<string[]> {
   const { data } = await supabase
     .from('HealthCheckLog')
-    .select('provider, status')
+    .select('status')
+    .eq('provider', provider)
     .order('createdAt', { ascending: false })
-    .limit(10);
-
-  const last: Record<string, 'ok' | 'error'> = {};
-  const seen = new Set<string>();
-  for (const row of (data || [])) {
-    if (!seen.has(row.provider)) {
-      last[row.provider] = row.status;
-      seen.add(row.provider);
-    }
-  }
-  return last;
+    .limit(limit);
+  return (data || []).map((r: any) => r.status);
 }
 
 async function sendAlert(
@@ -147,18 +140,7 @@ Deno.serve(async () => {
     'OpenAI Whisper': openai,
   };
 
-  // Get previous state to detect changes
-  const lastState = await getLastState();
-  const downProviders: string[] = [];
-  const recoveredProviders: string[] = [];
-
-  for (const [provider, result] of Object.entries(results)) {
-    const prev = lastState[provider];
-    if (result.status === 'error' && prev !== 'error') downProviders.push(provider);
-    if (result.status === 'ok' && prev === 'error') recoveredProviders.push(provider);
-  }
-
-  // Log to DB
+  // Log to DB first so getRecentHistory includes the current result
   await supabase.from('HealthCheckLog').insert(
     Object.entries(results).map(([provider, r]) => ({
       provider,
@@ -169,7 +151,27 @@ Deno.serve(async () => {
     }))
   );
 
-  // Send alert only on status change
+  // Detect down/recovered with consecutive failure threshold
+  const downProviders: string[] = [];
+  const recoveredProviders: string[] = [];
+
+  for (const [provider, result] of Object.entries(results)) {
+    const history = await getRecentHistory(provider, CONSECUTIVE_FAILURES_TO_ALERT + 1);
+    const prevStatuses = history.slice(1);
+
+    if (result.status === 'error') {
+      const allPrevErrors = prevStatuses.length >= CONSECUTIVE_FAILURES_TO_ALERT &&
+        prevStatuses.every(s => s === 'error');
+      const isFirstFailure = prevStatuses.length === 0;
+      if (allPrevErrors || isFirstFailure) downProviders.push(provider);
+    } else if (result.status === 'ok') {
+      if (prevStatuses.length > 0 && prevStatuses[0] === 'error') {
+        recoveredProviders.push(provider);
+      }
+    }
+  }
+
+  // Send alert only on threshold reached or recovery
   await sendAlert(downProviders, recoveredProviders, results);
 
   return new Response(JSON.stringify({
