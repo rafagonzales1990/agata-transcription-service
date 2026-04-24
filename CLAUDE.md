@@ -37,9 +37,32 @@ Vá direto ao ponto técnico. Nunca snippets parciais — sempre arquivos comple
 ## Versão atual
 - Web App: v1.5.0 (`src/config/appVersion.ts`)
 - Desktop: v1.0.5
-- Extensão Chrome: v1.0.2 ✅ aprovada
+- Extensão Chrome: v1.0.3 🔄 em revisão
 
 ## Histórico de Releases
+
+### Hotfixes — 24/04/2026
+
+#### Web (edge functions + infra)
+
+| Fix | Detalhe |
+|-----|---------|
+| Gemini cascade | `gemini-2.0-flash` → `gemini-2.5-flash-lite` (descontinuado para novos usuários desde mar/2026) |
+| Secret name | `GOOGLE_GEMINI_API_KEY` — nome correto (era `GEMINI_API_KEY` no health-check) |
+| Secrets órfãos | Removidos: `rafa_rez@msn.com` e `Ágata Transcription` |
+| Nurturing cron | JSON inválido no header corrigido — sem `service_role` em header HTTP |
+| Health-check | Threshold: 2 falhas consecutivas antes de alertar (anti-spam) |
+| Status IAs | Auth via `supabase.functions.invoke` + 3 provedores (2.5, Lite, OpenAI) |
+| HealthCheckLog | Tabela criada — log histórico por provedor com latência e detalhe |
+
+#### Extensão Chrome v1.0.3 (repo agata-extension)
+
+| Fix | Detalhe |
+|-----|---------|
+| Blob >64MB | `content.js` faz upload direto ao Supabase Storage (era via background) |
+| getDisplayMedia sem áudio | Aviso visual adicionado ao usuário |
+| Fallback | Download local automático se upload falhar |
+| Status | Submetida para revisão na Chrome Web Store |
 
 ### DEV 9 — Upgrade Overlay + Google Calendar + ATA Versions — 23/04/2026
 
