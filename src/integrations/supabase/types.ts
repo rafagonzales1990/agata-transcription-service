@@ -300,6 +300,33 @@ export type Database = {
           },
         ]
       }
+      HealthCheckLog: {
+        Row: {
+          createdAt: string
+          detail: string | null
+          id: string
+          latencyMs: number | null
+          provider: string
+          status: string
+        }
+        Insert: {
+          createdAt?: string
+          detail?: string | null
+          id?: string
+          latencyMs?: number | null
+          provider: string
+          status: string
+        }
+        Update: {
+          createdAt?: string
+          detail?: string | null
+          id?: string
+          latencyMs?: number | null
+          provider?: string
+          status?: string
+        }
+        Relationships: []
+      }
       Lead: {
         Row: {
           campaign: string | null
