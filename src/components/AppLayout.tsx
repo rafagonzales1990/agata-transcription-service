@@ -29,6 +29,8 @@ import { useTheme } from '@/hooks/useTheme';
 import { PWAInstallModal } from '@/components/PWAInstallModal';
 import { TrialExpiredOverlay } from '@/components/TrialExpiredOverlay';
 import { useTrialExpiredStatus } from '@/hooks/useTrialExpiredStatus';
+import { getDeviceId, getDeviceName } from '@/lib/deviceId';
+import { toast } from 'sonner';
 
 const menuItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -49,7 +51,7 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, profile } = useAuth();
+  const { signOut, profile, user } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const qc = useQueryClient();
@@ -101,6 +103,45 @@ export function AppLayout({ children }: AppLayoutProps) {
   useEffect(() => {
     fetchCpfAndAdmin();
   }, [fetchCpfAndAdmin]);
+
+  // Session registration: upsert on mount, refresh lastSeen every 5 min
+  useEffect(() => {
+    if (!user) return;
+    const deviceId = getDeviceId();
+    const deviceName = getDeviceName();
+    supabase.from('UserSession' as any).upsert(
+      { userId: user.id, deviceId, deviceName, userAgent: navigator.userAgent, lastSeen: new Date().toISOString(), isActive: true },
+      { onConflict: 'userId,deviceId' }
+    );
+    const interval = setInterval(() => {
+      supabase.from('UserSession' as any)
+        .update({ lastSeen: new Date().toISOString() })
+        .eq('userId', user.id)
+        .eq('deviceId', deviceId);
+    }, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Session validation: if this session was terminated remotely, sign out
+  useEffect(() => {
+    if (!user) return;
+    const checkSession = async () => {
+      const deviceId = getDeviceId();
+      const { data } = await supabase
+        .from('UserSession' as any)
+        .select('isActive')
+        .eq('userId', user.id)
+        .eq('deviceId', deviceId)
+        .maybeSingle();
+      if (data && !data.isActive) {
+        await supabase.auth.signOut();
+        toast.error('Sua sessão foi encerrada porque outro dispositivo logou na sua conta.');
+        navigate('/');
+      }
+    };
+    const interval = setInterval(checkSession, 2 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [user, navigate]);
 
   useEffect(() => {
     let cancelled = false;

@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import * as Sentry from '@sentry/react';
 import { pushEvent, gtag, GA_MEASUREMENT_ID } from '@/lib/gtag';
 import { queryClient } from '@/App';
+import { getDeviceId } from '@/lib/deviceId';
 
 const SSO_PROVIDERS = ['google', 'azure'];
 
@@ -110,6 +111,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           if (event === 'SIGNED_IN') {
             initializeOAuthUser(session);
+            supabase.functions.invoke('enforce-single-session', {
+              body: { userId: session.user.id, deviceId: getDeviceId() },
+            });
             const firstLoginKey = `agata_first_login_${session.user.id}`;
             if (!localStorage.getItem(firstLoginKey)) {
               localStorage.setItem(firstLoginKey, '1');
