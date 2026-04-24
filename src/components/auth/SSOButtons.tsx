@@ -2,9 +2,6 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
-// TODO: Enable Azure provider in Supabase after Azure AD client ID is configured.
-// Dashboard → Authentication → Providers → Azure
-
 interface SSOButtonsProps {
   mode?: 'login' | 'signup';
 }
@@ -35,7 +32,6 @@ export function SSOButtons({ mode = 'login' }: SSOButtonsProps) {
 
   const handleMicrosoftLogin = async () => {
     setLoadingMicrosoft(true);
-    // TODO: Enable Azure provider in Supabase after Azure AD client ID is configured.
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'azure',
       options: {
