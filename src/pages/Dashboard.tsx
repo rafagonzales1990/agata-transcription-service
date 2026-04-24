@@ -12,7 +12,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { OnboardingWelcome } from '@/components/OnboardingWelcome';
 import { OnboardingChecklist } from '@/components/OnboardingChecklist';
 import { UsageBanner } from '@/components/UsageBanner';
-import { GoogleCalendarMeetingsCard } from '@/components/GoogleCalendarMeetingsCard';
+// TODO: Google Calendar integration needs refactor to use
+// Google Identity Services token model instead of signInWithOAuth
+// See: https://developers.google.com/identity/oauth2/web/guides/use-token-model
+// import { GoogleCalendarMeetingsCard } from '@/components/GoogleCalendarMeetingsCard';
 import { useUsage } from '@/hooks/useUsage';
 import { useTrialExpiredStatus } from '@/hooks/useTrialExpiredStatus';
 import { toast } from 'sonner';
@@ -189,7 +192,7 @@ export default function DashboardPage() {
           <OnboardingWelcome onDismiss={() => setOnboardingDismissed(true)} />
         )}
 
-        <GoogleCalendarMeetingsCard />
+        {/* <GoogleCalendarMeetingsCard /> */}
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat, i) => (

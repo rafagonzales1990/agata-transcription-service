@@ -71,6 +71,9 @@ export default function SettingsPage() {
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4">
+          {/* TODO: Google Calendar integration needs refactor to use
+              Google Identity Services token model instead of signInWithOAuth
+              See: https://developers.google.com/identity/oauth2/web/guides/use-token-model
           <Card className="hover:shadow-md transition-shadow h-full border-l-4 border-l-primary">
             <CardContent className="p-6 flex items-start gap-4">
               <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -90,6 +93,7 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+          */}
           {settingsCards.map((card) => (
             <Link key={card.href} to={card.href}>
               <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
