@@ -41,6 +41,31 @@ Vá direto ao ponto técnico. Nunca snippets parciais — sempre arquivos comple
 
 ## Histórico de Releases
 
+### Security Fixes — 24/04/2026
+
+| Fix | Detalhe |
+|-----|---------|
+| MeetingShare | RPC `get_meeting_by_share_token` — SELECT direto bloqueado por RLS; SharedMeeting.tsx migrado para `.rpc()` |
+| NurturingLog | Policy explícita `USING(false)` — acesso só via service_role |
+| Functions | `SET search_path = public` em todas as funções para evitar search_path injection |
+| Storage | Policy restrita ao próprio uid — sem listagem pública |
+
+#### Azure AD configurado
+
+| Item | Detalhe |
+|------|---------|
+| Client ID | `8fbbec4e-2f38-4179-8147-fff591b79d19` |
+| Permissões | `User.Read`, `Calendars.Read`, `offline_access` |
+| Redirect URIs | Supabase callback + `agatatranscription.com` SPA |
+| Provider | Azure habilitado no Supabase Auth |
+
+#### Pendências para amanhã
+
+- Testar Microsoft SSO no login
+- Testar Google Calendar em Configurações → Integrações
+- Testar sessões ativas em Configurações → Segurança
+- Aguardar extensão v1.0.3 aprovação na Store
+
 ### Hotfixes — 24/04/2026
 
 #### Web (edge functions + infra)
