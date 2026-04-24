@@ -137,13 +137,13 @@ async function sendAlert(
 Deno.serve(async () => {
   const [g25, g20, openai] = await Promise.all([
     checkGeminiModel('gemini-2.5-flash'),
-    checkGeminiModel('gemini-2.0-flash'),
+    checkGeminiModel('gemini-2.5-flash-lite'),
     checkOpenAI(),
   ]);
 
   const results = {
     'Gemini 2.5 Flash': g25,
-    'Gemini 2.0 Flash': g20,
+    'Gemini 2.5 Flash Lite': g20,
     'OpenAI Whisper': openai,
   };
 

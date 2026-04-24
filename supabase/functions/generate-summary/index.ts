@@ -7,7 +7,7 @@ const corsHeaders = {
 
 const PAID_PLANS = ['inteligente', 'automacao', 'enterprise']
 
-const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash']
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite']
 
 const detectLanguageInstruction = `Analyze the transcription language and respond entirely in that same language. If the transcription is in English, respond in English. If in Spanish, respond in Spanish. If in Portuguese, respond in Portuguese. Never mix languages in your response.`
 

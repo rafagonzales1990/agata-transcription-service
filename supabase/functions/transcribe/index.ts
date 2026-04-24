@@ -6,7 +6,7 @@ const corsHeaders = {
 }
 
 const MAX_CHUNK_BYTES = 4 * 1024 * 1024
-const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash']
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite']
 
 async function fetchWithRetry(
   url: string,
