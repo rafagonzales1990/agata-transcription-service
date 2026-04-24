@@ -8,6 +8,7 @@ import { Sparkles, Eye, EyeOff, CheckCircle, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { conversionSignup, trackSignup, trackBeginSignup, trialStartedFromDemo } from '@/lib/gtag';
+import { SSOButtons } from '@/components/auth/SSOButtons';
 
 export default function SignupPage() {
   const [name, setName] = useState('');
@@ -226,6 +227,7 @@ export default function SignupPage() {
             <CardDescription>14 dias grátis, sem cartão de crédito</CardDescription>
           </CardHeader>
           <CardContent>
+            <SSOButtons mode="signup" />
             <form onSubmit={handleSignup} className="space-y-4">
               <div>
                 <label className="text-sm font-medium text-foreground mb-1 block">Nome</label>

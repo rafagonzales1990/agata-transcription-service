@@ -12,10 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { OnboardingWelcome } from '@/components/OnboardingWelcome';
 import { OnboardingChecklist } from '@/components/OnboardingChecklist';
 import { UsageBanner } from '@/components/UsageBanner';
-// TODO: Google Calendar integration needs refactor to use
-// Google Identity Services token model instead of signInWithOAuth
-// See: https://developers.google.com/identity/oauth2/web/guides/use-token-model
-// import { GoogleCalendarMeetingsCard } from '@/components/GoogleCalendarMeetingsCard';
+import { GoogleCalendarMeetingsCard } from '@/components/GoogleCalendarMeetingsCard';
 import { useUsage } from '@/hooks/useUsage';
 import { useTrialExpiredStatus } from '@/hooks/useTrialExpiredStatus';
 import { toast } from 'sonner';
@@ -135,6 +132,7 @@ export default function DashboardPage() {
           {!isTrialExpired && (
             <Link to="/upload" className="block">
               <button
+                type="button"
                 className="w-full py-5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-lg flex items-center justify-center gap-3 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={usage.isAtLimit}
               >

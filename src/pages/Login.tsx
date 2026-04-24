@@ -7,6 +7,7 @@ import { Sparkles, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { VersionBadge } from '@/components/VersionBadge';
+import { SSOButtons } from '@/components/auth/SSOButtons';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -84,6 +85,7 @@ export default function LoginPage() {
             <CardDescription>Acesse sua conta</CardDescription>
           </CardHeader>
           <CardContent>
+            <SSOButtons mode="login" />
             {emailNotConfirmed && (
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
                 <div className="flex items-start gap-3">
