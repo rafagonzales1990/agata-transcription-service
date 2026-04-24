@@ -92,6 +92,12 @@ Deno.serve(async () => {
         </div>
       </div>`;
     }
+    // CATCH-ALL: user has active trial but missed day1/day3
+    // (e.g. account older than 9 days but more than 4 days remaining)
+    else if (daysSince >= 9 && daysLeft > 4 &&
+             !sent.has('day1') && !sent.has('day3')) {
+      emailType = 'day3'; // send day3 as the first contact
+    }
     // DAY 10 — sent when 2-4 days remaining
     else if (daysLeft >= 2 && daysLeft <= 4 && !sent.has('day10')) {
       emailType = 'day10';
