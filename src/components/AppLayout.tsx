@@ -65,44 +65,37 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [trialOverlayDismissed, setTrialOverlayDismissed] = useState(false);
   const { isTrialExpired } = useTrialExpiredStatus();
 
-  const fetchCpfAndAdmin = useCallback(async () => {
+  const fetchUserData = useCallback(async () => {
+    if (!user) return;
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
-      if (!user) return;
-      const { data } = await supabase
-        .from('User')
-        .select('isAdmin, cpf, role, isTeamOwner, hasCompletedOnboarding')
-        .eq('id', user.id)
-        .maybeSingle();
+      const [userResult, meetingResult] = await Promise.all([
+        supabase
+          .from('User')
+          .select('isAdmin, cpf, role, isTeamOwner, hasCompletedOnboarding')
+          .eq('id', user.id)
+          .maybeSingle(),
+        supabase
+          .from('Meeting')
+          .select('id', { count: 'exact', head: true })
+          .eq('userId', user.id)
+          .eq('status', 'completed'),
+      ]);
+      const data = userResult.data as any;
       if (data?.isAdmin) setIsAdmin(true);
       if (data?.role === 'enterprise_admin' || data?.isTeamOwner) setIsEnterpriseAdmin(true);
       setUserCpf(data?.cpf ?? null);
       setHasCompletedOnboarding(data?.hasCompletedOnboarding ?? false);
-    } catch (error: any) {
-      if (error?.message?.includes('lock') || error?.message?.includes('stolen')) {
-        await new Promise(resolve => setTimeout(resolve, 200));
-        const { data: { session } } = await supabase.auth.getSession();
-        const user = session?.user;
-        if (!user) return;
-        const { data } = await supabase
-          .from('User')
-          .select('isAdmin, cpf, role, isTeamOwner, hasCompletedOnboarding')
-          .eq('id', user.id)
-          .maybeSingle();
-        if (data?.isAdmin) setIsAdmin(true);
-        if (data?.role === 'enterprise_admin' || data?.isTeamOwner) setIsEnterpriseAdmin(true);
-        setUserCpf(data?.cpf ?? null);
-        setHasCompletedOnboarding(data?.hasCompletedOnboarding ?? false);
-      }
+      setHasCompletedMeetings((meetingResult.count || 0) > 0);
+    } catch {
+      // non-critical — UI renders with defaults
     } finally {
       setUserDataLoaded(true);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
-    fetchCpfAndAdmin();
-  }, [fetchCpfAndAdmin]);
+    fetchUserData();
+  }, [fetchUserData]);
 
   // Session registration: upsert on mount, refresh lastSeen every 5 min
   useEffect(() => {
@@ -143,20 +136,6 @@ export function AppLayout({ children }: AppLayoutProps) {
     return () => clearInterval(interval);
   }, [user, navigate]);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) return;
-      const { count } = await supabase
-        .from('Meeting')
-        .select('id', { count: 'exact', head: true })
-        .eq('userId', session.user.id)
-        .eq('status', 'completed');
-      if (!cancelled) setHasCompletedMeetings((count || 0) > 0);
-    })();
-    return () => { cancelled = true; };
-  }, []);
 
   const isActive = (path: string) => {
     if (path === '/dashboard') return location.pathname === path;
@@ -465,7 +444,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         />
       )}
       {needsCpf && authUser && (
-        <CpfRequiredModal userId={authUser.user_id} onSaved={fetchCpfAndAdmin} onDismiss={() => setUserCpf('dismissed')} />
+        <CpfRequiredModal userId={authUser.user_id} onSaved={fetchUserData} onDismiss={() => setUserCpf('dismissed')} />
       )}
       <PWAInstallModal open={pwaModalOpen} onOpenChange={setPwaModalOpen} />
     </div>
