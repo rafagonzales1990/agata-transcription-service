@@ -58,6 +58,13 @@ Deno.serve(async (req) => {
     const allLogs = logs || []
     const currentMonth = new Date().toISOString().slice(0, 7)
 
+    // Normalize provider variants into canonical buckets
+    function normalizeProvider(provider: string | null): string {
+      if (!provider || provider.includes('gemini') || provider.includes('groq')) return 'gemini'
+      if (provider.includes('openai') || provider.includes('whisper') || provider.includes('gpt')) return 'openai'
+      return provider
+    }
+
     let totalTranscriptions = allLogs.length
     let totalMinutes = 0
     let totalCostCents = 0
@@ -68,7 +75,7 @@ Deno.serve(async (req) => {
       totalMinutes += Math.round((log.durationSecs || 0) / 60)
       totalCostCents += log.costCents || 0
 
-      const provider = log.provider || 'gemini'
+      const provider = normalizeProvider(log.provider)
       if (!providerStats[provider]) providerStats[provider] = { minutes: 0, cost: 0, count: 0 }
       providerStats[provider].minutes += Math.round((log.durationSecs || 0) / 60)
       providerStats[provider].cost += log.costCents || 0
@@ -82,11 +89,12 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Count all Gemini-family requests today (covers 'gemini', 'gemini-2.5-flash', etc.)
     const todayStr = new Date().toISOString().slice(0, 10)
     const { count: dailyGeminiCount } = await supabase
       .from('TranscriptionLog')
       .select('*', { count: 'exact', head: true })
-      .eq('provider', 'gemini')
+      .ilike('provider', '%gemini%')
       .gte('createdAt', todayStr + 'T00:00:00.000Z')
       .lte('createdAt', todayStr + 'T23:59:59.999Z')
 

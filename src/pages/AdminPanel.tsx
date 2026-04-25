@@ -1153,8 +1153,8 @@ export default function AdminPanel() {
                               <TableRow key={log.id}>
                                 <TableCell className="text-xs font-mono">{new Date(log.createdAt).toLocaleDateString('pt-BR')}</TableCell>
                                 <TableCell>
-                                  <Badge className={['groq', 'gemini'].includes(log.provider) ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}>
-                                    {log.provider === 'gemini' || log.provider === 'groq' ? 'Gemini' : 'OpenAI'}
+                                  <Badge className={log.provider?.includes('gemini') || log.provider?.includes('groq') ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}>
+                                    {log.provider?.includes('gemini') || log.provider?.includes('groq') ? 'Gemini' : 'OpenAI'}
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="font-mono text-sm">{Math.round(log.durationSecs / 60)}min</TableCell>
