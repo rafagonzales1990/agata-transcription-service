@@ -132,7 +132,7 @@ export default function MeetingDetail() {
     const { data, error } = await supabase
       .from("Meeting")
       .select(
-        "id, title, fileName, cloudStoragePath, status, createdAt, summary, transcription, participants, meetingDate, meetingTime, actionItems, responsible, location, description, ataTemplate, fileDuration, followupDraft",
+        "id, title, fileName, cloudStoragePath, status, createdAt, summary, transcription, participants, meetingDate, meetingTime, actionItems, responsible, location, description, ataTemplate, fileDuration, followupDraft, fileDeleted, fileExpiresAt",
       )
       .eq("id", id)
       .maybeSingle();
