@@ -15,11 +15,9 @@ async function initializeOAuthUser(session: Session) {
 
   const { data: existing } = await supabase
     .from('User' as any)
-    .select('id')
+    .select('id, trialEndsAt, name, hasCompletedOnboarding')
     .eq('id', user.id)
     .maybeSingle();
-
-  if (existing) return;
 
   const name =
     user.user_metadata?.full_name ||
@@ -28,6 +26,22 @@ async function initializeOAuthUser(session: Session) {
     'Usuário';
 
   const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+
+  if (existing) {
+    // Usuário já criado pelo trigger handle_new_user — garante que trialEndsAt esteja preenchido
+    const existingRow = existing as any;
+    if (!existingRow.trialEndsAt) {
+      await supabase
+        .from('User' as any)
+        .update({
+          trialEndsAt,
+          name: existingRow.name || name,
+          hasCompletedOnboarding: true,
+        } as any)
+        .eq('id', user.id);
+    }
+    return;
+  }
 
   await supabase.from('User' as any).upsert(
     { id: user.id, email: user.email, name, hasCompletedOnboarding: true, trialEndsAt, planId: 'basic' },
