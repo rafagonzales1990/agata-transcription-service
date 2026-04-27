@@ -46,17 +46,25 @@ async function fetchWithRetry(
   throw lastError ?? new Error('fetchWithRetry exhausted')
 }
 
-const TRANSCRIPTION_PROMPT = `No início da sua resposta, antes da transcrição, adicione uma linha:
+const TRANSCRIPTION_PROMPT = `No início da sua resposta, adicione:
 DURACAO_SEGUNDOS: [número inteiro de segundos do áudio]
 
-Depois transcreva este áudio completamente em português brasileiro.
-       Inclua marcações de quem está falando quando possível.
-       Mantenha a transcrição fiel ao que foi dito, sem resumir.
-       Após a transcrição completa, adicione:
-       ## Resumo
-       (resumo executivo dos pontos principais)
-       ## Itens de Ação
-       (tarefas e compromissos mencionados, um por linha)`
+Depois transcreva este áudio completo em português brasileiro com identificação de locutor no formato:
+
+[Locutor 1]: texto falado
+[Locutor 2]: texto falado
+
+Regras:
+- Identifique cada locutor por número (Locutor 1, Locutor 2, etc.)
+- Se o locutor se identificar pelo nome no áudio, use o nome real (ex: [Rafael]:)
+- Mantenha a transcrição fiel, sem resumir
+- Se não conseguir distinguir o locutor, use [?]:
+
+Após a transcrição completa, adicione:
+## Resumo
+(resumo executivo dos pontos principais)
+## Itens de Ação
+(tarefas e compromissos mencionados, um por linha)`
 
 function removePromptLeaks(text: string): string {
   return text
