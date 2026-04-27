@@ -228,23 +228,6 @@ async function waitForFileActive(fileUri: string, geminiApiKey: string): Promise
 
 // ── AssemblyAI helpers ─────────────────────────────────────────────────────
 
-async function waitForAssemblyAI(transcriptId: string, apiKey: string): Promise<any> {
-  for (let i = 0; i < 40; i++) {
-    await new Promise(r => setTimeout(r, 5000))
-    const res = await fetch(`https://api.assemblyai.com/v2/transcript/${transcriptId}`, {
-      headers: { 'Authorization': apiKey },
-    })
-    if (!res.ok) {
-      console.warn(`[AssemblyAI] Poll ${i + 1}: HTTP ${res.status}`)
-      continue
-    }
-    const data = await res.json()
-    console.log(`[AssemblyAI] Status (attempt ${i + 1}): ${data.status}`)
-    if (data.status === 'completed') return data
-    if (data.status === 'error') throw new Error(`AssemblyAI error: ${data.error}`)
-  }
-  throw new Error('[AssemblyAI] Polling timeout after 200s')
-}
 
 function formatAssemblyAITranscript(data: any): string {
   if (data.utterances && data.utterances.length > 0) {
@@ -378,6 +361,8 @@ async function processTranscription(
 
         if (!signedData?.signedUrl) throw new Error('Failed to generate signed URL')
 
+        const webhookUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/assemblyai-webhook`
+
         const submitRes = await fetch('https://api.assemblyai.com/v2/transcript', {
           method: 'POST',
           headers: { 'Authorization': assemblyApiKey, 'Content-Type': 'application/json' },
@@ -387,6 +372,9 @@ async function processTranscription(
             speaker_labels: true,
             punctuate: true,
             format_text: true,
+            webhook_url: webhookUrl,
+            webhook_auth_header_name: 'x-webhook-secret',
+            webhook_auth_header_value: Deno.env.get('ASSEMBLYAI_WEBHOOK_SECRET') || 'agata-webhook-secret',
           }),
         })
 
@@ -396,18 +384,21 @@ async function processTranscription(
         }
 
         const { id: transcriptId } = await submitRes.json()
-        console.log(`[AssemblyAI] Job ID: ${transcriptId}`)
+        console.log(`[AssemblyAI] Job submitted: ${transcriptId}, webhook: ${webhookUrl}`)
 
-        const result = await waitForAssemblyAI(transcriptId, assemblyApiKey)
-        fullTranscriptionText = formatAssemblyAITranscript(result)
-        transcriptionProvider = 'assemblyai'
-        if (result.audio_duration) {
-          realDurationSeconds = Math.round(result.audio_duration / 1000)
-        }
-        console.log(`[AssemblyAI] ✅ Completed — ${fullTranscriptionText.length} chars, ${realDurationSeconds}s`)
+        await supabase.from('Meeting').update({
+          assemblyTranscriptId: transcriptId,
+          status: 'processing',
+          updatedAt: new Date().toISOString(),
+        }).eq('id', meetingId)
+
+        // Exit cleanly — assemblyai-webhook will complete the flow
+        console.log(`[AssemblyAI] Waiting for webhook callback for meeting ${meetingId}`)
+        return
 
       } catch (aaiErr) {
-        console.warn('[AssemblyAI] Failed, falling back to Gemini:', (aaiErr as Error).message)
+        // Only falls through to Gemini if the SUBMIT itself failed
+        console.warn('[AssemblyAI] Submit failed, falling back to Gemini:', (aaiErr as Error).message)
         fullTranscriptionText = ''
       }
     } else {
