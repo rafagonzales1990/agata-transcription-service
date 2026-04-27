@@ -26,6 +26,7 @@ import { useMeetings, type MeetingListItem } from '@/hooks/useMeetings';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTrialExpiredStatus } from '@/hooks/useTrialExpiredStatus';
+import { RetranscribeButton } from '@/components/RetranscribeButton';
 
 type Meeting = MeetingListItem;
 
