@@ -503,6 +503,15 @@ export default function MeetingsPage() {
                     </Popover>}
 
                     {!isTrialExpired && <div className="flex gap-1 shrink-0">
+                      <RetranscribeButton
+                        meetingId={meeting.id}
+                        storagePath={meeting.cloudStoragePath}
+                        status={meeting.status}
+                        fileDeleted={meeting.fileDeleted}
+                        fileExpiresAt={meeting.fileExpiresAt}
+                        variant="icon"
+                        onStarted={invalidateMeetings}
+                      />
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(meeting)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
