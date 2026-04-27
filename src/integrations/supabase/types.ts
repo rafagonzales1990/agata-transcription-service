@@ -180,6 +180,38 @@ export type Database = {
           },
         ]
       }
+      AuthorizedDevice: {
+        Row: {
+          authorizedAt: string
+          deviceId: string
+          deviceName: string | null
+          id: string
+          userId: string
+        }
+        Insert: {
+          authorizedAt?: string
+          deviceId: string
+          deviceName?: string | null
+          id?: string
+          userId: string
+        }
+        Update: {
+          authorizedAt?: string
+          deviceId?: string
+          deviceName?: string | null
+          id?: string
+          userId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "AuthorizedDevice_userId_fkey"
+            columns: ["userId"]
+            isOneToOne: false
+            referencedRelation: "User"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       BlogPost: {
         Row: {
           category: string
@@ -230,6 +262,47 @@ export type Database = {
           updatedAt?: string
         }
         Relationships: []
+      }
+      CalendarIntegration: {
+        Row: {
+          accessToken: string
+          createdAt: string
+          expiresAt: string | null
+          id: string
+          provider: string
+          refreshToken: string | null
+          updatedAt: string
+          userId: string
+        }
+        Insert: {
+          accessToken: string
+          createdAt?: string
+          expiresAt?: string | null
+          id?: string
+          provider: string
+          refreshToken?: string | null
+          updatedAt?: string
+          userId: string
+        }
+        Update: {
+          accessToken?: string
+          createdAt?: string
+          expiresAt?: string | null
+          id?: string
+          provider?: string
+          refreshToken?: string | null
+          updatedAt?: string
+          userId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "CalendarIntegration_userId_fkey"
+            columns: ["userId"]
+            isOneToOne: false
+            referencedRelation: "User"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ExtensionRecording: {
         Row: {
@@ -1171,6 +1244,50 @@ export type Database = {
           },
         ]
       }
+      UserSession: {
+        Row: {
+          createdAt: string
+          deviceId: string
+          deviceName: string | null
+          id: string
+          ipAddress: string | null
+          isActive: boolean
+          lastSeen: string
+          userAgent: string | null
+          userId: string
+        }
+        Insert: {
+          createdAt?: string
+          deviceId: string
+          deviceName?: string | null
+          id?: string
+          ipAddress?: string | null
+          isActive?: boolean
+          lastSeen?: string
+          userAgent?: string | null
+          userId: string
+        }
+        Update: {
+          createdAt?: string
+          deviceId?: string
+          deviceName?: string | null
+          id?: string
+          ipAddress?: string | null
+          isActive?: boolean
+          lastSeen?: string
+          userAgent?: string | null
+          userId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "UserSession_userId_fkey"
+            columns: ["userId"]
+            isOneToOne: false
+            referencedRelation: "User"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       VerificationToken: {
         Row: {
           expires: string
@@ -1271,6 +1388,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_meeting_by_share_token: {
+        Args: { share_token: string }
+        Returns: {
+          createdAt: string
+          expiresAt: string
+          id: string
+          meetingId: string
+          token: string
+        }[]
+      }
       get_my_role: { Args: never; Returns: string }
       get_my_team_id: { Args: never; Returns: string }
       get_old_user_id: { Args: { _auth_uid: string }; Returns: string }
