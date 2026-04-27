@@ -6,6 +6,8 @@ const corsHeaders = {
 }
 
 const MAX_CHUNK_BYTES = 4 * 1024 * 1024
+const MAX_OPENAI_BYTES = 25 * 1024 * 1024   // Whisper hard limit
+const OPENAI_CHUNK_SIZE = 24 * 1024 * 1024  // stay safely under limit
 const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite']
 
 async function fetchWithRetry(
@@ -132,6 +134,43 @@ async function transcribeWithGroq(
 
   const text = await response.text()
   return `## Transcrição\n${text}`
+}
+
+// Splits large files into 24MB chunks and transcribes each with Whisper sequentially.
+// Byte-level splitting is best-effort for webm/opus — Gemini should always be preferred
+// for files over 25MB; this is only a last-resort fallback.
+async function transcribeWithOpenAIChunked(
+  arrayBuffer: ArrayBuffer,
+  mimeType: string,
+  fileName: string,
+  openaiApiKey: string
+): Promise<string> {
+  const totalBytes = arrayBuffer.byteLength
+
+  if (totalBytes <= MAX_OPENAI_BYTES) {
+    return transcribeWithOpenAI(arrayBuffer, mimeType, fileName, openaiApiKey)
+  }
+
+  const ext = fileName.split('.').pop() || 'webm'
+  const totalChunks = Math.ceil(totalBytes / OPENAI_CHUNK_SIZE)
+  console.log(`[OpenAI] File ${totalBytes} bytes exceeds Whisper limit — splitting into ${totalChunks} chunks of ${OPENAI_CHUNK_SIZE} bytes`)
+
+  const results: string[] = []
+  for (let i = 0; i < totalChunks; i++) {
+    const start = i * OPENAI_CHUNK_SIZE
+    const chunkBuffer = arrayBuffer.slice(start, start + OPENAI_CHUNK_SIZE)
+    const chunkName = `chunk_${i}.${ext}`
+    console.log(`[OpenAI] Chunk ${i + 1}/${totalChunks}: ${chunkBuffer.byteLength} bytes`)
+    try {
+      const text = await transcribeWithOpenAI(chunkBuffer, mimeType, chunkName, openaiApiKey)
+      results.push(text)
+    } catch (chunkErr) {
+      console.error(`[OpenAI] Chunk ${i + 1}/${totalChunks} failed:`, (chunkErr as Error).message)
+      results.push(`[Trecho ${i + 1} não pôde ser transcrito]`)
+    }
+  }
+
+  return results.join('\n')
 }
 
 async function waitForFileActive(fileUri: string, geminiApiKey: string): Promise<void> {
@@ -352,7 +391,7 @@ async function processTranscription(
 
         if (!uploadResponse.ok) {
           const errText = await uploadResponse.text()
-          console.error('Gemini file upload error:', errText)
+          console.error(`[Gemini Files API] Upload failed: ${uploadResponse.status}`, errText.substring(0, 500))
           throw new Error(`Gemini file upload failed: ${uploadResponse.status}`)
         }
 
@@ -401,12 +440,14 @@ async function processTranscription(
         }
         if (!largeFileSuccess) throw new Error('Todos os modelos Gemini falharam no arquivo grande')
       } catch (geminiErr) {
-        console.warn('Gemini falhou para arquivo grande, usando OpenAI Whisper:', (geminiErr as Error).message)
+        console.warn(`[Gemini] Falhou para arquivo grande (${totalBytes} bytes), tentando OpenAI Whisper com chunking:`, (geminiErr as Error).message)
         if (!openaiApiKey) throw geminiErr
         const fileName = storagePath.split('/').pop() || 'audio'
-        fullTranscriptionText = await transcribeWithOpenAI(arrayBuffer, effectiveMimeType, fileName, openaiApiKey)
+        // transcribeWithOpenAIChunked splits into 24MB chunks when file > 25MB,
+        // avoiding the Whisper 413 error that caused silent failures on retry
+        fullTranscriptionText = await transcribeWithOpenAIChunked(arrayBuffer, effectiveMimeType, fileName, openaiApiKey)
         transcriptionProvider = 'openai'
-        console.log('OpenAI Whisper fallback concluído com sucesso')
+        console.log(`[OpenAI] Whisper fallback concluído — ${totalBytes} bytes processados`)
       }
     }
 
