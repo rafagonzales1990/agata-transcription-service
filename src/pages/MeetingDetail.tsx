@@ -707,6 +707,16 @@ export default function MeetingDetail() {
               {!isTrialExpired && <Button variant="outline" size="sm" onClick={() => setShareOpen(true)} className="flex items-center gap-1.5">
                 <Share2 className="h-3.5 w-3.5" /> Compartilhar
               </Button>}
+              {!isTrialExpired && isRetranscribeAvailable(meeting.fileDeleted, meeting.fileExpiresAt) && (
+                <RetranscribeButton
+                  meetingId={meeting.id}
+                  storagePath={meeting.cloudStoragePath}
+                  status={meeting.status}
+                  fileDeleted={meeting.fileDeleted}
+                  fileExpiresAt={meeting.fileExpiresAt}
+                  onStarted={() => setMeeting((prev) => prev ? { ...prev, status: "processing" } : prev)}
+                />
+              )}
               <Badge variant={cfg.variant} className="shrink-0 flex items-center gap-1">
                 <StatusIcon className="h-3 w-3" /> {cfg.label}
               </Badge>
