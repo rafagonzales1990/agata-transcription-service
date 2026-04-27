@@ -14,12 +14,15 @@ export interface MeetingListItem {
   location: string | null;
   responsible: string | null;
   projectId: string | null;
+  cloudStoragePath: string;
+  fileDeleted: boolean | null;
+  fileExpiresAt: string | null;
 }
 
 async function fetchMeetingsList(userId: string): Promise<MeetingListItem[]> {
   const { data, error } = await supabase
     .from('Meeting')
-    .select('id, title, fileName, status, createdAt, summary, participants, meetingDate, meetingTime, location, responsible, projectId')
+    .select('id, title, fileName, status, createdAt, summary, participants, meetingDate, meetingTime, location, responsible, projectId, cloudStoragePath, fileDeleted, fileExpiresAt')
     .eq('userId', userId)
     .order('createdAt', { ascending: false });
 
@@ -36,3 +39,4 @@ export function useMeetings(userId: string | undefined) {
 }
 
 export { fetchMeetingsList };
+
