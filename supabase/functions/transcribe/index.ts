@@ -175,8 +175,8 @@ async function transcribeWithOpenAIChunked(
 
 async function waitForFileActive(fileUri: string, geminiApiKey: string): Promise<void> {
   const fileName = fileUri.split('/').pop()
-  for (let i = 0; i < 15; i++) {
-    await new Promise(r => setTimeout(r, 2000))
+  for (let i = 0; i < 30; i++) {
+    await new Promise(r => setTimeout(r, 3000))
     try {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/files/${fileName}?key=${geminiApiKey}`)
       if (res.ok) {
@@ -375,19 +375,29 @@ async function processTranscription(
       console.log(`Large file (${totalBytes} bytes), using Gemini Files API`)
 
       try {
-        const uploadResponse = await fetch(
-          `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${geminiApiKey}`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': effectiveMimeType,
-              'X-Goog-Upload-Protocol': 'raw',
-              'X-Goog-Upload-Header-Content-Length': totalBytes.toString(),
-              'X-Goog-Upload-Header-Content-Type': effectiveMimeType,
-            },
-            body: new Uint8Array(arrayBuffer),
-          }
-        )
+        const uploadController = new AbortController()
+        const uploadTimeout = setTimeout(() => uploadController.abort(), 120000)
+        let uploadResponse: Response
+        try {
+          uploadResponse = await fetch(
+            `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${geminiApiKey}`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': effectiveMimeType,
+                'X-Goog-Upload-Protocol': 'raw',
+                'X-Goog-Upload-Header-Content-Length': totalBytes.toString(),
+                'X-Goog-Upload-Header-Content-Type': effectiveMimeType,
+              },
+              body: new Uint8Array(arrayBuffer),
+              signal: uploadController.signal,
+            }
+          )
+          clearTimeout(uploadTimeout)
+        } catch (uploadErr) {
+          clearTimeout(uploadTimeout)
+          throw new Error(`Gemini Files API upload failed: ${(uploadErr as Error).message}`)
+        }
 
         if (!uploadResponse.ok) {
           const errText = await uploadResponse.text()
@@ -396,8 +406,12 @@ async function processTranscription(
         }
 
         const uploadResult = await uploadResponse.json()
-        const fileUri = uploadResult.file?.uri
-        if (!fileUri) throw new Error('Gemini file upload did not return a URI')
+        console.log('[Gemini Files API] Upload response:', JSON.stringify(uploadResult).substring(0, 500))
+        const fileUri = uploadResult?.file?.uri || uploadResult?.uri || uploadResult?.name
+        if (!fileUri) {
+          console.error('[Gemini Files API] No URI in response. Full response:', JSON.stringify(uploadResult))
+          throw new Error('Gemini file upload did not return a URI')
+        }
 
         console.log(`File uploaded to Gemini: ${fileUri}`)
 
