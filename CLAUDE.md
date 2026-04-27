@@ -37,7 +37,7 @@ Vá direto ao ponto técnico. Nunca snippets parciais — sempre arquivos comple
 ## Versão atual
 - Web App: v1.5.0 (`src/config/appVersion.ts`)
 - Desktop: v1.0.5
-- Extensão Chrome: v1.0.3 🔄 em revisão
+- Extensão Chrome: v1.0.4 🔄 em revisão
 
 ## Histórico de Releases
 
@@ -253,6 +253,26 @@ Vá direto ao ponto técnico. Nunca snippets parciais — sempre arquivos comple
 **Causa raiz do dia:** Gemini API com instabilidade generalizada (503) em 22/04/2026.
 **Secrets adicionados:** OPENAI_API_KEY
 **Regra crítica:** GEMINI_MODEL = 'gemini-2.0-flash' (2.5-flash instável no v1beta)
+
+### DEV 13 — Migração Lovable → Vercel — 27/04/2026
+
+| Item | Detalhe |
+|------|---------|
+| Branch develop | Criada no GitHub — Lovable commita em develop |
+| Vercel | Projeto criado: `agata-transcription-service.vercel.app` |
+| vercel.json | Criado na raiz — SPA routing (fix 404 em OAuth redirects) |
+| DNS | Nameservers Hostinger → `ns1.vercel-dns.com` / `ns2.vercel-dns.com` |
+| Propagação DNS | < 1 hora |
+| Supabase Auth URLs | Atualizadas: `agatatranscription.com` + `*.vercel.app` |
+| Google Cloud OAuth | Redirect URIs atualizados |
+| Azure OAuth | Redirect URIs já estavam configurados |
+| SSO Microsoft | Funcionando via `rafa_rez@msn.com` |
+| SSO Google | Configurado (testado com novo usuário) |
+
+**Fluxo de deploy:**
+- `develop` → Lovable / VS Code (preview)
+- `main` → Vercel (produção automática)
+- Merge: `git checkout main && git merge develop && git push origin main`
 
 ## Planos
 - basic (Gratuito), inteligente (Essencial R$49/mês), automacao (Pro R$183/mês), enterprise
