@@ -11,7 +11,9 @@
       "Bash(git push *)",
       "Bash(git pull *)",
       "Bash(git stash *)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(git checkout *)",
+      "Bash(git merge *)"
     ]
   }
 }
