@@ -144,6 +144,34 @@ async function transcribeWithGroq(
   return `## Transcrição\n${text}`
 }
 
+async function transcribeWithOpenAI(
+  arrayBuffer: ArrayBuffer,
+  mimeType: string,
+  fileName: string,
+  openaiApiKey: string
+): Promise<string> {
+  const formData = new FormData()
+  const blob = new Blob([arrayBuffer], { type: mimeType })
+  formData.append('file', blob, fileName)
+  formData.append('model', 'whisper-1')
+  formData.append('language', 'pt')
+  formData.append('response_format', 'text')
+
+  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${openaiApiKey}` },
+    body: formData,
+  })
+
+  if (!response.ok) {
+    const err = await response.text()
+    throw new Error(`OpenAI Whisper error ${response.status}: ${err.substring(0, 300)}`)
+  }
+
+  const text = await response.text()
+  return text
+}
+
 // Splits large files into 24MB chunks and transcribes each with Whisper sequentially.
 // Byte-level splitting is best-effort for webm/opus — Gemini should always be preferred
 // for files over 25MB; this is only a last-resort fallback.
@@ -198,42 +226,44 @@ async function waitForFileActive(fileUri: string, geminiApiKey: string): Promise
   console.warn('File polling timed out, proceeding anyway')
 }
 
-async function transcribeWithOpenAI(
-  arrayBuffer: ArrayBuffer,
-  mimeType: string,
-  fileName: string,
-  openaiApiKey: string
-): Promise<string> {
-  const formData = new FormData()
-  const blob = new Blob([arrayBuffer], { type: mimeType })
-  formData.append('file', blob, fileName)
-  formData.append('model', 'whisper-1')
-  formData.append('language', 'pt')
-  formData.append('response_format', 'text')
+// ── AssemblyAI helpers ─────────────────────────────────────────────────────
 
-  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${openaiApiKey}` },
-    body: formData,
-  })
-
-  if (!response.ok) {
-    const err = await response.text()
-    throw new Error(`OpenAI Whisper error ${response.status}: ${err.substring(0, 300)}`)
+async function waitForAssemblyAI(transcriptId: string, apiKey: string): Promise<any> {
+  for (let i = 0; i < 40; i++) {
+    await new Promise(r => setTimeout(r, 5000))
+    const res = await fetch(`https://api.assemblyai.com/v2/transcript/${transcriptId}`, {
+      headers: { 'Authorization': apiKey },
+    })
+    if (!res.ok) {
+      console.warn(`[AssemblyAI] Poll ${i + 1}: HTTP ${res.status}`)
+      continue
+    }
+    const data = await res.json()
+    console.log(`[AssemblyAI] Status (attempt ${i + 1}): ${data.status}`)
+    if (data.status === 'completed') return data
+    if (data.status === 'error') throw new Error(`AssemblyAI error: ${data.error}`)
   }
-
-  const text = await response.text()
-  return text
+  throw new Error('[AssemblyAI] Polling timeout after 200s')
 }
+
+function formatAssemblyAITranscript(data: any): string {
+  if (data.utterances && data.utterances.length > 0) {
+    return data.utterances
+      .map((u: any) => `[Locutor ${u.speaker}]: ${u.text}`)
+      .join('\n')
+  }
+  return data.text || ''
+}
+
+// ── Main transcription function ────────────────────────────────────────────
 
 async function processTranscription(
   meetingId: string,
   storagePath: string,
   supabase: any,
-  geminiApiKey: string
 ): Promise<void> {
   try {
-    // Rate limiting: max 10 transcription attempts per user per hour
+    // ── Rate limiting: max 10 transcription attempts per user per hour ─
     const { data: meetingOwner } = await supabase
       .from('Meeting')
       .select('userId')
@@ -306,28 +336,12 @@ async function processTranscription(
       }
     }
 
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
+    // ── API keys ───────────────────────────────────────────────────────
+    const assemblyApiKey = Deno.env.get('ASSEMBLYAI_API_KEY')
+    const geminiApiKey   = Deno.env.get('GOOGLE_GEMINI_API_KEY')
+    const openaiApiKey   = Deno.env.get('OPENAI_API_KEY')
 
-    // Download file from storage
-    const { data: fileData, error: downloadError } = await supabase.storage
-      .from('meetings')
-      .download(storagePath)
-
-    if (downloadError || !fileData) {
-      await supabase.from('Meeting').update({
-        status: 'failed',
-        errorMessage: `Failed to download file: ${downloadError?.message}`,
-        updatedAt: new Date().toISOString(),
-      }).eq('id', meetingId)
-      await supabase.channel('meeting-status').send({
-        type: 'broadcast',
-        event: 'transcription_update',
-        payload: { meetingId, status: 'failed' },
-      })
-      return
-    }
-
-    // Determine MIME type
+    // ── MIME type — derived from path, no download needed for AssemblyAI ─
     const ext = storagePath.split('.').pop()?.toLowerCase() || ''
     const mimeMap: Record<string, string> = {
       mp3: 'audio/mpeg',
@@ -346,152 +360,240 @@ async function processTranscription(
     // pois o Gemini rejeita audio/webm com codec de vídeo
     const effectiveMimeType = (ext === 'webm') ? 'video/webm' : mimeType
 
-    let transcriptionProvider = 'gemini'
-
-    // Transcribe based on file size
-    const arrayBuffer = await fileData.arrayBuffer()
-    const totalBytes = arrayBuffer.byteLength
     let fullTranscriptionText = ''
+    let transcriptionProvider = 'assemblyai'
+    let realDurationSeconds = 0
+    let totalBytes = 0
+    let arrayBuffer: ArrayBuffer | null = null
 
-    if (totalBytes <= MAX_CHUNK_BYTES) {
-      console.log(`Small file (${totalBytes} bytes), using inline_data`)
-      const base64Data = btoa(
-        new Uint8Array(arrayBuffer)
-          .reduce((data, byte) => data + String.fromCharCode(byte), '')
-      )
-      let chunkSuccess = false
-      for (const model of GEMINI_MODELS) {
-        try {
-          fullTranscriptionText = await transcribeChunk(
-            base64Data, effectiveMimeType, geminiApiKey, 0, 1, model
-          )
-          transcriptionProvider = model
-          chunkSuccess = true
-          break
-        } catch (modelErr) {
-          console.warn(`[Gemini] ${model} falhou no arquivo pequeno:`, (modelErr as Error).message)
+    // ── PRIMARY: AssemblyAI Universal-2 ───────────────────────────────
+    // Uses a signed URL — no buffer download required, supports up to 2GB
+    if (assemblyApiKey) {
+      try {
+        console.log('[AssemblyAI] Starting transcription...')
+
+        const { data: signedData } = await supabase.storage
+          .from('meetings')
+          .createSignedUrl(storagePath, 3600)
+
+        if (!signedData?.signedUrl) throw new Error('Failed to generate signed URL')
+
+        const submitRes = await fetch('https://api.assemblyai.com/v2/transcript', {
+          method: 'POST',
+          headers: { 'Authorization': assemblyApiKey, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            audio_url: signedData.signedUrl,
+            language_code: 'pt',
+            speaker_labels: true,
+            punctuate: true,
+            format_text: true,
+          }),
+        })
+
+        if (!submitRes.ok) {
+          const err = await submitRes.text()
+          throw new Error(`Submit failed: ${submitRes.status} - ${err.substring(0, 200)}`)
         }
-      }
-      if (!chunkSuccess) {
-        if (!openaiApiKey) throw new Error('Todos os modelos Gemini falharam e OPENAI_API_KEY não configurado')
-        const fileName = storagePath.split('/').pop() || 'audio'
-        fullTranscriptionText = await transcribeWithOpenAI(arrayBuffer, effectiveMimeType, fileName, openaiApiKey)
-        transcriptionProvider = 'openai'
-        console.log('OpenAI Whisper fallback concluído com sucesso')
+
+        const { id: transcriptId } = await submitRes.json()
+        console.log(`[AssemblyAI] Job ID: ${transcriptId}`)
+
+        const result = await waitForAssemblyAI(transcriptId, assemblyApiKey)
+        fullTranscriptionText = formatAssemblyAITranscript(result)
+        transcriptionProvider = 'assemblyai'
+        if (result.audio_duration) {
+          realDurationSeconds = Math.round(result.audio_duration / 1000)
+        }
+        console.log(`[AssemblyAI] ✅ Completed — ${fullTranscriptionText.length} chars, ${realDurationSeconds}s`)
+
+      } catch (aaiErr) {
+        console.warn('[AssemblyAI] Failed, falling back to Gemini:', (aaiErr as Error).message)
+        fullTranscriptionText = ''
       }
     } else {
-      console.log(`Large file (${totalBytes} bytes), using Gemini Files API`)
+      console.warn('[AssemblyAI] API key not configured, skipping to Gemini')
+    }
 
+    // ── SECONDARY: Gemini 2.5 Flash ───────────────────────────────────
+    // Downloads buffer; uses inline_data for small files, Files API for large
+    if (!fullTranscriptionText && geminiApiKey) {
       try {
-        const uploadController = new AbortController()
-        const uploadTimeout = setTimeout(() => uploadController.abort(), 120000)
-        let uploadResponse: Response
-        try {
-          uploadResponse = await fetch(
-            `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${geminiApiKey}`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': effectiveMimeType,
-                'X-Goog-Upload-Protocol': 'raw',
-                'X-Goog-Upload-Header-Content-Length': totalBytes.toString(),
-                'X-Goog-Upload-Header-Content-Type': effectiveMimeType,
-              },
-              body: new Uint8Array(arrayBuffer),
-              signal: uploadController.signal,
-            }
+        console.log('[Gemini] Starting transcription — downloading file buffer...')
+
+        const { data: fileData, error: downloadError } = await supabase.storage
+          .from('meetings')
+          .download(storagePath)
+
+        if (downloadError || !fileData) throw new Error(`Failed to download file: ${downloadError?.message}`)
+
+        arrayBuffer = await fileData.arrayBuffer()
+        totalBytes = arrayBuffer.byteLength
+
+        if (totalBytes <= MAX_CHUNK_BYTES) {
+          console.log(`[Gemini] Small file (${totalBytes} bytes), using inline_data`)
+          const base64Data = btoa(
+            new Uint8Array(arrayBuffer)
+              .reduce((data, byte) => data + String.fromCharCode(byte), '')
           )
-          clearTimeout(uploadTimeout)
-        } catch (uploadErr) {
-          clearTimeout(uploadTimeout)
-          throw new Error(`Gemini Files API upload failed: ${(uploadErr as Error).message}`)
-        }
+          let chunkSuccess = false
+          for (const model of GEMINI_MODELS) {
+            try {
+              fullTranscriptionText = await transcribeChunk(
+                base64Data, effectiveMimeType, geminiApiKey, 0, 1, model
+              )
+              transcriptionProvider = model
+              chunkSuccess = true
+              break
+            } catch (modelErr) {
+              console.warn(`[Gemini] ${model} falhou no arquivo pequeno:`, (modelErr as Error).message)
+            }
+          }
+          if (!chunkSuccess) throw new Error('Todos os modelos Gemini falharam no arquivo pequeno')
 
-        if (!uploadResponse.ok) {
-          const errText = await uploadResponse.text()
-          console.error(`[Gemini Files API] Upload failed: ${uploadResponse.status}`, errText.substring(0, 500))
-          throw new Error(`Gemini file upload failed: ${uploadResponse.status}`)
-        }
+        } else {
+          console.log(`[Gemini] Large file (${totalBytes} bytes), using Files API`)
 
-        const uploadResult = await uploadResponse.json()
-        console.log('[Gemini Files API] Upload response:', JSON.stringify(uploadResult).substring(0, 500))
-        const fileUri = uploadResult?.file?.uri || uploadResult?.uri || uploadResult?.name
-        if (!fileUri) {
-          console.error('[Gemini Files API] No URI in response. Full response:', JSON.stringify(uploadResult))
-          throw new Error('Gemini file upload did not return a URI')
-        }
-
-        console.log(`File uploaded to Gemini: ${fileUri}`)
-
-        await waitForFileActive(fileUri, geminiApiKey)
-
-        let largeFileSuccess = false
-        for (const model of GEMINI_MODELS) {
+          const uploadController = new AbortController()
+          const uploadTimeout = setTimeout(() => uploadController.abort(), 120000)
+          let uploadResponse: Response
           try {
-            const geminiResponse = await fetchWithRetry(
-              `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
+            uploadResponse = await fetch(
+              `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${geminiApiKey}`,
               {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  contents: [{
-                    parts: [
-                      { file_data: { mime_type: effectiveMimeType, file_uri: fileUri } },
-                      { text: TRANSCRIPTION_PROMPT }
-                    ]
-                  }],
-                  generationConfig: { temperature: 0.1, maxOutputTokens: 16384 }
-                })
+                headers: {
+                  'Content-Type': effectiveMimeType,
+                  'X-Goog-Upload-Protocol': 'raw',
+                  'X-Goog-Upload-Header-Content-Length': totalBytes.toString(),
+                  'X-Goog-Upload-Header-Content-Type': effectiveMimeType,
+                },
+                body: new Uint8Array(arrayBuffer),
+                signal: uploadController.signal,
               }
             )
-
-            if (!geminiResponse.ok) {
-              const errText = await geminiResponse.text()
-              console.warn(`[Gemini] ${model} erro ${geminiResponse.status}:`, errText.substring(0, 200))
-              continue
-            }
-
-            const geminiResult = await geminiResponse.json()
-            fullTranscriptionText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || ''
-            transcriptionProvider = model
-            largeFileSuccess = true
-            break
-          } catch (modelErr) {
-            console.warn(`[Gemini] ${model} falhou no arquivo grande:`, (modelErr as Error).message)
+            clearTimeout(uploadTimeout)
+          } catch (uploadErr) {
+            clearTimeout(uploadTimeout)
+            throw new Error(`Gemini Files API upload failed: ${(uploadErr as Error).message}`)
           }
+
+          if (!uploadResponse.ok) {
+            const errText = await uploadResponse.text()
+            console.error(`[Gemini Files API] Upload failed: ${uploadResponse.status}`, errText.substring(0, 500))
+            throw new Error(`Gemini file upload failed: ${uploadResponse.status}`)
+          }
+
+          const uploadResult = await uploadResponse.json()
+          console.log('[Gemini Files API] Upload response:', JSON.stringify(uploadResult).substring(0, 500))
+          const fileUri = uploadResult?.file?.uri || uploadResult?.uri || uploadResult?.name
+          if (!fileUri) {
+            console.error('[Gemini Files API] No URI in response. Full response:', JSON.stringify(uploadResult))
+            throw new Error('Gemini file upload did not return a URI')
+          }
+
+          console.log(`[Gemini] File uploaded: ${fileUri}`)
+          await waitForFileActive(fileUri, geminiApiKey)
+
+          let largeFileSuccess = false
+          for (const model of GEMINI_MODELS) {
+            try {
+              const geminiResponse = await fetchWithRetry(
+                `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    contents: [{
+                      parts: [
+                        { file_data: { mime_type: effectiveMimeType, file_uri: fileUri } },
+                        { text: TRANSCRIPTION_PROMPT }
+                      ]
+                    }],
+                    generationConfig: { temperature: 0.1, maxOutputTokens: 16384 }
+                  })
+                }
+              )
+
+              if (!geminiResponse.ok) {
+                const errText = await geminiResponse.text()
+                console.warn(`[Gemini] ${model} erro ${geminiResponse.status}:`, errText.substring(0, 200))
+                continue
+              }
+
+              const geminiResult = await geminiResponse.json()
+              fullTranscriptionText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || ''
+              transcriptionProvider = model
+              largeFileSuccess = true
+              break
+            } catch (modelErr) {
+              console.warn(`[Gemini] ${model} falhou no arquivo grande:`, (modelErr as Error).message)
+            }
+          }
+          if (!largeFileSuccess) throw new Error('Todos os modelos Gemini falharam no arquivo grande')
         }
-        if (!largeFileSuccess) throw new Error('Todos os modelos Gemini falharam no arquivo grande')
+
+        // Parse duration from Gemini DURACAO_SEGUNDOS marker
+        const durationMatch = fullTranscriptionText.match(/DURACAO_SEGUNDOS:\s*(\d+)/)
+        if (durationMatch) {
+          realDurationSeconds = parseInt(durationMatch[1], 10)
+        }
+
+        fullTranscriptionText = removePromptLeaks(
+          fullTranscriptionText
+            .replace(/DURACAO_SEGUNDOS:\s*\d+\n?/i, '')
+            .replace(/^.*DURACAO_SEGUNDOS.*\n?/gim, '')
+            .trim()
+        )
+
+        console.log(`[Gemini] ✅ Completed — provider: ${transcriptionProvider}`)
+
       } catch (geminiErr) {
-        console.warn(`[Gemini] Falhou para arquivo grande (${totalBytes} bytes), tentando OpenAI Whisper com chunking:`, (geminiErr as Error).message)
-        if (!openaiApiKey) throw geminiErr
-        const fileName = storagePath.split('/').pop() || 'audio'
-        // transcribeWithOpenAIChunked splits into 24MB chunks when file > 25MB,
-        // avoiding the Whisper 413 error that caused silent failures on retry
-        fullTranscriptionText = await transcribeWithOpenAIChunked(arrayBuffer, effectiveMimeType, fileName, openaiApiKey)
-        transcriptionProvider = 'openai'
-        console.log(`[OpenAI] Whisper fallback concluído — ${totalBytes} bytes processados`)
+        console.warn('[Gemini] Failed, falling back to OpenAI:', (geminiErr as Error).message)
+        fullTranscriptionText = ''
       }
     }
 
-    // Parse real duration from Gemini response
-    let realDurationSeconds = 0
-    const durationMatch = fullTranscriptionText.match(/DURACAO_SEGUNDOS:\s*(\d+)/)
-    if (durationMatch) {
-      realDurationSeconds = parseInt(durationMatch[1], 10)
+    // ── TERTIARY: OpenAI Whisper (last resort, chunked for >25MB) ─────
+    if (!fullTranscriptionText && openaiApiKey) {
+      console.warn('[OpenAI] Last resort fallback — downloading file buffer...')
+      try {
+        if (!arrayBuffer) {
+          const { data: fileData, error: downloadError } = await supabase.storage
+            .from('meetings')
+            .download(storagePath)
+
+          if (downloadError || !fileData) throw new Error(`Failed to download file: ${downloadError?.message}`)
+          arrayBuffer = await fileData.arrayBuffer()
+          totalBytes = arrayBuffer.byteLength
+        }
+
+        const fileName = storagePath.split('/').pop() || 'audio'
+        fullTranscriptionText = await transcribeWithOpenAIChunked(arrayBuffer, effectiveMimeType, fileName, openaiApiKey)
+        transcriptionProvider = 'openai'
+        console.log(`[OpenAI] ✅ Whisper fallback concluído — ${totalBytes} bytes processados`)
+      } catch (openaiErr) {
+        console.error('[OpenAI] Failed:', (openaiErr as Error).message)
+        fullTranscriptionText = ''
+      }
     }
 
-    fullTranscriptionText = removePromptLeaks(
-      fullTranscriptionText
-        .replace(/DURACAO_SEGUNDOS:\s*\d+\n?/i, '')
-        .replace(/^.*DURACAO_SEGUNDOS.*\n?/gim, '')
-        .trim()
-    )
+    if (!fullTranscriptionText) {
+      throw new Error('Todos os provedores de transcrição falharam')
+    }
 
+    // ── Duration calculation ───────────────────────────────────────────
+    // AssemblyAI: realDurationSeconds set from audio_duration above
+    // Gemini: realDurationSeconds set from DURACAO_SEGUNDOS parse above
+    // OpenAI: estimate from file size
     const actualMinutes = realDurationSeconds > 0
       ? Math.max(1, Math.ceil(realDurationSeconds / 60))
-      : Math.max(1, Math.round(totalBytes / 16000 / 60))
+      : totalBytes > 0
+        ? Math.max(1, Math.round(totalBytes / 16000 / 60))
+        : 1
 
-    // Parse summary and action items
+    // ── Parse summary and action items ────────────────────────────────
+    // AssemblyAI transcripts don't include ## Resumo/Itens de Ação —
+    // those are generated by generate-summary/generate-ata (unchanged)
     let transcription = fullTranscriptionText
     let summary = null
     let actionItems: string[] = []
@@ -611,7 +713,7 @@ async function processTranscription(
       }
     }
 
-    console.log(`Transcription completed for meeting ${meetingId}`)
+    console.log(`Transcription completed for meeting ${meetingId} via ${transcriptionProvider}`)
 
     // Fire-and-forget: generate embeddings for semantic search ("Ask Me Anything")
     if (meetingData?.userId) {
@@ -674,15 +776,6 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  const geminiApiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY')
-
-  if (!geminiApiKey) {
-    return new Response(JSON.stringify({ error: 'Transcription API key not configured' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  }
-
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
   await supabase.from('Meeting').update({
@@ -691,7 +784,7 @@ Deno.serve(async (req) => {
   }).eq('id', meetingId)
 
   // @ts-ignore: EdgeRuntime is available in Supabase Edge Functions runtime
-  EdgeRuntime.waitUntil(processTranscription(meetingId, storagePath, supabase, geminiApiKey))
+  EdgeRuntime.waitUntil(processTranscription(meetingId, storagePath, supabase))
 
   return new Response(
     JSON.stringify({ success: true, status: 'processing', meetingId }),
