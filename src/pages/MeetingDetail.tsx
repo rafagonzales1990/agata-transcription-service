@@ -72,6 +72,8 @@ interface MeetingRow {
   ataTemplate: string | null;
   fileDuration: number | null;
   followupDraft: FollowupDraft | null;
+  fileDeleted: boolean | null;
+  fileExpiresAt: string | null;
 }
 
 interface AtaVersionRow {
