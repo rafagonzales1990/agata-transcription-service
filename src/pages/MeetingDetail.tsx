@@ -44,6 +44,7 @@ import { useAtaTemplates } from "@/hooks/useAtaTemplates";
 import { useNavigate } from "react-router-dom";
 import { MEETING_TEMPLATES, MEETING_TEMPLATE_GROUPS, TEMPLATE_LABELS } from "@/lib/meetingTemplates";
 import { useTrialExpiredStatus } from "@/hooks/useTrialExpiredStatus";
+import { RetranscribeButton, isRetranscribeAvailable } from "@/components/RetranscribeButton";
 
 interface FollowupDraft {
   subject: string;
