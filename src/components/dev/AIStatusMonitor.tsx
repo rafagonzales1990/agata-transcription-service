@@ -56,13 +56,20 @@ export function AIStatusMonitor() {
     catch { return '—'; }
   };
 
-  const renderProvider = (name: string, provider: ProviderStatus | undefined) => {
+  const renderProvider = (name: string, provider: ProviderStatus | undefined, color: 'green' | 'blue' = 'green') => {
     const cfg = STATUS_CONFIG[provider?.status || 'down'];
     const isError = provider?.status === 'error' || provider?.status === 'down';
+    const colorStyles = color === 'green'
+      ? { borderLeft: '4px solid #00C781', backgroundColor: '#F0FFF8' }
+      : { borderLeft: '4px solid #4EA7FC', backgroundColor: '#F0F7FF' };
+    const dotColor = color === 'green' ? '#00C781' : '#4EA7FC';
     return (
-      <div className="border border-border rounded-lg p-4 space-y-2">
+      <div className="border border-border rounded-lg p-4 space-y-2" style={colorStyles}>
         <div className="flex items-center justify-between">
-          <span className="font-semibold text-foreground">{name}</span>
+          <span className="font-semibold text-foreground flex items-center gap-2">
+            <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: dotColor }} />
+            {name}
+          </span>
           <Badge className={cfg.badgeClass}>{cfg.emoji} {cfg.label}</Badge>
         </div>
         <div className="flex gap-4 text-xs text-muted-foreground font-mono">
