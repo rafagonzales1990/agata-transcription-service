@@ -1094,7 +1094,22 @@ export default function AdminPanel() {
                     </div>
 
                     {/* Provider cards */}
-                    <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <Card className="bg-card border-border border-l-4 border-l-purple-500">
+                        <CardContent className="p-5">
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-lg">🟣</span>
+                            <span className="font-semibold text-foreground">AssemblyAI</span>
+                          </div>
+                          <div className="space-y-2 font-mono text-sm">
+                            <div className="flex justify-between"><span className="text-muted-foreground">Transcrições</span><span className="font-bold">{assemblyai.count}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Minutos</span><span className="font-bold">{assemblyai.minutes}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Custo</span><span className="font-bold">R$ {(assemblyai.cost / 100).toFixed(2)}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Custo/min</span><span className="text-xs">R$ 0,016 (US$0,0025 × R$6,20)</span></div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
                       <Card className="bg-card border-border border-l-4 border-l-emerald-500">
                         <CardContent className="p-5">
                           <div className="flex items-center gap-2 mb-3">
