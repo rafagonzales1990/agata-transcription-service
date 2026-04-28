@@ -283,7 +283,7 @@ export default function DashboardPage() {
             <a href="https://github.com/rafagonzales1990/agata-desktop/releases/latest/download/Agata-Transcription-1.0.4-Windows.exe" target="_blank" rel="noopener noreferrer">
               <Button className="w-full bg-primary text-primary-foreground">⬇ Baixar para Windows</Button>
             </a>
-            <p className="text-xs text-muted-foreground mt-2 text-center">v1.0.4 · Sem instalação · Windows 10/11</p>
+            <p className="text-xs text-muted-foreground mt-2 text-center">v1.0.10 · Sem instalação · Windows 10/11</p>
             <div className="text-center mt-2">
               <span className="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">🍎 Mac — em breve</span>
             </div>
