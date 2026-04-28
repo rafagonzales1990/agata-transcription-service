@@ -262,7 +262,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                   <Monitor className="h-4 w-4" />
                   <div>
                     <p className="text-sm font-medium">Windows</p>
-                    <p className="text-xs text-muted-foreground">v1.0.17 · Desktop App</p>
+                    <p className="text-xs text-muted-foreground">v1.0.18 · Desktop App</p>
                   </div>
                 </a>
               </DropdownMenuItem>
