@@ -441,7 +441,7 @@ async function generateCustomContent(
   try {
     const { data: result } = await callGeminiCascade(apiKey, {
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.3, maxOutputTokens: 4000 },
+      generationConfig: { temperature: 0.3, maxOutputTokens: 65536 },
     })
     ataText = result.candidates?.[0]?.content?.parts?.[0]?.text || ''
   } catch (geminiErr) {
@@ -659,6 +659,9 @@ Deno.serve(async (req) => {
     if (customSections) {
       // Generate AI content for custom sections
       const aiContent = await generateCustomContent(customSections, meeting.transcription, summaryContent)
+      if (!aiContent.includes('Ações e Responsáveis') || aiContent.trim().endsWith('|')) {
+        console.warn('[generate-ata] Output may be truncated — consider chunking')
+      }
       finalMarkdown = buildCustomMarkdown(customSections, aiContent, meeting.transcription)
     } else if (template && TEMPLATE_PROMPTS[template]) {
       // Generate AI content using type-specific prompt
@@ -707,7 +710,7 @@ ${meeting.transcription?.slice(0, 8000) || summaryContent?.slice(0, 4000) || '(n
       try {
         const { data: result } = await callGeminiCascade(apiKey, {
           contents: [{ parts: [{ text: geminiPrompt }] }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 8192 },
+          generationConfig: { temperature: 0.3, maxOutputTokens: 65536 },
         })
         ataText = result.candidates?.[0]?.content?.parts?.[0]?.text || summaryContent
       } catch (geminiErr) {
@@ -717,6 +720,9 @@ ${meeting.transcription?.slice(0, 8000) || summaryContent?.slice(0, 4000) || '(n
         console.log('OpenAI fallback para ATA concluído')
       }
 
+      if (!ataText.includes('Ações e Responsáveis') || ataText.trim().endsWith('|')) {
+        console.warn('[generate-ata] Output may be truncated — consider chunking')
+      }
       finalMarkdown = ataText
     } else {
       finalMarkdown = summaryContent

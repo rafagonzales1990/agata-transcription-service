@@ -123,9 +123,9 @@ ${transcription}`,
 }
 
 const maxTokens: Record<string, number> = {
-  executivo: 4000,
-  detalhado: 8192,
-  ata_completa: 8192,
+  executivo: 65536,
+  detalhado: 65536,
+  ata_completa: 65536,
 }
 
 async function generateSummaryWithOpenAI(
