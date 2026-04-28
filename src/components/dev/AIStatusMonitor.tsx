@@ -12,6 +12,7 @@ interface ProviderStatus {
 }
 
 interface HealthCheckResult {
+  assemblyai?: ProviderStatus;
   gemini_2_5: ProviderStatus;
   gemini_2_0?: ProviderStatus;
   gemini_2_5_flash_lite?: ProviderStatus;
@@ -91,6 +92,30 @@ export function AIStatusMonitor() {
       </CardHeader>
       <CardContent className="space-y-3">
         {error && <p className="text-sm text-destructive">Erro: {error}</p>}
+        {(() => {
+          const assemblyai = data?.assemblyai;
+          const isOk = assemblyai?.status === 'ok';
+          return (
+            <div className="border border-purple-500/40 bg-purple-500/5 rounded-lg p-4 space-y-2 border-l-4 border-l-purple-500">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-foreground flex items-center gap-2">
+                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-purple-500" />
+                  AssemblyAI
+                </span>
+                <Badge className={isOk ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}>
+                  {isOk ? '🟢 Operacional' : '🔴 Indisponível'}
+                </Badge>
+              </div>
+              <div className="flex gap-4 text-xs text-muted-foreground font-mono">
+                <span>Latência: <span className="text-foreground font-medium">{assemblyai?.latencyMs ?? '—'}ms</span></span>
+                {data?.checkedAt && <span>Verificado: <span className="text-foreground font-medium">{formatTime(data.checkedAt)}</span></span>}
+              </div>
+              {!isOk && assemblyai?.detail && (
+                <p className="text-xs text-destructive break-words">{assemblyai.detail}</p>
+              )}
+            </div>
+          );
+        })()}
         {renderProvider('Gemini 2.5 Flash', data?.gemini_2_5)}
         {renderProvider('Gemini 2.5 Lite', geminiLite)}
         {renderProvider('OpenAI Whisper', data?.openai)}
