@@ -101,8 +101,9 @@ Deno.serve(async (req) => {
 
   const transcriptData = await transcriptRes.json()
   const fullTranscriptionText = formatAssemblyAITranscript(transcriptData)
+  // AssemblyAI returns audio_duration in SECONDS (not milliseconds)
   const realDurationSeconds = transcriptData.audio_duration
-    ? Math.round(transcriptData.audio_duration / 1000)
+    ? Math.round(transcriptData.audio_duration)
     : 0
   const actualMinutes = Math.max(1, Math.ceil(realDurationSeconds / 60))
 
