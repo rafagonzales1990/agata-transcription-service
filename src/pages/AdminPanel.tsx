@@ -1059,9 +1059,10 @@ export default function AdminPanel() {
               <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
             ) : costsData ? (
               (() => {
+                const assemblyai = costsData.currentMonthProviders?.assemblyai || { count: 0, minutes: 0, cost: 0 };
                 const gemini = costsData.currentMonthProviders?.gemini || { count: 0, minutes: 0, cost: 0 };
                 const openai = costsData.currentMonthProviders?.openai || { count: 0, minutes: 0, cost: 0 };
-                const totalMonth = gemini.count + openai.count;
+                const totalMonth = assemblyai.count + gemini.count + openai.count;
                 const fallbackPct = totalMonth > 0 ? ((openai.count / totalMonth) * 100) : 0;
                 const fallbackColor = fallbackPct > 20 ? 'text-red-600' : fallbackPct > 5 ? 'text-yellow-600' : 'text-emerald-600';
                 const fallbackBg = fallbackPct > 20 ? 'bg-red-50 border-red-200' : fallbackPct > 5 ? 'bg-yellow-50 border-yellow-200' : 'bg-emerald-50 border-emerald-200';
@@ -1093,7 +1094,22 @@ export default function AdminPanel() {
                     </div>
 
                     {/* Provider cards */}
-                    <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <Card className="bg-card border-border border-l-4 border-l-purple-500">
+                        <CardContent className="p-5">
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-lg">🟣</span>
+                            <span className="font-semibold text-foreground">AssemblyAI</span>
+                          </div>
+                          <div className="space-y-2 font-mono text-sm">
+                            <div className="flex justify-between"><span className="text-muted-foreground">Transcrições</span><span className="font-bold">{assemblyai.count}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Minutos</span><span className="font-bold">{assemblyai.minutes}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Custo</span><span className="font-bold">R$ {(assemblyai.cost / 100).toFixed(2)}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground">Custo/min</span><span className="text-xs">R$ 0,016 (US$0,0025 × R$6,20)</span></div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
                       <Card className="bg-card border-border border-l-4 border-l-emerald-500">
                         <CardContent className="p-5">
                           <div className="flex items-center gap-2 mb-3">
@@ -1153,8 +1169,8 @@ export default function AdminPanel() {
                               <TableRow key={log.id}>
                                 <TableCell className="text-xs font-mono">{new Date(log.createdAt).toLocaleDateString('pt-BR')}</TableCell>
                                 <TableCell>
-                                  <Badge className={log.provider?.includes('gemini') || log.provider?.includes('groq') ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}>
-                                    {log.provider?.includes('gemini') || log.provider?.includes('groq') ? 'Gemini' : 'OpenAI'}
+                                  <Badge className={log.provider?.includes('assembly') ? 'bg-purple-100 text-purple-700' : log.provider?.includes('gemini') || log.provider?.includes('groq') ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}>
+                                    {log.provider?.includes('assembly') ? 'AssemblyAI' : log.provider?.includes('gemini') || log.provider?.includes('groq') ? 'Gemini' : 'OpenAI'}
                                   </Badge>
                                 </TableCell>
                                 <TableCell className="font-mono text-sm">{Math.round(log.durationSecs / 60)}min</TableCell>
