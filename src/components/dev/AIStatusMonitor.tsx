@@ -123,9 +123,9 @@ export function AIStatusMonitor() {
             </div>
           );
         })()}
-        {renderProvider('Gemini 2.5 Flash', data?.gemini_2_5)}
-        {renderProvider('Gemini 2.5 Lite', geminiLite)}
-        {renderProvider('OpenAI Whisper', data?.openai)}
+        {renderProvider('Gemini 2.5 Flash', data?.gemini_2_5, 'green')}
+        {renderProvider('Gemini 2.5 Lite', geminiLite, 'green')}
+        {renderProvider('OpenAI Whisper', data?.openai, 'blue')}
         {!data && !loading && !error && <p className="text-sm text-muted-foreground text-center py-4">Verificação automática a cada 5 minutos</p>}
       </CardContent>
     </Card>
