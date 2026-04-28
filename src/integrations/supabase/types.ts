@@ -484,6 +484,7 @@ export type Database = {
       Meeting: {
         Row: {
           actionItems: string[]
+          assemblyTranscriptId: string | null
           ataPdfUrl: string | null
           ataSections: Json | null
           ataTemplate: string | null
@@ -518,6 +519,7 @@ export type Database = {
         }
         Insert: {
           actionItems?: string[]
+          assemblyTranscriptId?: string | null
           ataPdfUrl?: string | null
           ataSections?: Json | null
           ataTemplate?: string | null
@@ -552,6 +554,7 @@ export type Database = {
         }
         Update: {
           actionItems?: string[]
+          assemblyTranscriptId?: string | null
           ataPdfUrl?: string | null
           ataSections?: Json | null
           ataTemplate?: string | null
