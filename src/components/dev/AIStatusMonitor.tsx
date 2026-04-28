@@ -103,7 +103,7 @@ export function AIStatusMonitor() {
           const assemblyai = data?.assemblyai;
           const isOk = assemblyai?.status === 'ok';
           return (
-            <div className="bg-card border border-border border-l-4 border-l-purple-500 rounded-lg p-4 space-y-2">
+            <div className="border border-border rounded-lg p-4 space-y-2" style={{ borderLeft: '4px solid #9B59B6', backgroundColor: '#F9F0FF' }}>
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-foreground flex items-center gap-2">
                   <span className="inline-block h-2.5 w-2.5 rounded-full bg-purple-500" />
