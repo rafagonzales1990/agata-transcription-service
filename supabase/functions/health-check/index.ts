@@ -1,5 +1,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -28,6 +34,23 @@ async function checkGeminiModel(model: string): Promise<{ status: 'ok' | 'error'
       return { status: 'error', latencyMs, detail: `HTTP ${res.status}: ${body.slice(0, 120)}` };
     }
     return { status: 'ok', latencyMs };
+  } catch (err: any) {
+    return { status: 'error', latencyMs: Date.now() - start, detail: err.message };
+  }
+}
+
+async function checkAssemblyAI(): Promise<{ status: 'ok' | 'error'; latencyMs: number; detail?: string }> {
+  const ASSEMBLY_KEY = Deno.env.get('ASSEMBLYAI_API_KEY')!;
+  const start = Date.now();
+  try {
+    const res = await fetch('https://api.assemblyai.com/v2/transcript', {
+      method: 'GET',
+      headers: { Authorization: ASSEMBLY_KEY },
+      signal: AbortSignal.timeout(10000),
+    });
+    const latencyMs = Date.now() - start;
+    if ([200, 400, 405].includes(res.status)) return { status: 'ok', latencyMs };
+    return { status: 'error', latencyMs, detail: `HTTP ${res.status}` };
   } catch (err: any) {
     return { status: 'error', latencyMs: Date.now() - start, detail: err.message };
   }
@@ -127,17 +150,23 @@ async function sendAlert(
   });
 }
 
-Deno.serve(async () => {
-  const [g25, g20, openai] = await Promise.all([
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  const [g25, g20, openai, assemblyai] = await Promise.all([
     checkGeminiModel('gemini-2.5-flash'),
     checkGeminiModel('gemini-2.5-flash-lite'),
     checkOpenAI(),
+    checkAssemblyAI(),
   ]);
 
   const results = {
     'Gemini 2.5 Flash': g25,
     'Gemini 2.5 Flash Lite': g20,
     'OpenAI Whisper': openai,
+    'AssemblyAI': assemblyai,
   };
 
   // Log to DB first so getRecentHistory includes the current result
@@ -178,9 +207,15 @@ Deno.serve(async () => {
     gemini_2_5: g25,
     gemini_2_0: g20,
     openai,
+    assemblyai,
     bothGeminiDown: g25.status === 'error' && g20.status === 'error',
     alertSent: downProviders.length > 0 || recoveredProviders.length > 0,
     downProviders,
     recoveredProviders,
-  }), { headers: { 'Content-Type': 'application/json' } });
+  }), {
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'application/json',
+    },
+  });
 });
