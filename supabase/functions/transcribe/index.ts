@@ -245,6 +245,7 @@ async function processTranscription(
   storagePath: string,
   supabase: any,
 ): Promise<void> {
+  console.log('[processTranscription] START — meetingId:', meetingId)
   try {
     // ── Rate limiting: max 10 transcription attempts per user per hour ─
     const { data: meetingOwner } = await supabase
@@ -323,6 +324,11 @@ async function processTranscription(
     const assemblyApiKey = Deno.env.get('ASSEMBLYAI_API_KEY')
     const geminiApiKey   = Deno.env.get('GOOGLE_GEMINI_API_KEY')
     const openaiApiKey   = Deno.env.get('OPENAI_API_KEY')
+    console.log('[processTranscription] Keys loaded:', {
+      hasAssembly: !!assemblyApiKey,
+      hasGemini: !!geminiApiKey,
+      hasOpenAI: !!openaiApiKey,
+    })
 
     // ── MIME type — derived from path, no download needed for AssemblyAI ─
     const ext = storagePath.split('.').pop()?.toLowerCase() || ''
