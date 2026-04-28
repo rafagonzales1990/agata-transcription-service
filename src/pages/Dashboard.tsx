@@ -280,7 +280,7 @@ export default function DashboardPage() {
               <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-primary"><Mic className="h-3 w-3" /> Mic + Sistema</span>
               <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-primary"><CloudUpload className="h-3 w-3" /> Backup automático</span>
             </div>
-            <a href="https://github.com/rafagonzales1990/agata-desktop/releases/latest/download/Agata-Transcription-1.0.4-Windows.exe" target="_blank" rel="noopener noreferrer">
+            <a href="https://storage.googleapis.com/agata-desktop-releases/releases/latest/Agata-Transcription-Windows-latest.exe" target="_blank" rel="noopener noreferrer">
               <Button className="w-full bg-primary text-primary-foreground">⬇ Baixar para Windows</Button>
             </a>
             <p className="text-xs text-muted-foreground mt-2 text-center">v1.0.4 · Sem instalação · Windows 10/11</p>

@@ -258,7 +258,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent side="right" align="start" className="w-56">
               <DropdownMenuItem asChild>
-                <a href="https://github.com/rafagonzales1990/agata-desktop/releases/latest/download/Agata-Transcription-1.0.4-Windows.exe" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                <a href="https://storage.googleapis.com/agata-desktop-releases/releases/latest/Agata-Transcription-Windows-latest.exe" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                   <Monitor className="h-4 w-4" />
                   <div>
                     <p className="text-sm font-medium">Windows</p>
