@@ -12,6 +12,7 @@ interface ProviderStatus {
 }
 
 interface HealthCheckResult {
+  assemblyai?: ProviderStatus;
   gemini_2_5: ProviderStatus;
   gemini_2_0?: ProviderStatus;
   gemini_2_5_flash_lite?: ProviderStatus;
