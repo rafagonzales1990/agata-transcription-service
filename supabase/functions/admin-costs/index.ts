@@ -60,6 +60,7 @@ Deno.serve(async (req) => {
 
     // Normalize provider variants into canonical buckets
     function normalizeProvider(provider: string | null): string {
+      if (provider && provider.includes('assembly')) return 'assemblyai'
       if (!provider || provider.includes('gemini') || provider.includes('groq')) return 'gemini'
       if (provider.includes('openai') || provider.includes('whisper') || provider.includes('gpt')) return 'openai'
       return provider
