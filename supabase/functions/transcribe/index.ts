@@ -722,6 +722,12 @@ async function processTranscription(
         .catch((embedErr: unknown) => {
           console.error('Failed to invoke generate-embeddings:', embedErr)
         })
+
+      supabase.functions
+        .invoke('detect-conflicts', {
+          body: { meetingId, userId: meetingData.userId },
+        })
+        .catch((e: unknown) => console.error('[detect-conflicts] Error:', e))
     }
 
     await supabase.channel('meeting-status').send({

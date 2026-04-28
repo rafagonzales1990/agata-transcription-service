@@ -210,6 +210,12 @@ Deno.serve(async (req) => {
     })
     .catch((e: unknown) => console.error('[Webhook] Embeddings error:', e))
 
+  supabase.functions
+    .invoke('detect-conflicts', {
+      body: { meetingId, userId: meeting.userId },
+    })
+    .catch((e: unknown) => console.error('[detect-conflicts] Error:', e))
+
   console.log(`[AssemblyAI Webhook] ✅ Meeting ${meetingId} completed`)
   return new Response(JSON.stringify({ success: true }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },

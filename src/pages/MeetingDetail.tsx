@@ -33,6 +33,7 @@ import {
   ChevronDown,
   Eye,
   History,
+  Shield,
 } from "lucide-react";
 import { ShareMeetingModal } from "@/components/ShareMeetingModal";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,6 +46,7 @@ import { useNavigate } from "react-router-dom";
 import { MEETING_TEMPLATES, MEETING_TEMPLATE_GROUPS, TEMPLATE_LABELS } from "@/lib/meetingTemplates";
 import { useTrialExpiredStatus } from "@/hooks/useTrialExpiredStatus";
 import { RetranscribeButton, isRetranscribeAvailable } from "@/components/RetranscribeButton";
+import { useMeetingConflicts } from "@/hooks/useMeetingConflicts";
 
 interface FollowupDraft {
   subject: string;
@@ -125,6 +127,7 @@ export default function MeetingDetail() {
   const navigate = useNavigate();
   const { templates: ataTemplates, defaultTemplate } = useAtaTemplates();
   const { isTrialExpired } = useTrialExpiredStatus();
+  const { conflicts, isLoading: conflictsLoading, error: conflictsError } = useMeetingConflicts(id || "");
 
   const isPaidPlan = PAID_PLANS.includes(profile?.plan_id || "basic");
 
@@ -779,6 +782,72 @@ export default function MeetingDetail() {
               <div className="markdown-rendered text-sm leading-relaxed max-h-[400px] overflow-y-auto overflow-x-auto">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{meeting.transcription}</ReactMarkdown>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Governance — Conflict Detection */}
+        {meeting.transcription && (
+          <Card className={
+            !conflictsLoading && !conflictsError && conflicts.length > 0
+              ? conflicts.some(c => c.severity === "high")
+                ? "border-red-500 bg-red-50 dark:bg-red-950/20"
+                : conflicts.some(c => c.severity === "medium")
+                  ? "border-amber-500 bg-amber-50 dark:bg-amber-950/20"
+                  : "border-blue-500 bg-blue-50 dark:bg-blue-950/20"
+              : ""
+          }>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Shield className="h-4 w-4 text-primary" /> Governança
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {conflictsLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Verificando conflitos...
+                </div>
+              ) : conflictsError ? (
+                <p className="text-sm text-muted-foreground">Não foi possível verificar conflitos.</p>
+              ) : conflicts.length === 0 ? (
+                <div className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400">
+                  <CheckCircle className="h-4 w-4" />
+                  <div>
+                    <span className="font-medium">✅ Sem Conflitos Detectados</span>
+                    <p className="text-muted-foreground mt-0.5">Esta reunião está alinhada com o histórico de reuniões anteriores.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm font-medium">
+                    ⚠️ {conflicts.length} Conflito(s) Detectado(s)
+                  </p>
+                  {conflicts.map((conflict) => (
+                    <div key={conflict.id} className="flex flex-col gap-1 border rounded-md p-3 bg-background/60">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className={
+                          conflict.severity === "high"
+                            ? "border-red-500 text-red-700 dark:text-red-400"
+                            : conflict.severity === "medium"
+                              ? "border-amber-500 text-amber-700 dark:text-amber-400"
+                              : "border-blue-500 text-blue-700 dark:text-blue-400"
+                        }>
+                          {conflict.severity === "high" ? "🔴 Alto" : conflict.severity === "medium" ? "🟡 Médio" : "🔵 Baixo"}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">{conflict.conflictType}</Badge>
+                      </div>
+                      <p className="text-sm">{conflict.conflictDescription}</p>
+                      <Link
+                        to={`/meetings/${conflict.conflictingMeetingId}`}
+                        className="text-xs text-primary hover:underline self-start"
+                      >
+                        Ver reunião →
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

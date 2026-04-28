@@ -199,7 +199,26 @@ Deno.serve(async (req) => {
       )
     }
 
-    // 3) Build context
+    // 3) Fetch conflicts for this meeting (single-meeting mode only)
+    let conflictContext = ''
+    if (meetingIdFilter) {
+      const { data: conflicts } = await supabase
+        .from('MeetingConflict')
+        .select('conflictDescription, severity, conflictType, conflictingMeetingId')
+        .eq('meetingId', meetingIdFilter)
+
+      if (conflicts && conflicts.length > 0) {
+        conflictContext = `
+CONFLITOS DETECTADOS COM OUTRAS REUNIÕES:
+${conflicts.map((c: any) => `- [${c.severity.toUpperCase()}] ${c.conflictDescription} (Reunião: ${c.conflictingMeetingId})`).join('\n')}
+
+Quando o usuário perguntar sobre decisões, estratégias ou compromissos,
+considere esses conflitos na sua resposta e mencione-os quando relevante.
+`
+      }
+    }
+
+    // 4) Build context
     const context = chunks
       .map((c, i) => {
         const date = formatDate(c.createdAt)
@@ -208,7 +227,7 @@ Deno.serve(async (req) => {
       .join('\n\n---\n\n')
 
     const prompt = `Você é um assistente que responde perguntas sobre reuniões transcritas.
-
+${conflictContext}
 Contexto das reuniões:
 ${context}
 
