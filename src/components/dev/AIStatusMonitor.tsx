@@ -106,7 +106,7 @@ export function AIStatusMonitor() {
             <div className="border border-border rounded-lg p-4 space-y-2" style={{ borderLeft: '4px solid #9B59B6', backgroundColor: '#F9F0FF' }}>
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-foreground flex items-center gap-2">
-                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-purple-500" />
+                  <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: '#9B59B6' }} />
                   AssemblyAI
                 </span>
                 <Badge className={isOk ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}>
