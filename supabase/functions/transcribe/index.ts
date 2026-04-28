@@ -345,9 +345,9 @@ async function processTranscription(
       avi: 'video/x-msvideo',
     }
     const mimeType = mimeMap[ext] || 'audio/mpeg'
-    // Para arquivos webm do app desktop, forçar como video/webm
-    // pois o Gemini rejeita audio/webm com codec de vídeo
-    const effectiveMimeType = (ext === 'webm') ? 'video/webm' : mimeType
+    // Use audio/webm for webm — Chrome extension records audio-only (mic + tab audio);
+    // video/webm causes Gemini Files API to return FAILED state
+    const effectiveMimeType = (ext === 'webm') ? 'audio/webm' : mimeType
 
     let fullTranscriptionText = ''
     let transcriptionProvider = 'assemblyai'
@@ -378,6 +378,7 @@ async function processTranscription(
             speaker_labels: true,
             punctuate: true,
             format_text: true,
+            speech_model: 'universal-2',
             webhook_url: webhookUrl,
             webhook_auth_header_name: 'x-webhook-secret',
             webhook_auth_header_value: Deno.env.get('ASSEMBLYAI_WEBHOOK_SECRET') || 'agata-webhook-secret',
