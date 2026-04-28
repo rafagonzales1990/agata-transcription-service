@@ -1059,9 +1059,10 @@ export default function AdminPanel() {
               <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
             ) : costsData ? (
               (() => {
+                const assemblyai = costsData.currentMonthProviders?.assemblyai || { count: 0, minutes: 0, cost: 0 };
                 const gemini = costsData.currentMonthProviders?.gemini || { count: 0, minutes: 0, cost: 0 };
                 const openai = costsData.currentMonthProviders?.openai || { count: 0, minutes: 0, cost: 0 };
-                const totalMonth = gemini.count + openai.count;
+                const totalMonth = assemblyai.count + gemini.count + openai.count;
                 const fallbackPct = totalMonth > 0 ? ((openai.count / totalMonth) * 100) : 0;
                 const fallbackColor = fallbackPct > 20 ? 'text-red-600' : fallbackPct > 5 ? 'text-yellow-600' : 'text-emerald-600';
                 const fallbackBg = fallbackPct > 20 ? 'bg-red-50 border-red-200' : fallbackPct > 5 ? 'bg-yellow-50 border-yellow-200' : 'bg-emerald-50 border-emerald-200';
