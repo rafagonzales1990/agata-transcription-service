@@ -350,6 +350,45 @@ Deno.serve(async (req) => {
         result = await preview(supabase)
         return ok(result)
 
+      case 'last_runs': {
+        const { data: runs } = await supabase
+          .from('AdminActionLog')
+          .select('action, executedAt')
+          .order('executedAt', { ascending: false })
+
+        const lastRunMap: Record<string, { executedAt: string; affectedCount: number }> = {}
+        for (const run of runs || []) {
+          if (!lastRunMap[run.action]) {
+            lastRunMap[run.action] = { executedAt: run.executedAt, affectedCount: 0 }
+          }
+        }
+        return ok(lastRunMap)
+      }
+
+      case 'preview_audience': {
+        const audience = params?.audience || 'all'
+        let query = supabase
+          .from('User')
+          .select('id', { count: 'exact', head: true })
+          .eq('isInternal', false)
+
+        if (audience === 'trial_active') {
+          query = query
+            .eq('planId', 'basic')
+            .not('trialEndsAt', 'is', null)
+            .gt('trialEndsAt', new Date().toISOString())
+        } else if (audience === 'paid') {
+          query = query.in('planId', ['inteligente', 'automacao', 'enterprise'])
+        } else if (audience === 'incomplete') {
+          query = query
+            .eq('planId', 'basic')
+            .or('name.is.null,cpf.is.null,termsAcceptedAt.is.null')
+        }
+
+        const { count } = await query
+        return ok({ count: count || 0 })
+      }
+
       case 'reset_trials':
         result = await resetTrials(supabase)
         affectedCount = result.affected

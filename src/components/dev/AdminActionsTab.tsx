@@ -55,6 +55,14 @@ const AUDIENCE_OPTIONS: { value: string; label: string }[] = [
   { value: 'incomplete', label: 'Cadastro incompleto' },
 ];
 
+async function invokeAdminAction(body: { action: string; params?: any }) {
+  const { data: { session } } = await supabase.auth.getSession();
+  return supabase.functions.invoke('admin-actions', {
+    body,
+    headers: { Authorization: `Bearer ${session?.access_token}` },
+  });
+}
+
 function formatDate(iso?: string) {
   if (!iso) return 'Nunca executada';
   const d = new Date(iso);
@@ -97,8 +105,8 @@ export function AdminActionsTab() {
 
   const load = useCallback(async () => {
     const [{ data: p }, { data: l }] = await Promise.all([
-      supabase.functions.invoke('admin-actions', { body: { action: 'preview' } }),
-      supabase.functions.invoke('admin-actions', { body: { action: 'last_runs' } }),
+      invokeAdminAction({ action: 'preview' }),
+      invokeAdminAction({ action: 'last_runs' }),
     ]);
     if (p?.success) setCounts(p.data);
     if (l?.success) setLastRuns(l.data);
@@ -109,7 +117,7 @@ export function AdminActionsTab() {
   const runAction = async (key: string) => {
     setRunning(key);
     try {
-      const { data, error } = await supabase.functions.invoke('admin-actions', { body: { action: key } });
+      const { data, error } = await invokeAdminAction({ action: key });
       if (error || !data?.success) throw new Error(data?.error || error?.message || 'Erro');
       const affected = data.data?.affected ?? data.data?.sent ?? 0;
       const skipped = data.data?.skipped;
@@ -213,14 +221,14 @@ function MarketingDialog({ open, onOpenChange, onComplete }: { open: boolean; on
 
   useEffect(() => {
     if (!open) return;
-    supabase.functions.invoke('admin-actions', { body: { action: 'preview_audience', params: { audience } } })
+    invokeAdminAction({ action: 'preview_audience', params: { audience } })
       .then(({ data }) => { if (data?.success) setAudienceCount(data.data.count); });
   }, [audience, open]);
 
   const sendTest = async () => {
     setBusy(true);
     try {
-      const { data, error } = await supabase.functions.invoke('admin-actions', { body: { action: 'send_test_email', params: { type, subject } } });
+      const { data, error } = await invokeAdminAction({ action: 'send_test_email', params: { type, subject } });
       if (error || !data?.success) throw new Error(data?.error || error?.message);
       setTestSent(true);
       toast.success('✅ Teste enviado! Verifique seu e-mail antes de continuar.');
@@ -232,7 +240,7 @@ function MarketingDialog({ open, onOpenChange, onComplete }: { open: boolean; on
   const fire = async () => {
     setBusy(true);
     try {
-      const { data, error } = await supabase.functions.invoke('admin-actions', { body: { action: 'blast_marketing', params: { type, subject, audience } } });
+      const { data, error } = await invokeAdminAction({ action: 'blast_marketing', params: { type, subject, audience } });
       if (error || !data?.success) throw new Error(data?.error || error?.message);
       const r = data.data;
       toast.success(`✅ Enviado para ${r.sent} usuários | ${r.skipped || 0} pulados | ${r.errors?.length || 0} erros`);
