@@ -981,7 +981,18 @@ export default function AdminPanel() {
                               </Badge>
                             )}
                           </TableCell>
-                          <TableCell><span className={`px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap ${status.cls}`}>{status.label}</span></TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap ${status.cls}`}>{status.label}</span>
+                            {status.label === 'Cadastro incompleto' && (() => {
+                              const missing: string[] = [];
+                              if (!u.name) missing.push('Nome');
+                              if (!u.cpf) missing.push('CPF');
+                              if (!u.termsAcceptedAt) missing.push('Termos');
+                              return missing.length > 0 ? (
+                                <div className="text-xs text-muted-foreground mt-1">Faltando: {missing.join(', ')}</div>
+                              ) : null;
+                            })()}
+                          </TableCell>
                           <TableCell className="text-center font-mono text-sm">{u.meetingCount}</TableCell>
                           <TableCell className="text-center font-mono text-xs">{u.usageTranscriptions}</TableCell>
                           <TableCell className="text-center font-mono text-xs">{u.usageMinutes}</TableCell>
