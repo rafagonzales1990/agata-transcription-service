@@ -518,7 +518,7 @@ export default function AdminPanel() {
       const [meetingsRes, groupsRes, usageRes, profilesRes] = await Promise.all([
         supabase.from('Meeting').select('userId'),
         supabase.from('AdminGroup').select('*'),
-        supabase.from('Usage').select('userId, transcriptionsUsed, totalMinutesTranscribed, currentMonth'),
+        supabase.from('Usage').select('userId, transcriptionsUsed, totalMinutesTranscribed').eq('currentMonth', currentMonth),
         supabase.from('profiles').select('user_id, trial_ends_at'),
       ]);
 
@@ -527,9 +527,7 @@ export default function AdminPanel() {
 
       const usageMap: Record<string, { t: number; m: number }> = {};
       usageRes.data?.forEach(u => {
-        if (u.currentMonth === currentMonth) {
-          usageMap[u.userId] = { t: u.transcriptionsUsed || 0, m: u.totalMinutesTranscribed || 0 };
-        }
+        usageMap[u.userId] = { t: u.transcriptionsUsed || 0, m: u.totalMinutesTranscribed || 0 };
       });
 
       // Map profiles.trial_ends_at by user_id (source of truth for trial)
@@ -577,15 +575,13 @@ export default function AdminPanel() {
     const currentMonth = new Date().toISOString().slice(0, 7);
     const [groupsRes, usageRes] = await Promise.all([
       supabase.from('AdminGroup').select('*'),
-      supabase.from('Usage').select('userId, transcriptionsUsed, totalMinutesTranscribed, currentMonth'),
+      supabase.from('Usage').select('userId, transcriptionsUsed, totalMinutesTranscribed').eq('currentMonth', currentMonth),
     ]);
 
     if (groupsRes.data) {
       const usageByUser: Record<string, {trans: number, mins: number}> = {};
       (usageRes.data || []).forEach((u: any) => {
-        if (u.currentMonth === currentMonth) {
-          usageByUser[u.userId] = { trans: u.transcriptionsUsed || 0, mins: u.totalMinutesTranscribed || 0 };
-        }
+        usageByUser[u.userId] = { trans: u.transcriptionsUsed || 0, mins: u.totalMinutesTranscribed || 0 };
       });
 
       const groupMap: Record<string, {trans: number, mins: number}> = {};

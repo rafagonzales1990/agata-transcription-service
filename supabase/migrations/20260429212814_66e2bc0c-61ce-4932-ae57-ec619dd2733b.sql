@@ -1,0 +1,1 @@
+CREATE POLICY "Admins can read all usage" ON "Usage" FOR SELECT TO authenticated USING (is_admin());
