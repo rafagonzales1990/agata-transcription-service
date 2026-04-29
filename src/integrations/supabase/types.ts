@@ -625,6 +625,39 @@ export type Database = {
           },
         ]
       }
+      MeetingConflict: {
+        Row: {
+          conflictDescription: string
+          conflictingMeetingId: string
+          conflictType: string | null
+          createdAt: string
+          id: string
+          meetingId: string
+          severity: string
+          updatedAt: string
+        }
+        Insert: {
+          conflictDescription: string
+          conflictingMeetingId: string
+          conflictType?: string | null
+          createdAt?: string
+          id?: string
+          meetingId: string
+          severity: string
+          updatedAt?: string
+        }
+        Update: {
+          conflictDescription?: string
+          conflictingMeetingId?: string
+          conflictType?: string | null
+          createdAt?: string
+          id?: string
+          meetingId?: string
+          severity?: string
+          updatedAt?: string
+        }
+        Relationships: []
+      }
       MeetingEmbedding: {
         Row: {
           chunkIndex: number
