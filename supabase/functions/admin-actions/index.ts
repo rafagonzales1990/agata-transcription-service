@@ -365,6 +365,66 @@ Deno.serve(async (req) => {
         return ok(lastRunMap)
       }
 
+      case 'list_affected_users': {
+        const actionType = params?.actionType
+        const audience = params?.audience || 'all'
+
+        let query = supabase
+          .from('User')
+          .select('id, email, name, planId, trialEndsAt, cpf, termsAcceptedAt, createdAt')
+          .eq('isInternal', false)
+
+        if (actionType === 'reset_trials' || actionType === 'blast_reactivation') {
+          query = query.eq('planId', 'basic')
+        } else if (actionType === 'blast_trial_bonus') {
+          query = query
+            .eq('planId', 'basic')
+            .not('trialEndsAt', 'is', null)
+            .gt('trialEndsAt', new Date().toISOString())
+        } else if (actionType === 'blast_complete_signup') {
+          query = query
+            .eq('planId', 'basic')
+            .not('trialEndsAt', 'is', null)
+            .gt('trialEndsAt', new Date().toISOString())
+        } else if (actionType === 'assign_groups') {
+          query = query
+            .eq('planId', 'basic')
+            .is('adminGroupId', null)
+        } else if (actionType === 'blast_marketing') {
+          if (audience === 'trial_active') {
+            query = query
+              .eq('planId', 'basic')
+              .not('trialEndsAt', 'is', null)
+              .gt('trialEndsAt', new Date().toISOString())
+          } else if (audience === 'paid') {
+            query = query.in('planId', ['inteligente', 'automacao', 'enterprise'])
+          } else if (audience === 'incomplete') {
+            query = query
+              .eq('planId', 'basic')
+              .or('name.is.null,cpf.is.null,termsAcceptedAt.is.null')
+          }
+        }
+
+        const { data: users } = await query.order('createdAt', { ascending: false })
+
+        const mapped = (users || []).map((u: any) => ({
+          id: u.id,
+          email: u.email,
+          name: u.name || '—',
+          planId: u.planId,
+          status: !u.name || !u.cpf || !u.termsAcceptedAt
+            ? 'Cadastro incompleto'
+            : u.trialEndsAt && new Date(u.trialEndsAt) > new Date()
+            ? 'Trial ativo'
+            : u.trialEndsAt && new Date(u.trialEndsAt) <= new Date()
+            ? 'Trial expirado'
+            : 'Gratuito',
+          trialEndsAt: u.trialEndsAt,
+        }))
+
+        return ok({ users: mapped, total: mapped.length })
+      }
+
       case 'preview_audience': {
         const audience = params?.audience || 'all'
         let query = supabase
