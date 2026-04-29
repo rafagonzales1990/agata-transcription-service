@@ -9,9 +9,14 @@ const plans = [
   {
     name: 'Gratuito',
     price: 'R$ 0',
-    period: '/14 dias',
+    period: '',
     description: 'Experimente sem compromisso',
-    features: ['5 transcrições no período', 'Até 15min por áudio', 'Resumo com IA', 'Ata em PDF'],
+    features: [
+      '5 transcrições/mês',
+      'Reuniões de até 15 min',
+      '3 projetos',
+      'ATA e Resumo por IA',
+    ],
     cta: 'Começar Grátis',
     popular: false,
     badge: 'SEM CARTÃO',
@@ -19,11 +24,17 @@ const plans = [
   },
   {
     name: 'Essencial',
-    price: 'R$ 37',
-    originalPrice: 'R$ 53',
+    price: 'R$ 53',
     period: '/mês',
     description: 'Para profissionais',
-    features: ['15 transcrições/mês', 'Até 1h por áudio', 'Resumo avançado com IA', 'Ata em PDF profissional', 'Sem marca d\'água'],
+    features: [
+      '15 transcrições/mês',
+      'Reuniões de até 60 min',
+      '10 projetos',
+      'ATA e Resumo por IA',
+      'Identificação de locutores',
+      'Integrações Google/Outlook Calendar',
+    ],
     cta: 'Assinar Agora',
     popular: true,
     badge: 'MAIS POPULAR',
@@ -31,11 +42,18 @@ const plans = [
   },
   {
     name: 'Pro',
-    price: 'R$ 137',
-    originalPrice: 'R$ 196',
+    price: 'R$ 196',
     period: '/mês',
     description: 'Para equipes com volume',
-    features: ['30 transcrições/mês', 'Até 1h30 por áudio', 'Todos os recursos', 'Templates customizados', 'Suporte prioritário'],
+    features: [
+      '30 transcrições/mês',
+      'Reuniões de até 90 min',
+      '30 projetos',
+      'Tudo do Essencial',
+      'Governança: detecção de conflitos entre reuniões',
+      'Follow-up automático por e-mail',
+      'App Desktop Windows',
+    ],
     cta: 'Assinar Agora',
     popular: false,
     badge: undefined,
@@ -46,7 +64,16 @@ const plans = [
     price: 'Sob consulta',
     period: '',
     description: 'Para grandes operações',
-    features: ['Transcrições ilimitadas*', 'Duração ilimitada*', 'Grupos de trabalho', 'Gestão de usuários', 'Suporte dedicado', 'SLA personalizado'],
+    features: [
+      'Transcrições ilimitadas',
+      'Reuniões de até 130 min (padrão)',
+      'Projetos ilimitados',
+      'Tudo do Pro',
+      'Grupos de usuários com limites compartilhados',
+      'Tiers A, B e C com escalabilidade de usuários',
+      'Add-on: até 3h por reunião',
+      'SLA e suporte dedicado',
+    ],
     cta: 'Falar com Vendas',
     popular: false,
     badge: undefined,
@@ -90,16 +117,10 @@ export function PlansSection() {
                     <h3 className="font-semibold text-foreground">{plan.name}</h3>
                     <p className="text-xs text-muted-foreground mb-4">{plan.description}</p>
                     <div className="mb-1">
-                      {plan.originalPrice && (
-                        <span className="text-sm text-muted-foreground line-through mr-2">{plan.originalPrice}</span>
-                      )}
                       <span className="text-3xl font-bold text-foreground">{plan.price}</span>
                       {plan.period && <span className="text-sm text-muted-foreground">{plan.period}</span>}
                     </div>
-                    {plan.originalPrice && (
-                      <p className="text-[10px] text-primary font-medium mb-4">Preço anual — economia de 30%</p>
-                    )}
-                    {!plan.originalPrice && <div className="mb-4" />}
+                    <div className="mb-4" />
                   </div>
                   <ul className="space-y-2 mb-6 flex-1">
                     {plan.features.map((f, j) => (

@@ -69,28 +69,46 @@ export type Database = {
       }
       AdminGroup: {
         Row: {
+          audioDurationAddon: number | null
           color: string
           createdAt: string
           description: string | null
           id: string
+          maxDurationMinutes: number | null
+          maxTotalMinutesMonth: number | null
+          maxTranscriptions: number | null
           name: string
+          tier: string | null
           updatedAt: string
+          usersBase: number | null
         }
         Insert: {
+          audioDurationAddon?: number | null
           color?: string
           createdAt?: string
           description?: string | null
           id?: string
+          maxDurationMinutes?: number | null
+          maxTotalMinutesMonth?: number | null
+          maxTranscriptions?: number | null
           name: string
+          tier?: string | null
           updatedAt?: string
+          usersBase?: number | null
         }
         Update: {
+          audioDurationAddon?: number | null
           color?: string
           createdAt?: string
           description?: string | null
           id?: string
+          maxDurationMinutes?: number | null
+          maxTotalMinutesMonth?: number | null
+          maxTranscriptions?: number | null
           name?: string
+          tier?: string | null
           updatedAt?: string
+          usersBase?: number | null
         }
         Relationships: []
       }
@@ -767,6 +785,7 @@ export type Database = {
           id: string
           maxDurationMinutes: number | null
           maxProjects: number | null
+          maxTotalMinutesMonth: number | null
           maxTranscriptions: number
           name: string
           popular: boolean
@@ -784,6 +803,7 @@ export type Database = {
           id: string
           maxDurationMinutes?: number | null
           maxProjects?: number | null
+          maxTotalMinutesMonth?: number | null
           maxTranscriptions: number
           name: string
           popular?: boolean
@@ -801,6 +821,7 @@ export type Database = {
           id?: string
           maxDurationMinutes?: number | null
           maxProjects?: number | null
+          maxTotalMinutesMonth?: number | null
           maxTranscriptions?: number
           name?: string
           popular?: boolean
