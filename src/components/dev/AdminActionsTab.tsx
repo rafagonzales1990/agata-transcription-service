@@ -345,6 +345,13 @@ function PreviewActionDialog({
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={headerCheckedState}
+                        onCheckedChange={toggleAll}
+                        aria-label="Selecionar todos"
+                      />
+                    </TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>E-mail</TableHead>
                     <TableHead>Status</TableHead>
@@ -352,23 +359,39 @@ function PreviewActionDialog({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {visible.map(u => (
-                    <TableRow key={u.id}>
-                      <TableCell className="font-medium">{u.name}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{u.email}</TableCell>
-                      <TableCell>{statusBadge(u.status)}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {u.trialEndsAt ? new Date(u.trialEndsAt).toLocaleDateString('pt-BR') : '—'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {visible.map(u => {
+                    const isSel = selectedIds.has(u.id);
+                    return (
+                      <TableRow
+                        key={u.id}
+                        className={`cursor-pointer ${isSel ? 'bg-muted/30' : ''}`}
+                        onClick={() => toggleOne(u.id)}
+                      >
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={isSel}
+                            onCheckedChange={() => toggleOne(u.id)}
+                            aria-label={`Selecionar ${u.email}`}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium">{u.name}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{u.email}</TableCell>
+                        <TableCell>{statusBadge(u.status)}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {u.trialEndsAt ? new Date(u.trialEndsAt).toLocaleDateString('pt-BR') : '—'}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
           </div>
 
           <div className="text-sm text-muted-foreground">
-            {filtered.length} usuários serão afetados
+            {selectedIds.size > 0
+              ? <><strong>{selectedIds.size}</strong> selecionados de {filtered.length} usuários</>
+              : <>{filtered.length} usuários serão afetados</>}
             {filtered.length > 50 && <span className="ml-2 text-xs">(exibindo primeiros 50)</span>}
           </div>
 
@@ -381,9 +404,9 @@ function PreviewActionDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={running}>Cancelar</Button>
-          <Button onClick={run} disabled={running || filtered.length === 0}>
+          <Button onClick={run} disabled={running || effectiveCount === 0}>
             {running ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            Confirmar e Executar para {filtered.length} usuários →
+            Confirmar e Executar para {effectiveCount} usuários →
           </Button>
         </DialogFooter>
       </DialogContent>
