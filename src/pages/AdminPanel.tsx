@@ -26,6 +26,7 @@ import { VersionBadge } from '@/components/VersionBadge';
 import { appVersion } from '@/config/appVersion';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { AIStatusMonitor, AIStatusBanner } from '@/components/dev/AIStatusMonitor';
+import { AdminActionsTab } from '@/components/dev/AdminActionsTab';
 
 // ── Constants ──────────────────────────────────────────────
 const PLAN_COLORS: Record<string, string> = {
@@ -905,6 +906,7 @@ export default function AdminPanel() {
             <TabsTrigger value="groups" onClick={fetchGroups}>Grupos / Empresas ({groups.length})</TabsTrigger>
             <TabsTrigger value="costs" onClick={fetchCosts}>Custos</TabsTrigger>
             <TabsTrigger value="ai-status">Status IAs</TabsTrigger>
+            <TabsTrigger value="actions">Ações</TabsTrigger>
           </TabsList>
 
           {/* ── Dashboard Tab ──────────────────────────────── */}
@@ -1448,6 +1450,11 @@ export default function AdminPanel() {
           {/* ── AI Status Tab ─────────────────────────────── */}
           <TabsContent value="ai-status" className="space-y-6">
             <AIStatusMonitor />
+          </TabsContent>
+
+          {/* ── Actions Tab ───────────────────────────────── */}
+          <TabsContent value="actions" className="space-y-6">
+            <AdminActionsTab />
           </TabsContent>
         </Tabs>
       </div>
