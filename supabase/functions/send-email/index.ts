@@ -143,6 +143,42 @@ function teamInviteTemplate(teamName: string, inviterName: string, signupUrl: st
 <p style="text-align:center;color:#9ca3af;font-size:13px;margin-top:16px">Este convite expira em ${expiresIn}.</p>`)
 }
 
+function completeSignupTemplate(name: string, trialEndsAt: string): string {
+  const expiryDate = new Date(trialEndsAt).toLocaleDateString('pt-BR', {
+    day: '2-digit', month: 'long', year: 'numeric'
+  })
+  const displayName = name || 'você'
+  return baseLayout(`
+<div style="text-align:center;margin-bottom:20px"><span style="font-size:48px">🎁</span></div>
+<h1 style="margin:0 0 16px;font-size:22px;color:#111827;text-align:center">
+  Finalize seu cadastro e ganhe 5 transcrições de até 60 min
+</h1>
+<p style="color:#4b5563;line-height:1.6;margin:0 0 20px;text-align:center">
+  Olá, ${displayName}! Você começou a criar sua conta no Ágata, mas ainda
+  não finalizou o cadastro. <strong>Complete agora</strong> e ganhe
+  <strong>5 transcrições completas de até 60 minutos</strong> para testar.
+</p>
+<div style="background:#FEF3C7;border-radius:8px;padding:16px;margin:0 0 20px">
+  <p style="margin:0;color:#92400E;font-size:14px">
+    ⏰ Seu benefício expira em <strong>${expiryDate}</strong>.
+    Finalize o cadastro agora para ativá-lo!
+  </p>
+</div>
+<div style="background:#F0FDF4;border-radius:8px;padding:20px;margin:0 0 24px">
+  <p style="margin:0 0 12px;color:#166534;font-weight:600;font-size:15px">O que você vai ter acesso:</p>
+  <ul style="color:#166534;line-height:2;padding-left:20px;margin:0">
+    <li>✅ Transcrição automática em português</li>
+    <li>✅ Identificação de quem falou o quê</li>
+    <li>✅ ATA profissional gerada pela IA</li>
+    <li>✅ Áudio excluído em 24h — privacidade garantida</li>
+  </ul>
+</div>
+<div style="text-align:center">${btn('Finalizar meu cadastro →', BASE_URL + '/auth/signup')}</div>
+<p style="text-align:center;color:#9ca3af;font-size:12px;margin-top:16px">
+  Sem cartão de crédito necessário
+</p>`)
+}
+
 function trialBonusTemplate(name: string, trialEndsAt: string): string {
   const expiryDate = new Date(trialEndsAt).toLocaleDateString('pt-BR', {
     day: '2-digit', month: 'long', year: 'numeric'
@@ -277,6 +313,10 @@ Deno.serve(async (req) => {
       case 'demo-followup-72h':
         subject = 'Última chamada — comece seu teste grátis na Ágata'
         html = demoFollowup72hTemplate(data.name, data.persona)
+        break
+      case 'complete_signup':
+        subject = '🎁 Finalize seu cadastro e ganhe 5 transcrições de 60 min'
+        html = completeSignupTemplate(data.name, data.trialEndsAt)
         break
       case 'trial_bonus':
         subject = '🎁 Você ganhou 5 transcrições de até 60 min — aproveite!'
