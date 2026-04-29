@@ -67,6 +67,33 @@ export type Database = {
           },
         ]
       }
+      AdminActionLog: {
+        Row: {
+          action: string
+          affectedCount: number | null
+          executedAt: string
+          id: string
+          result: Json | null
+          userId: string
+        }
+        Insert: {
+          action: string
+          affectedCount?: number | null
+          executedAt?: string
+          id?: string
+          result?: Json | null
+          userId: string
+        }
+        Update: {
+          action?: string
+          affectedCount?: number | null
+          executedAt?: string
+          id?: string
+          result?: Json | null
+          userId?: string
+        }
+        Relationships: []
+      }
       AdminGroup: {
         Row: {
           audioDurationAddon: number | null
@@ -1502,6 +1529,7 @@ export type Database = {
               title: string
             }[]
           }
+      reset_basic_trials_bulk: { Args: never; Returns: number }
     }
     Enums: {
       [_ in never]: never
