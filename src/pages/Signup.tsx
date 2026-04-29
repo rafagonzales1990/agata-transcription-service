@@ -52,6 +52,12 @@ export default function SignupPage() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    const nameTrimmed = name.trim();
+    const nameWords = nameTrimmed.split(/\s+/).filter(Boolean);
+    if (nameWords.length < 2 || /\d/.test(nameTrimmed)) {
+      toast.error('Por favor, informe seu nome completo');
+      return;
+    }
     if (password.length < 8) {
       toast.error('A senha deve ter pelo menos 8 caracteres');
       return;
@@ -181,6 +187,7 @@ export default function SignupPage() {
           <div>
             {!resendSent ? (
               <button
+                type="button"
                 onClick={handleResendConfirmation}
                 disabled={resendLoading}
                 className="text-sm text-primary hover:underline disabled:opacity-50"
@@ -230,8 +237,8 @@ export default function SignupPage() {
             <SSOButtons mode="signup" />
             <form onSubmit={handleSignup} className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-foreground mb-1 block">Nome</label>
-                <Input placeholder="Seu nome" value={name} onChange={(e) => setName(e.target.value)} required />
+                <label className="text-sm font-medium text-foreground mb-1 block">Nome completo</label>
+                <Input placeholder="Ex: Rafael Gonzales" value={name} onChange={(e) => setName(e.target.value)} required />
               </div>
               <div>
                 <label className="text-sm font-medium text-foreground mb-1 block">Email</label>

@@ -62,7 +62,7 @@ function getDaysRemaining(trialEndsAt: string | null): number {
 interface AdminUser {
   id: string; name: string | null; email: string; cpf: string | null; phone: string | null;
   planId: string | null; billingCycle: string | null; isAdmin: boolean; createdAt: string;
-  hasCompletedOnboarding: boolean;
+  hasCompletedOnboarding: boolean; termsAcceptedAt: string | null;
   trialEndsAt: string | null; stripeCustomerId: string | null;
   stripeSubscriptionId: string | null; stripePriceId: string | null;
   adminGroupId: string | null; meetingCount: number;
@@ -405,7 +405,7 @@ export default function AdminPanel() {
       const currentMonth = new Date().toISOString().slice(0, 7);
       const { data: usersData, error } = await supabase
         .from('User')
-        .select('id, name, email, cpf, phone, planId, isAdmin, billingCycle, hasCompletedOnboarding, trialEndsAt, stripeCustomerId, stripeSubscriptionId, stripePriceId, adminGroupId, createdAt, giftPlanId, giftEndsAt')
+        .select('id, name, email, cpf, phone, planId, isAdmin, billingCycle, hasCompletedOnboarding, termsAcceptedAt, trialEndsAt, stripeCustomerId, stripeSubscriptionId, stripePriceId, adminGroupId, createdAt, giftPlanId, giftEndsAt')
         .order('createdAt', { ascending: false });
       if (error) throw error;
 
@@ -649,32 +649,29 @@ export default function AdminPanel() {
   const dotColors: Record<string, string> = { basic: 'bg-gray-400', inteligente: 'bg-emerald-500', automacao: 'bg-blue-500', enterprise: 'bg-purple-500' };
 
   const getUserStatus = (u: AdminUser) => {
-    // 1. Active gift takes priority
+    // 0. Active gift plan — shown first as it's the most specific state
     if (u.giftPlanId && u.giftEndsAt && new Date(u.giftEndsAt) > now) {
       const d = new Date(u.giftEndsAt);
       return { label: `🎁 Gift até ${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`, cls: 'bg-amber-100 text-amber-700' };
     }
-    if (!u.trialEndsAt && !u.hasCompletedOnboarding) {
-      return { label: 'Cadastro incompleto', cls: 'border border-border bg-background text-muted-foreground' };
-    }
-    if (u.trialEndsAt && new Date(u.trialEndsAt) < now && !u.stripeSubscriptionId) {
-      return { label: 'Trial expirado', cls: 'bg-destructive text-destructive-foreground' };
-    }
-    if (!u.trialEndsAt && u.hasCompletedOnboarding) {
-      return { label: 'Trial pendente', cls: 'bg-amber-100 text-amber-700' };
-    }
-    // 2. Basic plan: trial active → Trial Xd, else Gratuito
-    if (!u.planId || u.planId === 'basic') {
-      if (u.trialEndsAt && new Date(u.trialEndsAt) > now) {
-        return { label: `Trial ${getDaysRemaining(u.trialEndsAt)}d`, cls: 'bg-orange-100 text-orange-700' };
-      }
-      return { label: 'Gratuito', cls: 'bg-gray-100 text-gray-700' };
-    }
-    // 3. Paid plans: show plan name with plan-specific color
+    // 1. Active paid subscription
     if (u.planId === 'inteligente') return { label: 'Essencial', cls: 'bg-emerald-100 text-emerald-700' };
     if (u.planId === 'automacao') return { label: 'Pro', cls: 'bg-blue-100 text-blue-700' };
     if (u.planId === 'enterprise') return { label: 'Enterprise', cls: 'bg-purple-100 text-purple-700' };
-    return { label: PLAN_LABELS[u.planId] || u.planId, cls: 'bg-gray-100 text-gray-700' };
+    // 2. Missing required fields (name, cpf, or terms)
+    if (!u.name || !u.cpf || !u.termsAcceptedAt) {
+      return { label: 'Cadastro incompleto', cls: 'border border-border bg-background text-muted-foreground' };
+    }
+    // 3. Trial active
+    if (u.trialEndsAt && new Date(u.trialEndsAt) > now) {
+      return { label: `Trial ${getDaysRemaining(u.trialEndsAt)}d`, cls: 'bg-orange-100 text-orange-700' };
+    }
+    // 4. Trial expired
+    if (u.trialEndsAt && new Date(u.trialEndsAt) <= now) {
+      return { label: 'Trial expirado', cls: 'bg-destructive text-destructive-foreground' };
+    }
+    // 5. Free plan, complete registration, no trial
+    return { label: 'Gratuito', cls: 'bg-gray-100 text-gray-700' };
   };
 
   return (
@@ -936,18 +933,17 @@ export default function AdminPanel() {
                         <Checkbox checked={selected.size === filteredUsers.length && filteredUsers.length > 0}
                           onCheckedChange={(c) => setSelected(c ? new Set(filteredUsers.map(u => u.id)) : new Set())} />
                       </TableHead>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>E-mail</TableHead>
-                      <TableHead>CPF</TableHead>
-                      <TableHead>Telefone</TableHead>
-                      <TableHead>Plano</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-center">Reuniões</TableHead>
-                      <TableHead className="text-center">Uso Mês</TableHead>
-                      <TableHead className="text-center">Min Mês</TableHead>
-                      <TableHead className="text-center">% Limite</TableHead>
-                      <TableHead>Cadastro</TableHead>
-                      <TableHead className="w-44">Ações</TableHead>
+                      <TableHead className="flex-1 min-w-[180px]">Nome</TableHead>
+                      <TableHead className="w-[140px]">CPF</TableHead>
+                      <TableHead className="w-[120px]">Telefone</TableHead>
+                      <TableHead className="w-[100px]">Plano</TableHead>
+                      <TableHead className="w-[140px]">Status</TableHead>
+                      <TableHead className="w-[80px] text-center">Reuniões</TableHead>
+                      <TableHead className="w-[80px] text-center">Uso Mês</TableHead>
+                      <TableHead className="w-[80px] text-center">Min Mês</TableHead>
+                      <TableHead className="w-[80px] text-center">% Limite</TableHead>
+                      <TableHead className="w-[90px]">Cadastro</TableHead>
+                      <TableHead className="w-[100px]">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -963,12 +959,9 @@ export default function AdminPanel() {
                           </TableCell>
                           <TableCell>
                             <p className="text-sm font-bold">{u.name || '—'} {u.isAdmin && <Badge variant="destructive" className="text-[9px] ml-1">ADMIN</Badge>}</p>
-                            <p className="text-xs text-muted-foreground font-mono">{u.email}</p>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <span className="text-xs font-mono truncate max-w-[140px]">{u.email}</span>
-                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(u.email)}><Copy className="h-3 w-3" /></Button>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <span className="text-xs text-muted-foreground font-mono truncate max-w-[200px]">{u.email}</span>
+                              <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => copyToClipboard(u.email)}><Copy className="h-3 w-3" /></Button>
                             </div>
                           </TableCell>
                           <TableCell className="text-xs font-mono">{formatCPF(u.cpf)}</TableCell>

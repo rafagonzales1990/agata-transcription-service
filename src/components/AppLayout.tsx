@@ -25,6 +25,8 @@ import { TrialUpgradeBanners } from '@/components/TrialUpgradeBanners';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchMeetingsList } from '@/hooks/useMeetings';
 import { CpfRequiredModal } from '@/components/CpfRequiredModal';
+import { NameRequiredModal } from '@/components/NameRequiredModal';
+import { TermsRequiredModal } from '@/components/TermsRequiredModal';
 import { useTheme } from '@/hooks/useTheme';
 import { PWAInstallModal } from '@/components/PWAInstallModal';
 import { TrialExpiredOverlay } from '@/components/TrialExpiredOverlay';
@@ -57,8 +59,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   const qc = useQueryClient();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isEnterpriseAdmin, setIsEnterpriseAdmin] = useState(false);
+  const [userName, setUserName] = useState<string | null>(null);
   const [userCpf, setUserCpf] = useState<string | null>(null);
-  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
+  const [userTermsAcceptedAt, setUserTermsAcceptedAt] = useState<string | null>(null);
   const [userDataLoaded, setUserDataLoaded] = useState(false);
   const [pwaModalOpen, setPwaModalOpen] = useState(false);
   const [hasCompletedMeetings, setHasCompletedMeetings] = useState(false);
@@ -71,7 +74,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       const [userResult, meetingResult] = await Promise.all([
         supabase
           .from('User')
-          .select('isAdmin, cpf, role, isTeamOwner, hasCompletedOnboarding')
+          .select('isAdmin, name, cpf, termsAcceptedAt, role, isTeamOwner, hasCompletedOnboarding')
           .eq('id', user.id)
           .maybeSingle(),
         supabase
@@ -83,8 +86,9 @@ export function AppLayout({ children }: AppLayoutProps) {
       const data = userResult.data as any;
       if (data?.isAdmin) setIsAdmin(true);
       if (data?.role === 'enterprise_admin' || data?.isTeamOwner) setIsEnterpriseAdmin(true);
+      setUserName(data?.name ?? null);
       setUserCpf(data?.cpf ?? null);
-      setHasCompletedOnboarding(data?.hasCompletedOnboarding ?? false);
+      setUserTermsAcceptedAt(data?.termsAcceptedAt ?? null);
       setHasCompletedMeetings((meetingResult.count || 0) > 0);
     } catch {
       // non-critical — UI renders with defaults
@@ -147,7 +151,9 @@ export function AppLayout({ children }: AppLayoutProps) {
     navigate('/');
   };
 
-  const needsCpf = userDataLoaded && !hasCompletedOnboarding && !userCpf;
+  const needsName = userDataLoaded && !userName;
+  const needsCpf = userDataLoaded && !needsName && !userCpf;
+  const needsTerms = userDataLoaded && !needsName && !needsCpf && !userTermsAcceptedAt;
   const authUser = profile;
 
   const initial = profile?.name?.charAt(0)?.toUpperCase() || profile?.email?.charAt(0)?.toUpperCase() || '?';
@@ -232,7 +238,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         )}
         {!isPaid && (
           <Link to="/plans" onClick={onNavigate}>
-            <button className="w-full px-3 py-2.5 rounded-lg text-sm font-semibold bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200 flex items-center justify-center gap-2">
+            <button type="button" className="w-full px-3 py-2.5 rounded-lg text-sm font-semibold bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200 flex items-center justify-center gap-2">
               <Sparkles className="h-4 w-4" />
               UPGRADE AGORA
             </button>
@@ -240,6 +246,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         )}
         {/* Mobile/tablet: show install button instead of Downloads */}
         <button
+          type="button"
           onClick={() => { onNavigate?.(); setPwaModalOpen(true); }}
           className={cn('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors w-full text-left lg:hidden', inactiveClasses)}
         >
@@ -250,7 +257,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <div className="hidden lg:block">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className={cn('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors w-full text-left', inactiveClasses)}>
+              <button type="button" className={cn('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors w-full text-left', inactiveClasses)}>
                 <Download className="h-4 w-4" />
                 Downloads
                 <ChevronDown className="h-3 w-3 ml-auto opacity-50" />
@@ -312,6 +319,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           Ajuda
         </Link>
         <button
+          type="button"
           onClick={() => { onNavigate?.(); handleLogout(); }}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-foreground/70 hover:bg-destructive/10 hover:text-destructive transition-colors w-full text-left"
         >
@@ -336,7 +344,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
       <div className="fixed top-0 left-0 right-0 md:left-64 z-40 h-14 lg:h-16 bg-background/95 backdrop-blur-sm border-b border-border flex items-center justify-between px-4">
         <div className="flex items-center gap-3 md:hidden">
-          <button onClick={() => setSidebarOpen(true)}>
+          <button type="button" onClick={() => setSidebarOpen(true)}>
             <Menu className="h-5 w-5 text-foreground" />
           </button>
           <LogoBrand logoSize={28} />
@@ -349,6 +357,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <div className="flex items-center gap-3">
           <PWAInstallButton />
           <button
+            type="button"
             onClick={toggleTheme}
             className="w-9 h-9 flex items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
             title={isDark ? 'Modo claro' : 'Modo escuro'}
@@ -362,7 +371,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+              <button type="button" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-semibold text-sm">
                   {initial}
                 </div>
@@ -402,7 +411,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           <aside className="absolute left-0 top-0 bottom-0 w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
             <div className="p-4 border-b border-sidebar-border flex items-center justify-between">
               <LogoBrand />
-              <button onClick={() => setSidebarOpen(false)}>
+              <button type="button" onClick={() => setSidebarOpen(false)}>
                 <X className="h-5 w-5 text-muted-foreground" />
               </button>
             </div>
@@ -443,8 +452,14 @@ export function AppLayout({ children }: AppLayoutProps) {
           onDismiss={() => setTrialOverlayDismissed(true)}
         />
       )}
+      {needsName && authUser && (
+        <NameRequiredModal userId={authUser.user_id} onSaved={fetchUserData} onDismiss={() => setUserName('dismissed')} />
+      )}
       {needsCpf && authUser && (
         <CpfRequiredModal userId={authUser.user_id} onSaved={fetchUserData} onDismiss={() => setUserCpf('dismissed')} />
+      )}
+      {needsTerms && authUser && (
+        <TermsRequiredModal userId={authUser.user_id} onSaved={fetchUserData} onDismiss={() => setUserTermsAcceptedAt('dismissed')} />
       )}
       <PWAInstallModal open={pwaModalOpen} onOpenChange={setPwaModalOpen} />
     </div>
