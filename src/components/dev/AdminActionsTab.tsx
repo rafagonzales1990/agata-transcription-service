@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,22 +6,26 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, Mail, Database, Send, RotateCw, Users as UsersIcon, Trash, Gift, FileEdit, RefreshCcw } from 'lucide-react';
+import { Loader2, Mail, Database, Send, RotateCw, Users as UsersIcon, Trash, Gift, FileEdit, RefreshCcw, Search } from 'lucide-react';
 
 type PreviewCounts = {
   resetTrials: number; assignGroups: number; cleanLogs: number;
   trialBonus: number; completeSignup: number; reactivation: number;
 };
 type LastRuns = Record<string, { executedAt: string; affectedCount: number }>;
+
+type AffectedUser = {
+  id: string; email: string; name: string; planId: string;
+  status: 'Trial ativo' | 'Trial expirado' | 'Cadastro incompleto' | 'Gratuito';
+  trialEndsAt: string | null;
+};
 
 type ActionDef = {
   key: string;
@@ -30,18 +34,19 @@ type ActionDef = {
   description: string;
   previewKey: keyof PreviewCounts;
   borderColor: string;
+  hasFilters: boolean; // blasts only
 };
 
 const DATA_ACTIONS: ActionDef[] = [
-  { key: 'reset_trials', icon: <RotateCw className="h-5 w-5" />, title: 'Resetar Trials', description: 'Redefine trialEndsAt = hoje + 14 dias para todos os usuários do plano Gratuito.', previewKey: 'resetTrials', borderColor: '#3B82F6' },
-  { key: 'assign_groups', icon: <UsersIcon className="h-5 w-5" />, title: 'Atribuir Grupos', description: 'Atribui usuários aos grupos corretos conforme seu plano atual (Gratuito, Essencial, Pro).', previewKey: 'assignGroups', borderColor: '#3B82F6' },
-  { key: 'clean_logs', icon: <Trash className="h-5 w-5" />, title: 'Limpar Logs Antigos', description: 'Remove registros de NurturingLog com mais de 90 dias.', previewKey: 'cleanLogs', borderColor: '#3B82F6' },
+  { key: 'reset_trials', icon: <RotateCw className="h-5 w-5" />, title: 'Resetar Trials', description: 'Redefine trialEndsAt = hoje + 14 dias para todos os usuários do plano Gratuito.', previewKey: 'resetTrials', borderColor: '#3B82F6', hasFilters: false },
+  { key: 'assign_groups', icon: <UsersIcon className="h-5 w-5" />, title: 'Atribuir Grupos', description: 'Atribui usuários aos grupos corretos conforme seu plano atual (Gratuito, Essencial, Pro).', previewKey: 'assignGroups', borderColor: '#3B82F6', hasFilters: false },
+  { key: 'clean_logs', icon: <Trash className="h-5 w-5" />, title: 'Limpar Logs Antigos', description: 'Remove registros de NurturingLog com mais de 90 dias.', previewKey: 'cleanLogs', borderColor: '#3B82F6', hasFilters: false },
 ];
 
 const BLAST_ACTIONS: ActionDef[] = [
-  { key: 'blast_trial_bonus', icon: <Gift className="h-5 w-5" />, title: 'Trial Bonus', description: 'Envia e-mail de boas-vindas com 5 transcrições de 60 min para usuários com trial ativo que ainda não receberam.', previewKey: 'trialBonus', borderColor: '#00C781' },
-  { key: 'blast_complete_signup', icon: <FileEdit className="h-5 w-5" />, title: 'Finalizar Cadastro', description: 'Envia push para completar cadastro a usuários com campos faltando e trial ativo.', previewKey: 'completeSignup', borderColor: '#00C781' },
-  { key: 'blast_reactivation', icon: <RefreshCcw className="h-5 w-5" />, title: 'Reativar Plataforma', description: 'Envia e-mail de reativação para todos os usuários do plano Gratuito.', previewKey: 'reactivation', borderColor: '#00C781' },
+  { key: 'blast_trial_bonus', icon: <Gift className="h-5 w-5" />, title: 'Trial Bonus', description: 'Envia e-mail de boas-vindas com 5 transcrições de 60 min para usuários com trial ativo que ainda não receberam.', previewKey: 'trialBonus', borderColor: '#00C781', hasFilters: true },
+  { key: 'blast_complete_signup', icon: <FileEdit className="h-5 w-5" />, title: 'Finalizar Cadastro', description: 'Envia push para completar cadastro a usuários com campos faltando e trial ativo.', previewKey: 'completeSignup', borderColor: '#00C781', hasFilters: true },
+  { key: 'blast_reactivation', icon: <RefreshCcw className="h-5 w-5" />, title: 'Reativar Plataforma', description: 'Envia e-mail de reativação para todos os usuários do plano Gratuito.', previewKey: 'reactivation', borderColor: '#00C781', hasFilters: true },
 ];
 
 const TEMPLATE_OPTIONS = [
@@ -53,6 +58,14 @@ const AUDIENCE_OPTIONS: { value: string; label: string }[] = [
   { value: 'trial_active', label: 'Apenas trial ativo' },
   { value: 'paid', label: 'Apenas pagantes' },
   { value: 'incomplete', label: 'Cadastro incompleto' },
+];
+
+const FILTER_OPTIONS: { value: string; label: string }[] = [
+  { value: 'all', label: 'Todos afetados' },
+  { value: 'with_name', label: 'Apenas com nome' },
+  { value: 'without_name', label: 'Apenas sem nome' },
+  { value: 'trial_active', label: 'Trial ativo' },
+  { value: 'trial_expired', label: 'Trial expirado' },
 ];
 
 async function invokeAdminAction(body: { action: string; params?: any }) {
@@ -67,6 +80,16 @@ function formatDate(iso?: string) {
   if (!iso) return 'Nunca executada';
   const d = new Date(iso);
   return `Última execução: ${d.toLocaleDateString('pt-BR')} ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+}
+
+function statusBadge(status: AffectedUser['status']) {
+  const cls: Record<string, string> = {
+    'Trial ativo': 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100',
+    'Trial expirado': 'bg-red-100 text-red-700 hover:bg-red-100',
+    'Cadastro incompleto': 'bg-yellow-100 text-yellow-700 hover:bg-yellow-100',
+    'Gratuito': 'bg-gray-100 text-gray-700 hover:bg-gray-100',
+  };
+  return <Badge variant="secondary" className={cls[status]}>{status}</Badge>;
 }
 
 function ActionCard({
@@ -99,8 +122,7 @@ function ActionCard({
 export function AdminActionsTab() {
   const [counts, setCounts] = useState<PreviewCounts>({ resetTrials: 0, assignGroups: 0, cleanLogs: 0, trialBonus: 0, completeSignup: 0, reactivation: 0 });
   const [lastRuns, setLastRuns] = useState<LastRuns>({});
-  const [running, setRunning] = useState<string | null>(null);
-  const [confirmAction, setConfirmAction] = useState<ActionDef | null>(null);
+  const [previewAction, setPreviewAction] = useState<ActionDef | null>(null);
   const [marketingOpen, setMarketingOpen] = useState(false);
 
   const load = useCallback(async () => {
@@ -114,27 +136,6 @@ export function AdminActionsTab() {
 
   useEffect(() => { load(); }, [load]);
 
-  const runAction = async (key: string) => {
-    setRunning(key);
-    try {
-      const { data, error } = await invokeAdminAction({ action: key });
-      if (error || !data?.success) throw new Error(data?.error || error?.message || 'Erro');
-      const affected = data.data?.affected ?? data.data?.sent ?? 0;
-      const skipped = data.data?.skipped;
-      const errs = data.data?.errors?.length || 0;
-      let msg = `✅ Concluído: ${affected} afetados`;
-      if (skipped !== undefined) msg += ` | ${skipped} pulados`;
-      if (errs) msg += ` | ${errs} erros`;
-      toast.success(msg);
-      await load();
-    } catch (e: any) {
-      toast.error(`❌ Erro: ${e.message}`);
-    } finally {
-      setRunning(null);
-      setConfirmAction(null);
-    }
-  };
-
   const previewCount = (k: keyof PreviewCounts) => counts[k] || 0;
 
   return (
@@ -144,8 +145,8 @@ export function AdminActionsTab() {
         <h3 className="text-lg font-semibold flex items-center gap-2"><Database className="h-5 w-5" /> Gestão de Dados</h3>
         <div className="space-y-3">
           {DATA_ACTIONS.map(a => (
-            <ActionCard key={a.key} def={a} count={previewCount(a.previewKey)} lastRun={lastRuns[a.key]} running={running === a.key}
-              onRun={() => setConfirmAction(a)} />
+            <ActionCard key={a.key} def={a} count={previewCount(a.previewKey)} lastRun={lastRuns[a.key]} running={false}
+              onRun={() => setPreviewAction(a)} />
           ))}
         </div>
       </div>
@@ -158,8 +159,8 @@ export function AdminActionsTab() {
           <h4 className="text-sm font-medium text-muted-foreground mb-2">Blasts automáticos</h4>
           <div className="space-y-3">
             {BLAST_ACTIONS.map(a => (
-              <ActionCard key={a.key} def={a} count={previewCount(a.previewKey)} lastRun={lastRuns[a.key]} running={running === a.key}
-                onRun={() => setConfirmAction(a)} />
+              <ActionCard key={a.key} def={a} count={previewCount(a.previewKey)} lastRun={lastRuns[a.key]} running={false}
+                onRun={() => setPreviewAction(a)} />
             ))}
           </div>
         </div>
@@ -181,27 +182,182 @@ export function AdminActionsTab() {
         </div>
       </div>
 
-      {/* Confirm modal */}
-      <AlertDialog open={!!confirmAction} onOpenChange={(o) => !o && setConfirmAction(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar ação</AlertDialogTitle>
-            <AlertDialogDescription>
-              Você tem certeza? Esta ação afetará {confirmAction ? previewCount(confirmAction.previewKey) : 0} usuários.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => confirmAction && runAction(confirmAction.key)}>Confirmar</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <PreviewActionDialog
+        action={previewAction}
+        onOpenChange={(o) => !o && setPreviewAction(null)}
+        onComplete={load}
+      />
 
       <MarketingDialog open={marketingOpen} onOpenChange={setMarketingOpen} onComplete={load} />
     </div>
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Preview + Confirm dialog (used for ALL data + blast actions)
+// ─────────────────────────────────────────────────────────────────────────────
+function PreviewActionDialog({
+  action, onOpenChange, onComplete,
+}: { action: ActionDef | null; onOpenChange: (o: boolean) => void; onComplete: () => void }) {
+  const open = !!action;
+  const [users, setUsers] = useState<AffectedUser[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open || !action) {
+      setUsers([]); setFilter('all'); setSearch(''); setResult(null); setRunning(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const { data } = await invokeAdminAction({
+        action: 'list_affected_users',
+        params: { actionType: action.key },
+      });
+      if (!cancelled && data?.success) setUsers(data.data.users || []);
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [open, action]);
+
+  const filtered = useMemo(() => {
+    let list = users;
+    if (filter === 'with_name') list = list.filter(u => u.name && u.name !== '—');
+    else if (filter === 'without_name') list = list.filter(u => !u.name || u.name === '—');
+    else if (filter === 'trial_active') list = list.filter(u => u.status === 'Trial ativo');
+    else if (filter === 'trial_expired') list = list.filter(u => u.status === 'Trial expirado');
+
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(u =>
+        (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [users, filter, search]);
+
+  const visible = filtered.slice(0, 50);
+
+  const run = async () => {
+    if (!action) return;
+    setRunning(true); setResult(null);
+    try {
+      const { data, error } = await invokeAdminAction({ action: action.key });
+      if (error || !data?.success) throw new Error(data?.error || error?.message || 'Erro');
+      const affected = data.data?.affected ?? data.data?.sent ?? data.data?.deleted ?? 0;
+      const skipped = data.data?.skipped ?? 0;
+      const errs = data.data?.errors?.length || 0;
+      const msg = `✅ Concluído: ${affected} afetados, ${skipped} pulados, ${errs} erros`;
+      setResult(msg);
+      toast.success(msg);
+      onComplete();
+      setTimeout(() => onOpenChange(false), 2000);
+    } catch (e: any) {
+      const msg = `❌ Erro: ${e.message}`;
+      setResult(msg);
+      toast.error(msg);
+      setRunning(false);
+    }
+  };
+
+  if (!action) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>{action.title} — Pré-visualização</DialogTitle>
+          <DialogDescription>{action.description}</DialogDescription>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-hidden flex flex-col gap-4 min-h-0">
+          {action.hasFilters && (
+            <div>
+              <Label>Destinatários</Label>
+              <Select value={filter} onValueChange={setFilter}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FILTER_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome ou e-mail..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
+          <div className="border rounded-md overflow-auto flex-1 min-h-[200px] max-h-[400px]">
+            {loading ? (
+              <div className="p-4 space-y-2">
+                {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+              </div>
+            ) : visible.length === 0 ? (
+              <div className="p-8 text-center text-sm text-muted-foreground">Nenhum usuário corresponde aos filtros.</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>E-mail</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Trial expira</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {visible.map(u => (
+                    <TableRow key={u.id}>
+                      <TableCell className="font-medium">{u.name}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{u.email}</TableCell>
+                      <TableCell>{statusBadge(u.status)}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {u.trialEndsAt ? new Date(u.trialEndsAt).toLocaleDateString('pt-BR') : '—'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+
+          <div className="text-sm text-muted-foreground">
+            {filtered.length} usuários serão afetados
+            {filtered.length > 50 && <span className="ml-2 text-xs">(exibindo primeiros 50)</span>}
+          </div>
+
+          {result && (
+            <div className={`text-sm p-3 rounded ${result.startsWith('✅') ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+              {result}
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={running}>Cancelar</Button>
+          <Button onClick={run} disabled={running || filtered.length === 0}>
+            {running ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            Confirmar e Executar para {filtered.length} usuários →
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Marketing dialog (unchanged 3-step flow)
+// ─────────────────────────────────────────────────────────────────────────────
 function MarketingDialog({ open, onOpenChange, onComplete }: { open: boolean; onOpenChange: (o: boolean) => void; onComplete: () => void }) {
   const [step, setStep] = useState(1);
   const [subject, setSubject] = useState('');
