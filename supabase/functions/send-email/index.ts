@@ -241,7 +241,7 @@ Deno.serve(async (req) => {
     console.log(`[Brevo] Email sent: type=${type}, to=${to}`)
 
     return new Response(
-      JSON.stringify({ success: true, id: result.id }),
+      JSON.stringify({ success: true, id: result?.messageId }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
