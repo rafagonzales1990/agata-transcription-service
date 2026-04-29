@@ -206,10 +206,12 @@ function PreviewActionDialog({
   const [search, setSearch] = useState('');
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!open || !action) {
       setUsers([]); setFilter('all'); setSearch(''); setResult(null); setRunning(false);
+      setSelectedIds(new Set());
       return;
     }
     let cancelled = false;
