@@ -117,16 +117,10 @@ export function PlansSection() {
                     <h3 className="font-semibold text-foreground">{plan.name}</h3>
                     <p className="text-xs text-muted-foreground mb-4">{plan.description}</p>
                     <div className="mb-1">
-                      {plan.originalPrice && (
-                        <span className="text-sm text-muted-foreground line-through mr-2">{plan.originalPrice}</span>
-                      )}
                       <span className="text-3xl font-bold text-foreground">{plan.price}</span>
                       {plan.period && <span className="text-sm text-muted-foreground">{plan.period}</span>}
                     </div>
-                    {plan.originalPrice && (
-                      <p className="text-[10px] text-primary font-medium mb-4">Preço anual — economia de 30%</p>
-                    )}
-                    {!plan.originalPrice && <div className="mb-4" />}
+                    <div className="mb-4" />
                   </div>
                   <ul className="space-y-2 mb-6 flex-1">
                     {plan.features.map((f, j) => (
