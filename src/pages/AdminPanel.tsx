@@ -518,7 +518,7 @@ export default function AdminPanel() {
       const [meetingsRes, groupsRes, usageRes, profilesRes] = await Promise.all([
         supabase.from('Meeting').select('userId'),
         supabase.from('AdminGroup').select('*'),
-        supabase.from('Usage').select('userId, transcriptionsUsed, totalMinutesTranscribed, currentMonth'),
+        supabase.from('Usage').select('userId, transcriptionsUsed, totalMinutesTranscribed').eq('currentMonth', currentMonth),
         supabase.from('profiles').select('user_id, trial_ends_at'),
       ]);
 
@@ -527,9 +527,7 @@ export default function AdminPanel() {
 
       const usageMap: Record<string, { t: number; m: number }> = {};
       usageRes.data?.forEach(u => {
-        if (u.currentMonth === currentMonth) {
-          usageMap[u.userId] = { t: u.transcriptionsUsed || 0, m: u.totalMinutesTranscribed || 0 };
-        }
+        usageMap[u.userId] = { t: u.transcriptionsUsed || 0, m: u.totalMinutesTranscribed || 0 };
       });
 
       // Map profiles.trial_ends_at by user_id (source of truth for trial)
