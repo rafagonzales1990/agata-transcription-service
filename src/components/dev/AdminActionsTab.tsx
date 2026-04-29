@@ -245,11 +245,45 @@ function PreviewActionDialog({
 
   const visible = filtered.slice(0, 50);
 
+  // Reset selection when filter/search changes
+  useEffect(() => { setSelectedIds(new Set()); }, [filter, search]);
+
+  const visibleIds = useMemo(() => visible.map(u => u.id), [visible]);
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every(id => selectedIds.has(id));
+  const someVisibleSelected = visibleIds.some(id => selectedIds.has(id));
+  const headerCheckedState: boolean | 'indeterminate' =
+    allVisibleSelected ? true : someVisibleSelected ? 'indeterminate' : false;
+
+  const toggleAll = () => {
+    setSelectedIds(prev => {
+      if (allVisibleSelected) {
+        const next = new Set(prev);
+        visibleIds.forEach(id => next.delete(id));
+        return next;
+      }
+      const next = new Set(prev);
+      visibleIds.forEach(id => next.add(id));
+      return next;
+    });
+  };
+
+  const toggleOne = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const effectiveCount = selectedIds.size > 0 ? selectedIds.size : filtered.length;
+
   const run = async () => {
     if (!action) return;
     setRunning(true); setResult(null);
     try {
-      const { data, error } = await invokeAdminAction({ action: action.key });
+      const body: { action: string; params?: any } = { action: action.key };
+      if (selectedIds.size > 0) body.params = { userIds: Array.from(selectedIds) };
+      const { data, error } = await invokeAdminAction(body);
       if (error || !data?.success) throw new Error(data?.error || error?.message || 'Erro');
       const affected = data.data?.affected ?? data.data?.sent ?? data.data?.deleted ?? 0;
       const skipped = data.data?.skipped ?? 0;
