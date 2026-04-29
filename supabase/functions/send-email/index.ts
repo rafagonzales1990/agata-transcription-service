@@ -5,8 +5,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
-const FROM = 'Ágata Transcription <noreply@agatatranscription.com>'
+const BREVO_API_KEY = Deno.env.get('BREVO_API_KEY')!
+const FROM_EMAIL = 'noreply@agatatranscription.com'
+const FROM_NAME = 'Ágata Transcription'
 const BASE_URL = 'https://agatatranscription.com'
 
 function baseLayout(content: string): string {
@@ -152,17 +153,23 @@ function teamMemberAddedTemplate(name: string, teamName: string, inviterName: st
 
 
 async function sendEmail(to: string, subject: string, html: string) {
-  const res = await fetch('https://api.resend.com/emails', {
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${RESEND_API_KEY}`,
+      'api-key': BREVO_API_KEY,
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
     },
-    body: JSON.stringify({ from: FROM, to, subject, html }),
+    body: JSON.stringify({
+      sender: { name: FROM_NAME, email: FROM_EMAIL },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+    }),
   })
   if (!res.ok) {
     const err = await res.text()
-    throw new Error(`Resend error: ${err}`)
+    throw new Error(`Brevo error: ${err}`)
   }
   return res.json()
 }
@@ -231,14 +238,14 @@ Deno.serve(async (req) => {
     }
 
     const result = await sendEmail(to, subject, html)
-    console.log(`Email sent: type=${type}, to=${to}`)
+    console.log(`[Brevo] Email sent: type=${type}, to=${to}`)
 
     return new Response(
       JSON.stringify({ success: true, id: result.id }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    console.error('Email error:', error)
+    console.error('[Brevo] Email error:', error)
     return new Response(
       JSON.stringify({ error: (error as Error).message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

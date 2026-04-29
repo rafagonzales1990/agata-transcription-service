@@ -12,7 +12,7 @@ const supabase = createClient(
 );
 const GEMINI_KEY = Deno.env.get('GOOGLE_GEMINI_API_KEY')!;
 const OPENAI_KEY = Deno.env.get('OPENAI_API_KEY')!;
-const RESEND_KEY = Deno.env.get('RESEND_API_KEY')!;
+const BREVO_KEY = Deno.env.get('BREVO_API_KEY')!;
 const ALERT_EMAIL = 'adm@agatatranscription.com';
 const CONSECUTIVE_FAILURES_TO_ALERT = 2;
 
@@ -138,14 +138,14 @@ async function sendAlert(
   </div>
   </body></html>`;
 
-  await fetch('https://api.resend.com/emails', {
+  await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+    headers: { 'api-key': BREVO_KEY, 'Content-Type': 'application/json', 'Accept': 'application/json' },
     body: JSON.stringify({
-      from: 'Ágata Alerts <adm@agatatranscription.com>',
-      to: ALERT_EMAIL,
+      sender: { name: 'Ágata Alerts', email: 'adm@agatatranscription.com' },
+      to: [{ email: ALERT_EMAIL }],
       subject: title,
-      html,
+      htmlContent: html,
     }),
   });
 }

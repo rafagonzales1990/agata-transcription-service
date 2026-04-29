@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const resendKey = Deno.env.get('RESEND_API_KEY')!
+    const brevoKey = Deno.env.get('BREVO_API_KEY')!
 
     const supabase = createClient(supabaseUrl, serviceKey)
 
@@ -50,17 +50,18 @@ Deno.serve(async (req) => {
 
     // Send security alert email if we have user email
     if (userEmail) {
-      await fetch('https://api.resend.com/emails', {
+      await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${resendKey}`,
+          'api-key': brevoKey,
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: JSON.stringify({
-          from: 'Ágata Segurança <adm@agatatranscription.com>',
-          to: userEmail,
+          sender: { name: 'Ágata Segurança', email: 'adm@agatatranscription.com' },
+          to: [{ email: userEmail }],
           subject: '⚠️ Novo acesso detectado na sua conta Ágata',
-          html: `
+          htmlContent: `
             <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
               <div style="background:#d97706;padding:20px;border-radius:8px 8px 0 0">
                 <h2 style="color:white;margin:0">⚠️ Novo acesso detectado</h2>

@@ -2,8 +2,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const resendKey = Deno.env.get('RESEND_API_KEY')!;
+const brevoKey = Deno.env.get('BREVO_API_KEY')!;
 const fromEmail = 'contato@agatatranscription.com';
+const fromName = 'Ágata Transcription';
 
 Deno.serve(async () => {
   const supabase = createClient(supabaseUrl, supabaseKey);
@@ -163,17 +164,18 @@ Deno.serve(async () => {
     if (!emailType) continue;
 
     try {
-      const res = await fetch('https://api.resend.com/emails', {
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${resendKey}`,
+          'api-key': brevoKey,
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: JSON.stringify({
-          from: `Ágata Transcription <${fromEmail}>`,
-          to: user.email,
+          sender: { name: fromName, email: fromEmail },
+          to: [{ email: user.email }],
           subject,
-          html,
+          htmlContent: html,
         }),
       });
 
