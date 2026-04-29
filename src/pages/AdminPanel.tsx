@@ -1057,7 +1057,7 @@ export default function AdminPanel() {
                           <TableCell className="text-center font-mono text-xs">{u.usageMinutes}</TableCell>
                           <TableCell className="text-center">
                             {(() => {
-                              const limits: Record<string, number> = { basic: 3, inteligente: 20, automacao: 60, enterprise: 999999 };
+                              const limits: Record<string, number> = { basic: 5, inteligente: 15, automacao: 30, enterprise: 999999 };
                               const max = limits[u.planId || 'basic'] || 3;
                               const pct = max > 0 ? Math.min(100, Math.round((u.usageTranscriptions / max) * 100)) : 0;
                               const color = pct >= 100 ? 'text-red-600 font-bold' : pct >= 80 ? 'text-amber-600 font-medium' : 'text-muted-foreground';

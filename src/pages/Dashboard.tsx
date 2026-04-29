@@ -72,7 +72,7 @@ export default function DashboardPage() {
       subtext: `${Math.round(usage.transcriptionPercent)}% utilizado`, showProgress: true, progressValue: usage.transcriptionPercent,
     },
     {
-      label: 'Minutos este mês', value: loading ? null : `${usage.totalMinutesTranscribed}/${isEnterprise ? '∞' : usage.limits.maxDurationMinutes}`,
+      label: 'Minutos este mês', value: loading ? null : `${usage.totalMinutesTranscribed}/${isEnterprise ? '∞' : usage.limits.maxTotalMinutesMonth}`,
       icon: Clock, iconColor: 'text-blue-500', border: 'border-l-blue-500',
       subtext: `${Math.round(usage.minutesPercent)}% utilizado`, showProgress: true, progressValue: usage.minutesPercent,
     },

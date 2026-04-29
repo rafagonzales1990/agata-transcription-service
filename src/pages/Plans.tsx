@@ -140,9 +140,9 @@ export default function PlansPage() {
   const isPaid = currentPlanId !== 'basic';
 
   const FEATURE_OVERRIDES: Record<string, string[]> = {
-    inteligente: ['15 transcrições/mês', 'Até 1h por áudio', 'Resumo avançado com IA', 'Ata em PDF profissional', 'Sem marca d\'água'],
-    automacao: ['30 transcrições/mês', 'Até 1h30 por áudio', 'Todos os recursos', 'Templates customizados', 'Suporte prioritário'],
-    enterprise: ['Transcrições ilimitadas*', 'Duração ilimitada*', 'Grupos de trabalho', 'Gestão de usuários', 'Suporte dedicado', 'SLA personalizado'],
+    inteligente: ['15 transcrições/mês', 'Até 70min por áudio', 'Resumo avançado com IA', 'Ata em PDF profissional', 'Sem marca d\'água'],
+    automacao: ['30 transcrições/mês', 'Até 100min por áudio', 'Todos os recursos', 'Templates customizados', 'Suporte prioritário'],
+    enterprise: ['200 transcrições/mês*', 'Até 130min por áudio*', 'Grupos de trabalho', 'Gestão de usuários', 'Suporte dedicado', 'SLA personalizado'],
   };
 
   return (

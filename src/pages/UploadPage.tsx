@@ -89,7 +89,7 @@ export default function UploadPage() {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
 
   const limitReached = usage.isAtLimit;
-  const remainingMinutes = Math.max(0, usage.limits.maxDurationMinutes - usage.totalMinutesTranscribed);
+  const remainingMinutes = Math.max(0, usage.limits.maxTotalMinutesMonth - usage.totalMinutesTranscribed);
 
   // When recording finishes, feed file into upload flow
   useEffect(() => {
@@ -171,7 +171,7 @@ export default function UploadPage() {
     if (file && file.size > 500 * 1024 * 1024) { toast.error('Arquivo muito grande. O limite é 500MB.'); setUploading(false); return; }
 
     // Pre-upload duration check against plan limits
-    if (file && usage.limits.maxDurationMinutes < 999999) {
+    if (file && usage.limits.maxTotalMinutesMonth < 999999) {
       const durationMin = await getAudioDuration(file);
       if (durationMin > 0 && durationMin > remainingMinutes) {
         setDetectedDuration(durationMin);
@@ -526,7 +526,7 @@ export default function UploadPage() {
             <DialogDescription className="space-y-3 pt-2">
               <p>
                 Duração detectada: <strong>{detectedDuration} min</strong><br />
-                Limite do plano ({usage.limits.planName}): <strong>{usage.limits.maxDurationMinutes} min/mês</strong><br />
+                Limite mensal do plano ({usage.limits.planName}): <strong>{usage.limits.maxTotalMinutesMonth} min/mês</strong><br />
                 Minutos restantes: <strong>{remainingMinutes} min</strong>
               </p>
               <p>
