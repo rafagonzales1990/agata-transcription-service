@@ -3,6 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
 }
 
 async function verifyAdmin(supabase: any, authHeader: string) {
@@ -16,11 +17,11 @@ async function verifyAdmin(supabase: any, authHeader: string) {
 
   const { data: userData } = await supabase
     .from('User')
-    .select('id, isAdmin')
+    .select('id, isAdmin, role')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
-  if (!userData?.isAdmin) return null
+  if (!userData?.isAdmin && userData?.role !== 'dev') return null
   return user
 }
 
