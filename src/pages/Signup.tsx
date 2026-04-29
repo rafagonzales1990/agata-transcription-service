@@ -76,13 +76,15 @@ export default function SignupPage() {
     if (error) {
       toast.error(error.message);
     } else {
-      // Save terms acceptance
+      // Save terms acceptance + ensure trialEndsAt is set (14 days from now)
       try {
         const { data: { session: sess } } = await supabase.auth.getSession();
         if (sess?.user) {
+          const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
           await supabase.from('User').update({
             termsAcceptedAt: new Date().toISOString(),
             termsVersion: '1.0.0',
+            trialEndsAt,
           } as any).eq('id', sess.user.id);
         }
       } catch (e) {
