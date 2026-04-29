@@ -11,6 +11,70 @@ Deno.serve(async () => {
   const now = new Date();
   const results = { sent: 0, errors: [] as string[] };
 
+  // ─── Trial reminder: 2-3 days after signup, no transcriptions done yet ───
+  const reminderCutoffStart = new Date();
+  reminderCutoffStart.setDate(reminderCutoffStart.getDate() - 3);
+  const reminderCutoffEnd = new Date();
+  reminderCutoffEnd.setDate(reminderCutoffEnd.getDate() - 2);
+
+  const { data: reminderTargets } = await supabase
+    .from('User')
+    .select('id, email, name, trialEndsAt')
+    .eq('planId', 'basic')
+    .not('trialEndsAt', 'is', null)
+    .gt('trialEndsAt', new Date().toISOString())
+    .gte('createdAt', reminderCutoffStart.toISOString())
+    .lte('createdAt', reminderCutoffEnd.toISOString())
+    .eq('isInternal', false);
+
+  for (const user of reminderTargets || []) {
+    const { data: alreadySent } = await supabase
+      .from('NurturingLog')
+      .select('id')
+      .eq('userId', user.id)
+      .eq('emailType', 'trial_reminder')
+      .maybeSingle();
+
+    if (alreadySent) continue;
+
+    const { data: usage } = await supabase
+      .from('Usage')
+      .select('transcriptionsUsed')
+      .eq('userId', user.id)
+      .maybeSingle();
+
+    if ((usage?.transcriptionsUsed || 0) > 0) continue;
+
+    const daysLeft = Math.ceil(
+      (new Date(user.trialEndsAt).getTime() - Date.now()) / 86400000
+    );
+
+    try {
+      await supabase.functions.invoke('send-email', {
+        body: {
+          type: 'trial_reminder',
+          to: user.email,
+          data: {
+            name: user.name || 'usuário',
+            daysLeft,
+            trialEndsAt: user.trialEndsAt,
+          },
+        },
+      });
+
+      await supabase.from('NurturingLog').insert({
+        userId: user.id,
+        emailType: 'trial_reminder',
+        sentAt: new Date().toISOString(),
+      });
+
+      results.sent++;
+      console.log(`[nurturing] trial_reminder sent to ${user.email}`);
+    } catch (err: any) {
+      results.errors.push(`${user.email} (trial_reminder): ${err.message}`);
+    }
+  }
+
   const { data: users } = await supabase
     .from('User')
     .select('id, email, name, createdAt, trialEndsAt, planId')

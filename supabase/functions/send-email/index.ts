@@ -143,6 +143,62 @@ function teamInviteTemplate(teamName: string, inviterName: string, signupUrl: st
 <p style="text-align:center;color:#9ca3af;font-size:13px;margin-top:16px">Este convite expira em ${expiresIn}.</p>`)
 }
 
+function trialBonusTemplate(name: string, trialEndsAt: string): string {
+  const expiryDate = new Date(trialEndsAt).toLocaleDateString('pt-BR', {
+    day: '2-digit', month: 'long', year: 'numeric'
+  })
+  return baseLayout(`
+<div style="text-align:center;margin-bottom:20px"><span style="font-size:48px">🎁</span></div>
+<h1 style="margin:0 0 16px;font-size:22px;color:#111827;text-align:center">
+  Olá, ${name}! Você ganhou 5 transcrições de até 60 min
+</h1>
+<p style="color:#4b5563;line-height:1.6;margin:0 0 20px;text-align:center">
+  Como presente de boas-vindas, você tem <strong>14 dias</strong> para testar
+  o Ágata com <strong>5 transcrições completas de até 60 minutos</strong> cada.
+</p>
+<div style="background:#F0FDF4;border-radius:8px;padding:20px;margin:0 0 24px">
+  <p style="margin:0 0 12px;color:#166534;font-weight:600;font-size:15px">O que você vai descobrir:</p>
+  <ul style="color:#166534;line-height:2;padding-left:20px;margin:0">
+    <li>✅ Transcrição automática em português</li>
+    <li>✅ Identificação de quem falou o quê (diarização)</li>
+    <li>✅ ATA profissional gerada pela IA em segundos</li>
+    <li>✅ Áudio excluído em 24h — sua privacidade garantida</li>
+  </ul>
+</div>
+<p style="color:#6b7280;font-size:13px;text-align:center;margin:0 0 20px">
+  Seu benefício expira em <strong>${expiryDate}</strong>
+</p>
+<div style="text-align:center">${btn('Fazer minha primeira transcrição →', BASE_URL + '/upload')}</div>
+<p style="text-align:center;color:#9ca3af;font-size:12px;margin-top:16px">
+  Sem cartão de crédito · Cancele quando quiser
+</p>`)
+}
+
+function trialReminderTemplate(name: string, daysLeft: number, trialEndsAt: string): string {
+  const expiryDate = new Date(trialEndsAt).toLocaleDateString('pt-BR', {
+    day: '2-digit', month: 'long', year: 'numeric'
+  })
+  return baseLayout(`
+<div style="text-align:center;margin-bottom:20px"><span style="font-size:48px">⏰</span></div>
+<h1 style="margin:0 0 16px;font-size:22px;color:#111827;text-align:center">
+  ${name}, você ainda não usou suas transcrições gratuitas
+</h1>
+<p style="color:#4b5563;line-height:1.6;margin:0 0 20px;text-align:center">
+  Você tem <strong>5 transcrições de até 60 minutos</strong> disponíveis
+  e elas expiram em <strong>${daysLeft} dias</strong> (${expiryDate}).
+</p>
+<div style="background:#FEF3C7;border-radius:8px;padding:16px;margin:0 0 20px">
+  <p style="margin:0;color:#92400E;font-size:14px">
+    ⚡ Basta fazer upload de qualquer áudio ou vídeo de uma reunião.
+    Em minutos você tem a transcrição completa e a ATA pronta.
+  </p>
+</div>
+<div style="text-align:center">${btn('Usar meu benefício agora →', BASE_URL + '/upload')}</div>
+<p style="text-align:center;color:#9ca3af;font-size:13px;margin-top:16px">
+  Sem cartão de crédito necessário
+</p>`)
+}
+
 function teamMemberAddedTemplate(name: string, teamName: string, inviterName: string, dashboardUrl: string): string {
   return baseLayout(`
 <h1 style="margin:0 0 16px;font-size:22px;color:#111827;text-align:center">Você foi adicionado a um time! 🎉</h1>
@@ -221,6 +277,14 @@ Deno.serve(async (req) => {
       case 'demo-followup-72h':
         subject = 'Última chamada — comece seu teste grátis na Ágata'
         html = demoFollowup72hTemplate(data.name, data.persona)
+        break
+      case 'trial_bonus':
+        subject = '🎁 Você ganhou 5 transcrições de até 60 min — aproveite!'
+        html = trialBonusTemplate(data.name, data.trialEndsAt)
+        break
+      case 'trial_reminder':
+        subject = '⏰ Você ainda não usou suas transcrições gratuitas'
+        html = trialReminderTemplate(data.name, data.daysLeft, data.trialEndsAt)
         break
       case 'team_invite':
         subject = `Você foi convidado para o time ${data.teamName} no Ágata`

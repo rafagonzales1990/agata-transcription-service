@@ -77,10 +77,10 @@ export default function SignupPage() {
       toast.error(error.message);
     } else {
       // Save terms acceptance + ensure trialEndsAt is set (14 days from now)
+      const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
       try {
         const { data: { session: sess } } = await supabase.auth.getSession();
         if (sess?.user) {
-          const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
           await supabase.from('User').update({
             termsAcceptedAt: new Date().toISOString(),
             termsVersion: '1.0.0',
@@ -91,13 +91,17 @@ export default function SignupPage() {
         console.error('Terms acceptance save error:', e);
       }
 
-      // Send welcome email
+      // Send trial_bonus email (replaces generic welcome — highlights the 5x60min benefit)
       try {
         await supabase.functions.invoke('send-email', {
-          body: { type: 'welcome', to: email, data: { name: name || 'Usuário' } }
+          body: {
+            type: 'trial_bonus',
+            to: email,
+            data: { name: name || 'Usuário', trialEndsAt },
+          }
         });
       } catch (emailErr) {
-        console.error('Failed to send welcome email:', emailErr);
+        console.error('Failed to send trial_bonus email:', emailErr);
       }
 
       // Accept team invite if present
