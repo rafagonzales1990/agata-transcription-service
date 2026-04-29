@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
     if (req.method === 'GET') {
       const { data: groups } = await supabase
         .from('AdminGroup')
-        .select('*')
+        .select('*, isGift, isInternal, companyName, companyCNPJ')
         .order('createdAt', { ascending: false })
 
       const { data: users } = await supabase
@@ -78,7 +78,36 @@ Deno.serve(async (req) => {
 
     if (req.method === 'POST') {
       const body = await req.json()
-      const { name, description, color, tier, usersBase, maxTranscriptions, maxDurationMinutes, maxTotalMinutesMonth, audioDurationAddon } = body
+
+      // Gift action: apply gift plan to all users in a group
+      if (body.action === 'gift') {
+        const { groupId, giftPlanId, days } = body
+        if (!groupId || !giftPlanId || !days) {
+          return new Response(JSON.stringify({ error: 'groupId, giftPlanId, days required' }), {
+            status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+
+        const giftExpiresAt = new Date(Date.now() + days * 86400000).toISOString()
+
+        const { data: users } = await supabase
+          .from('User')
+          .select('id')
+          .eq('adminGroupId', groupId)
+
+        for (const user of users || []) {
+          await supabase.from('User').update({ giftPlanId, giftEndsAt: giftExpiresAt, planId: giftPlanId })
+            .eq('id', user.id)
+        }
+
+        return new Response(JSON.stringify({ success: true, usersUpdated: users?.length || 0, giftExpiresAt }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      // Create group
+      const { name, description, color, tier, usersBase, maxTranscriptions, maxDurationMinutes,
+              maxTotalMinutesMonth, audioDurationAddon, isGift, isInternal, companyName, companyCNPJ } = body
       if (!name) {
         return new Response(JSON.stringify({ error: 'Name required' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -94,6 +123,10 @@ Deno.serve(async (req) => {
           maxDurationMinutes: maxDurationMinutes || null,
           maxTotalMinutesMonth: maxTotalMinutesMonth || null,
           audioDurationAddon: audioDurationAddon || null,
+          isGift: isGift ?? false,
+          isInternal: isInternal ?? false,
+          companyName: companyName || null,
+          companyCNPJ: companyCNPJ || null,
         })
         .select()
         .single()
@@ -110,7 +143,7 @@ Deno.serve(async (req) => {
       const { groupId, name, description, color,
               tier, usersBase, maxTranscriptions,
               maxDurationMinutes, maxTotalMinutesMonth,
-              audioDurationAddon } = body
+              audioDurationAddon, isGift, isInternal, companyName, companyCNPJ } = body
       if (!groupId) {
         return new Response(JSON.stringify({ error: 'groupId required' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -127,6 +160,10 @@ Deno.serve(async (req) => {
       if (maxDurationMinutes !== undefined) updates.maxDurationMinutes = maxDurationMinutes
       if (maxTotalMinutesMonth !== undefined) updates.maxTotalMinutesMonth = maxTotalMinutesMonth
       if (audioDurationAddon !== undefined) updates.audioDurationAddon = audioDurationAddon
+      if (isGift !== undefined) updates.isGift = isGift
+      if (isInternal !== undefined) updates.isInternal = isInternal
+      if (companyName !== undefined) updates.companyName = companyName
+      if (companyCNPJ !== undefined) updates.companyCNPJ = companyCNPJ
 
       const { error } = await supabase.from('AdminGroup').update(updates).eq('id', groupId)
       if (error) throw error
