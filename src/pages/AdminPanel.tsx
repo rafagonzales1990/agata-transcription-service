@@ -575,15 +575,13 @@ export default function AdminPanel() {
     const currentMonth = new Date().toISOString().slice(0, 7);
     const [groupsRes, usageRes] = await Promise.all([
       supabase.from('AdminGroup').select('*'),
-      supabase.from('Usage').select('userId, transcriptionsUsed, totalMinutesTranscribed, currentMonth'),
+      supabase.from('Usage').select('userId, transcriptionsUsed, totalMinutesTranscribed').eq('currentMonth', currentMonth),
     ]);
 
     if (groupsRes.data) {
       const usageByUser: Record<string, {trans: number, mins: number}> = {};
       (usageRes.data || []).forEach((u: any) => {
-        if (u.currentMonth === currentMonth) {
-          usageByUser[u.userId] = { trans: u.transcriptionsUsed || 0, mins: u.totalMinutesTranscribed || 0 };
-        }
+        usageByUser[u.userId] = { trans: u.transcriptionsUsed || 0, mins: u.totalMinutesTranscribed || 0 };
       });
 
       const groupMap: Record<string, {trans: number, mins: number}> = {};
