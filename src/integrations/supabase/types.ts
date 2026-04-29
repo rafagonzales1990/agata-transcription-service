@@ -71,9 +71,13 @@ export type Database = {
         Row: {
           audioDurationAddon: number | null
           color: string
+          companyCNPJ: string | null
+          companyName: string | null
           createdAt: string
           description: string | null
           id: string
+          isGift: boolean | null
+          isInternal: boolean | null
           maxDurationMinutes: number | null
           maxTotalMinutesMonth: number | null
           maxTranscriptions: number | null
@@ -85,9 +89,13 @@ export type Database = {
         Insert: {
           audioDurationAddon?: number | null
           color?: string
+          companyCNPJ?: string | null
+          companyName?: string | null
           createdAt?: string
           description?: string | null
           id?: string
+          isGift?: boolean | null
+          isInternal?: boolean | null
           maxDurationMinutes?: number | null
           maxTotalMinutesMonth?: number | null
           maxTranscriptions?: number | null
@@ -99,9 +107,13 @@ export type Database = {
         Update: {
           audioDurationAddon?: number | null
           color?: string
+          companyCNPJ?: string | null
+          companyName?: string | null
           createdAt?: string
           description?: string | null
           id?: string
+          isGift?: boolean | null
+          isInternal?: boolean | null
           maxDurationMinutes?: number | null
           maxTotalMinutesMonth?: number | null
           maxTranscriptions?: number | null
