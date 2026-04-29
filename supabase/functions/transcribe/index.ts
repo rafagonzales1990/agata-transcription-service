@@ -287,7 +287,7 @@ async function processTranscription(
 
       const { data: userData } = await supabase
         .from('User')
-        .select('planId')
+        .select('planId, adminGroupId')
         .eq('id', meetingOwner.userId)
         .maybeSingle()
 
@@ -298,13 +298,68 @@ async function processTranscription(
         .eq('id', planId)
         .maybeSingle()
 
-      // null maxDurationMinutes = unlimited (Enterprise)
-      if (planData?.maxDurationMinutes != null) {
-        const minutesUsed = (usageData?.currentMonth === currentMonth)
-          ? (usageData?.totalMinutesTranscribed || 0)
-          : 0
+      let planLimits = {
+        maxTranscriptions: null as number | null,
+        maxDurationMinutes: planData?.maxDurationMinutes ?? null,
+        maxTotalMinutesMonth: null as number | null,
+      }
 
-        if (minutesUsed >= planData.maxDurationMinutes) {
+      // For Enterprise users, get group limits instead of plan limits
+      if (planId === 'enterprise' && userData?.adminGroupId) {
+        const { data: group } = await supabase
+          .from('AdminGroup')
+          .select('maxTranscriptions, maxDurationMinutes, maxTotalMinutesMonth, usersBase')
+          .eq('id', userData.adminGroupId)
+          .maybeSingle()
+
+        if (group) {
+          planLimits = {
+            maxTranscriptions: group.maxTranscriptions || 200,
+            maxDurationMinutes: group.maxDurationMinutes || 130,
+            maxTotalMinutesMonth: group.maxTotalMinutesMonth || 10000,
+          }
+        }
+      }
+
+      const minutesUsed = (usageData?.currentMonth === currentMonth)
+        ? (usageData?.totalMinutesTranscribed || 0)
+        : 0
+
+      if (planId === 'enterprise' && userData?.adminGroupId && planLimits.maxTotalMinutesMonth != null) {
+        // For Enterprise groups: aggregate monthly usage across all group members
+        const { data: groupMembers } = await supabase
+          .from('User')
+          .select('id')
+          .eq('adminGroupId', userData.adminGroupId)
+
+        const groupMemberIds = (groupMembers || []).map((m: any) => m.id)
+
+        const { data: groupUsage } = await supabase
+          .from('Usage')
+          .select('totalMinutesTranscribed')
+          .in('userId', groupMemberIds)
+          .eq('currentMonth', currentMonth)
+
+        const groupMonthMinutes = (groupUsage || []).reduce(
+          (sum: number, u: any) => sum + (u.totalMinutesTranscribed || 0), 0
+        )
+
+        if (groupMonthMinutes >= planLimits.maxTotalMinutesMonth) {
+          await supabase.from('Meeting').update({
+            status: 'failed',
+            errorMessage: 'Limite de minutos mensais do grupo atingido',
+            updatedAt: new Date().toISOString(),
+          }).eq('id', meetingId)
+          await supabase.channel('meeting-status').send({
+            type: 'broadcast',
+            event: 'transcription_update',
+            payload: { meetingId, status: 'failed' },
+          })
+          return
+        }
+      } else if (planLimits.maxDurationMinutes != null) {
+        // Non-enterprise: check individual monthly minutes vs plan limit
+        if (minutesUsed >= planLimits.maxDurationMinutes) {
           await supabase.from('Meeting').update({
             status: 'failed',
             errorMessage: 'Limite de minutos do plano atingido',

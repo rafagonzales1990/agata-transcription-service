@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
 
     if (req.method === 'POST') {
       const body = await req.json()
-      const { name, description, color } = body
+      const { name, description, color, tier, usersBase, maxTranscriptions, maxDurationMinutes, maxTotalMinutesMonth, audioDurationAddon } = body
       if (!name) {
         return new Response(JSON.stringify({ error: 'Name required' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -87,7 +87,14 @@ Deno.serve(async (req) => {
 
       const { data, error } = await supabase
         .from('AdminGroup')
-        .insert({ name, description: description || null, color: color || '#10B981' })
+        .insert({
+          name, description: description || null, color: color || '#10B981',
+          tier: tier || null, usersBase: usersBase || null,
+          maxTranscriptions: maxTranscriptions || null,
+          maxDurationMinutes: maxDurationMinutes || null,
+          maxTotalMinutesMonth: maxTotalMinutesMonth || null,
+          audioDurationAddon: audioDurationAddon || null,
+        })
         .select()
         .single()
 
@@ -100,7 +107,10 @@ Deno.serve(async (req) => {
 
     if (req.method === 'PATCH') {
       const body = await req.json()
-      const { groupId, name, description, color } = body
+      const { groupId, name, description, color,
+              tier, usersBase, maxTranscriptions,
+              maxDurationMinutes, maxTotalMinutesMonth,
+              audioDurationAddon } = body
       if (!groupId) {
         return new Response(JSON.stringify({ error: 'groupId required' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -111,6 +121,12 @@ Deno.serve(async (req) => {
       if (name !== undefined) updates.name = name
       if (description !== undefined) updates.description = description
       if (color !== undefined) updates.color = color
+      if (tier !== undefined) updates.tier = tier
+      if (usersBase !== undefined) updates.usersBase = usersBase
+      if (maxTranscriptions !== undefined) updates.maxTranscriptions = maxTranscriptions
+      if (maxDurationMinutes !== undefined) updates.maxDurationMinutes = maxDurationMinutes
+      if (maxTotalMinutesMonth !== undefined) updates.maxTotalMinutesMonth = maxTotalMinutesMonth
+      if (audioDurationAddon !== undefined) updates.audioDurationAddon = audioDurationAddon
 
       const { error } = await supabase.from('AdminGroup').update(updates).eq('id', groupId)
       if (error) throw error

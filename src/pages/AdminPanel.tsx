@@ -72,6 +72,9 @@ interface AdminUser {
 interface AdminGroup {
   id: string; name: string; description: string | null; color: string;
   createdAt: string; memberCount: number;
+  tier: string | null; usersBase: number | null;
+  maxTranscriptions: number | null; maxDurationMinutes: number | null;
+  maxTotalMinutesMonth: number | null; audioDurationAddon: number | null;
 }
 
 // ── EditUserDialog ─────────────────────────────────────────
@@ -330,9 +333,21 @@ export default function AdminPanel() {
   const [gName, setGName] = useState('');
   const [gDesc, setGDesc] = useState('');
   const [gColor, setGColor] = useState('#10B981');
+  const [gTier, setGTier] = useState('A');
+  const [gUsersBase, setGUsersBase] = useState(5);
+  const [gAudioDurationAddon, setGAudioDurationAddon] = useState(130);
+  const [groupUsageMap, setGroupUsageMap] = useState<Record<string, {trans: number, mins: number}>>({});
 
   // Bulk
   const [bulkPlan, setBulkPlan] = useState('');
+
+  // Group Enterprise config (derived)
+  const BASE_USERS: Record<string, number> = { A: 5, B: 10, C: 20 };
+  const gBaseUsers = BASE_USERS[gTier] || 5;
+  const gMultiplier = Math.ceil(Math.max(1, gUsersBase) / gBaseUsers);
+  const gCalcMaxTranscriptions = 200 * gMultiplier;
+  const gCalcMaxDurationMinutes = gAudioDurationAddon;
+  const gCalcMaxTotalMinutesMonth = 10000 * gMultiplier;
 
   // Embeddings backfill
   const [backfillRunning, setBackfillRunning] = useState(false);
@@ -468,8 +483,34 @@ export default function AdminPanel() {
   }, []);
 
   const fetchGroups = useCallback(async () => {
-    const { data } = await supabase.from('AdminGroup').select('*');
-    if (data) setGroups(data.map(g => ({ ...g, memberCount: users.filter(u => u.adminGroupId === g.id).length })));
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const [groupsRes, usageRes] = await Promise.all([
+      supabase.from('AdminGroup').select('*'),
+      supabase.from('Usage').select('userId, transcriptionsUsed, totalMinutesTranscribed, currentMonth'),
+    ]);
+
+    if (groupsRes.data) {
+      const usageByUser: Record<string, {trans: number, mins: number}> = {};
+      (usageRes.data || []).forEach((u: any) => {
+        if (u.currentMonth === currentMonth) {
+          usageByUser[u.userId] = { trans: u.transcriptionsUsed || 0, mins: u.totalMinutesTranscribed || 0 };
+        }
+      });
+
+      const groupMap: Record<string, {trans: number, mins: number}> = {};
+      groupsRes.data.forEach((g: any) => { groupMap[g.id] = { trans: 0, mins: 0 }; });
+      users.forEach(u => {
+        if (!u.adminGroupId || !groupMap[u.adminGroupId]) return;
+        const uUsage = usageByUser[u.id];
+        if (uUsage) {
+          groupMap[u.adminGroupId].trans += uUsage.trans;
+          groupMap[u.adminGroupId].mins += uUsage.mins;
+        }
+      });
+
+      setGroupUsageMap(groupMap);
+      setGroups(groupsRes.data.map((g: any) => ({ ...g, memberCount: users.filter(u => u.adminGroupId === g.id).length })));
+    }
   }, [users]);
 
   const fetchCosts = useCallback(async () => {
@@ -553,12 +594,20 @@ export default function AdminPanel() {
   const createGroup = async () => {
     try {
       const { error } = await supabase.functions.invoke('admin-groups', {
-        method: 'POST', body: { name: gName, description: gDesc, color: gColor },
+        method: 'POST', body: {
+          name: gName, description: gDesc, color: gColor,
+          tier: gTier, usersBase: gUsersBase,
+          maxTranscriptions: gCalcMaxTranscriptions,
+          maxDurationMinutes: gCalcMaxDurationMinutes,
+          maxTotalMinutesMonth: gCalcMaxTotalMinutesMonth,
+          audioDurationAddon: gAudioDurationAddon,
+        },
       });
       if (error) throw error;
       toast.success('Grupo criado!');
       setShowNewGroup(false);
       setGName(''); setGDesc(''); setGColor('#10B981');
+      setGTier('A'); setGUsersBase(5); setGAudioDurationAddon(130);
       fetchGroups();
     } catch (e: any) { toast.error(e.message); }
   };
@@ -567,7 +616,14 @@ export default function AdminPanel() {
     if (!showEditGroup) return;
     try {
       const { error } = await supabase.functions.invoke('admin-groups', {
-        method: 'PATCH', body: { groupId: showEditGroup.id, name: gName, description: gDesc, color: gColor },
+        method: 'PATCH', body: {
+          groupId: showEditGroup.id, name: gName, description: gDesc, color: gColor,
+          tier: gTier, usersBase: gUsersBase,
+          maxTranscriptions: gCalcMaxTranscriptions,
+          maxDurationMinutes: gCalcMaxDurationMinutes,
+          maxTotalMinutesMonth: gCalcMaxTotalMinutesMonth,
+          audioDurationAddon: gAudioDurationAddon,
+        },
       });
       if (error) throw error;
       toast.success('Grupo atualizado!');
@@ -590,6 +646,9 @@ export default function AdminPanel() {
 
   const openEditGroup = (g: AdminGroup) => {
     setGName(g.name); setGDesc(g.description || ''); setGColor(g.color);
+    setGTier(g.tier || 'A');
+    setGUsersBase(g.usersBase || 5);
+    setGAudioDurationAddon(g.audioDurationAddon || 130);
     setShowEditGroup(g);
   };
 
@@ -1035,24 +1094,54 @@ export default function AdminPanel() {
               </Button>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {groups.map(g => (
-                <Card key={g.id} className="bg-card border-border">
-                  <CardContent className="p-5">
-                    <div className="flex items-start gap-3">
-                      <span className="w-4 h-4 rounded-full mt-0.5 shrink-0" style={{ backgroundColor: g.color }} />
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-foreground">{g.name}</h3>
-                        {g.description && <p className="text-xs text-muted-foreground mt-1">{g.description}</p>}
-                        <p className="text-xs text-muted-foreground mt-2">{g.memberCount} membros</p>
+              {groups.map(g => {
+                const usage = groupUsageMap[g.id] || { trans: 0, mins: 0 };
+                const transPct = g.maxTranscriptions ? Math.min(100, Math.round((usage.trans / g.maxTranscriptions) * 100)) : 0;
+                const minsPct = g.maxTotalMinutesMonth ? Math.min(100, Math.round((usage.mins / g.maxTotalMinutesMonth) * 100)) : 0;
+                return (
+                  <Card key={g.id} className="bg-card border-border">
+                    <CardContent className="p-5">
+                      <div className="flex items-start gap-3">
+                        <span className="w-4 h-4 rounded-full mt-0.5 shrink-0" style={{ backgroundColor: g.color }} />
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-foreground">{g.name}</h3>
+                          {g.description && <p className="text-xs text-muted-foreground mt-1">{g.description}</p>}
+                          <p className="text-xs text-muted-foreground mt-2">{g.memberCount} membros</p>
+                          {g.tier && (
+                            <p className="text-xs text-purple-600 font-mono mt-1">
+                              Tier {g.tier} · {g.usersBase} usuários · {g.maxDurationMinutes}min/reunião
+                            </p>
+                          )}
+                          {g.maxTranscriptions && (
+                            <div className="mt-3 space-y-2">
+                              <div>
+                                <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                                  <span>Transcrições</span>
+                                  <span className="font-mono">{usage.trans} / {g.maxTranscriptions}</span>
+                                </div>
+                                <Progress value={transPct} className="h-1.5" />
+                              </div>
+                              {g.maxTotalMinutesMonth && (
+                                <div>
+                                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                                    <span>Minutos</span>
+                                    <span className="font-mono">{usage.mins} / {g.maxTotalMinutesMonth}</span>
+                                  </div>
+                                  <Progress value={minsPct} className="h-1.5" />
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => openEditGroup(g)}><Pencil className="h-3.5 w-3.5" /></Button>
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => deleteGroup(g.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                        </div>
                       </div>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => openEditGroup(g)}><Pencil className="h-3.5 w-3.5" /></Button>
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => deleteGroup(g.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
               {groups.length === 0 && <p className="text-sm text-muted-foreground col-span-3 text-center py-8">Nenhum grupo criado</p>}
             </div>
           </TabsContent>
@@ -1234,8 +1323,8 @@ export default function AdminPanel() {
       <GiftPlanDialog open={giftOpen} onOpenChange={setGiftOpen} user={selectedUser} onConfirm={handleGiftPlan} />
 
       <Dialog open={showNewGroup} onOpenChange={setShowNewGroup}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Novo Grupo</DialogTitle><DialogDescription>Crie um grupo para organizar usuários.</DialogDescription></DialogHeader>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Novo Grupo</DialogTitle><DialogDescription>Crie um grupo Enterprise para organizar usuários.</DialogDescription></DialogHeader>
           <div className="space-y-4">
             <div><Label>Nome</Label><Input value={gName} onChange={e => setGName(e.target.value)} /></div>
             <div><Label>Descrição</Label><Input value={gDesc} onChange={e => setGDesc(e.target.value)} /></div>
@@ -1247,14 +1336,62 @@ export default function AdminPanel() {
                 ))}
               </div>
             </div>
+            <div className="border-t pt-4 space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Configuração Enterprise</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Tier</Label>
+                  <Select value={gTier} onValueChange={setGTier}>
+                    <SelectTrigger className="h-9 text-sm mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="A">Tier A (5 base)</SelectItem>
+                      <SelectItem value="B">Tier B (10 base)</SelectItem>
+                      <SelectItem value="C">Tier C (20 base)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Usuários contratados</Label>
+                  <Input type="number" min={1} className="h-9 text-sm mt-1" value={gUsersBase}
+                    onChange={e => setGUsersBase(Math.max(1, parseInt(e.target.value) || 1))} />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Add-on de áudio</Label>
+                <Select value={String(gAudioDurationAddon)} onValueChange={v => setGAudioDurationAddon(parseInt(v))}>
+                  <SelectTrigger className="h-9 text-sm mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="130">Padrão (130min) — incluso</SelectItem>
+                    <SelectItem value="180">Até 3h (180min) — add-on pago</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="bg-muted rounded-lg p-3 space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground">Limites calculados</p>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-background rounded p-2">
+                    <p className="text-[10px] text-muted-foreground">Transcrições/mês</p>
+                    <p className="font-bold text-foreground text-lg font-mono">{gCalcMaxTranscriptions}</p>
+                  </div>
+                  <div className="bg-background rounded p-2">
+                    <p className="text-[10px] text-muted-foreground">Duração máx</p>
+                    <p className="font-bold text-foreground text-lg font-mono">{gCalcMaxDurationMinutes}min</p>
+                  </div>
+                  <div className="bg-background rounded p-2">
+                    <p className="text-[10px] text-muted-foreground">Min totais/mês</p>
+                    <p className="font-bold text-foreground text-lg font-mono">{gCalcMaxTotalMinutesMonth.toLocaleString('pt-BR')}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
           <DialogFooter><Button onClick={createGroup}>Criar Grupo</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={!!showEditGroup} onOpenChange={() => setShowEditGroup(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Editar Grupo</DialogTitle><DialogDescription>Atualize as informações do grupo.</DialogDescription></DialogHeader>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Editar Grupo</DialogTitle><DialogDescription>Atualize as informações do grupo Enterprise.</DialogDescription></DialogHeader>
           <div className="space-y-4">
             <div><Label>Nome</Label><Input value={gName} onChange={e => setGName(e.target.value)} /></div>
             <div><Label>Descrição</Label><Input value={gDesc} onChange={e => setGDesc(e.target.value)} /></div>
@@ -1264,6 +1401,54 @@ export default function AdminPanel() {
                   <button key={c} className={`w-8 h-8 rounded-full border-2 ${gColor === c ? 'border-foreground scale-110' : 'border-transparent'}`}
                     style={{ backgroundColor: c }} onClick={() => setGColor(c)} />
                 ))}
+              </div>
+            </div>
+            <div className="border-t pt-4 space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Configuração Enterprise</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Tier</Label>
+                  <Select value={gTier} onValueChange={setGTier}>
+                    <SelectTrigger className="h-9 text-sm mt-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="A">Tier A (5 base)</SelectItem>
+                      <SelectItem value="B">Tier B (10 base)</SelectItem>
+                      <SelectItem value="C">Tier C (20 base)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Usuários contratados</Label>
+                  <Input type="number" min={1} className="h-9 text-sm mt-1" value={gUsersBase}
+                    onChange={e => setGUsersBase(Math.max(1, parseInt(e.target.value) || 1))} />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Add-on de áudio</Label>
+                <Select value={String(gAudioDurationAddon)} onValueChange={v => setGAudioDurationAddon(parseInt(v))}>
+                  <SelectTrigger className="h-9 text-sm mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="130">Padrão (130min) — incluso</SelectItem>
+                    <SelectItem value="180">Até 3h (180min) — add-on pago</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="bg-muted rounded-lg p-3 space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground">Limites calculados</p>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-background rounded p-2">
+                    <p className="text-[10px] text-muted-foreground">Transcrições/mês</p>
+                    <p className="font-bold text-foreground text-lg font-mono">{gCalcMaxTranscriptions}</p>
+                  </div>
+                  <div className="bg-background rounded p-2">
+                    <p className="text-[10px] text-muted-foreground">Duração máx</p>
+                    <p className="font-bold text-foreground text-lg font-mono">{gCalcMaxDurationMinutes}min</p>
+                  </div>
+                  <div className="bg-background rounded p-2">
+                    <p className="text-[10px] text-muted-foreground">Min totais/mês</p>
+                    <p className="font-bold text-foreground text-lg font-mono">{gCalcMaxTotalMinutesMonth.toLocaleString('pt-BR')}</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
