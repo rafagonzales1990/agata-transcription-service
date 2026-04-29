@@ -17,7 +17,9 @@
       "Bash(git tag *)",
       "Bash(npx tsc *)",
       "Bash(curl -X POST \"https://hblczvmpyaznbxvdcaze.supabase.co/functions/v1/send-trial-bonus-blast\" -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhibGN6dm1weWF6bmJ4dmRjYXplIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTA0MzUxNywiZXhwIjoyMDkwNjE5NTE3fQ.24upZbkEzjUNyj_UmsrlPrxVmDVrQPpA1cwFJ4ve-TU\")",
-      "Bash(curl -X POST \"https://hblczvmpyaznbxvdcaze.supabase.co/functions/v1/send-complete-signup-blast\" -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhibGN6dm1weWF6bmJ4dmRjYXplIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTA0MzUxNywiZXhwIjoyMDkwNjE5NTE3fQ.24upZbkEzjUNyj_UmsrlPrxVmDVrQPpA1cwFJ4ve-TU\")"
+      "Bash(curl -X POST \"https://hblczvmpyaznbxvdcaze.supabase.co/functions/v1/send-complete-signup-blast\" -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhibGN6dm1weWF6bmJ4dmRjYXplIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTA0MzUxNywiZXhwIjoyMDkwNjE5NTE3fQ.24upZbkEzjUNyj_UmsrlPrxVmDVrQPpA1cwFJ4ve-TU\")",
+      "Bash(curl -X POST \"https://hblczvmpyaznbxvdcaze.supabase.co/functions/v1/send-reactivation-blast\" -H \"Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhibGN6dm1weWF6bmJ4dmRjYXplIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTA0MzUxNywiZXhwIjoyMDkwNjE5NTE3fQ.24upZbkEzjUNyj_UmsrlPrxVmDVrQPpA1cwFJ4ve-TU\")",
+      "mcp__claude_ai_Supabase__apply_migration"
     ]
   }
 }

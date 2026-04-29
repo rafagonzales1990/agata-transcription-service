@@ -143,6 +143,51 @@ function teamInviteTemplate(teamName: string, inviterName: string, signupUrl: st
 <p style="text-align:center;color:#9ca3af;font-size:13px;margin-top:16px">Este convite expira em ${expiresIn}.</p>`)
 }
 
+function trialReactivationTemplate(name: string, trialEndsAt: string): string {
+  const expiryDate = new Date(trialEndsAt).toLocaleDateString('pt-BR', {
+    day: '2-digit', month: 'long', year: 'numeric'
+  })
+  const displayName = name ? name.split(' ')[0] : 'você'
+  return baseLayout(`
+<div style="text-align:center;margin-bottom:20px">
+  <span style="font-size:48px">🎉</span>
+</div>
+<h1 style="margin:0 0 8px;font-size:24px;color:#111827;text-align:center;font-weight:700">
+  Reativamos sua plataforma, ${displayName}!
+</h1>
+<p style="color:#10B981;font-size:16px;font-weight:600;text-align:center;margin:0 0 20px">
+  Para que você não fique fora dessa 🚀
+</p>
+<p style="color:#4b5563;line-height:1.6;margin:0 0 20px;text-align:center">
+  Sabemos que você ainda não teve a chance de testar o Ágata de verdade.
+  Por isso, <strong>reativamos seu acesso com 5 transcrições completas de até 60 minutos</strong> —
+  completamente grátis.
+</p>
+<div style="background:#F0FDF4;border-radius:12px;padding:24px;margin:0 0 24px">
+  <p style="margin:0 0 16px;color:#166534;font-weight:700;font-size:16px;text-align:center">
+    O que você vai descobrir:
+  </p>
+  <ul style="color:#166534;line-height:2.2;padding-left:20px;margin:0;font-size:15px">
+    <li>🎙️ Transcrição automática em português — precisa e rápida</li>
+    <li>👥 Identifica quem falou o quê na reunião (diarização)</li>
+    <li>📄 ATA profissional gerada pela IA em segundos</li>
+    <li>🔒 Áudio excluído em 24h — sua privacidade garantida</li>
+  </ul>
+</div>
+<div style="background:#FEF3C7;border-radius:8px;padding:16px;margin:0 0 24px">
+  <p style="margin:0;color:#92400E;font-size:14px;text-align:center">
+    ⏰ Seu novo acesso expira em <strong>${expiryDate}</strong>.
+    Não deixe passar dessa vez!
+  </p>
+</div>
+<div style="text-align:center">
+  ${btn('Quero testar agora →', BASE_URL + '/upload')}
+</div>
+<p style="text-align:center;color:#9ca3af;font-size:12px;margin-top:16px">
+  Sem cartão de crédito · Acesso imediato
+</p>`)
+}
+
 function completeSignupTemplate(name: string, trialEndsAt: string): string {
   const expiryDate = new Date(trialEndsAt).toLocaleDateString('pt-BR', {
     day: '2-digit', month: 'long', year: 'numeric'
@@ -313,6 +358,10 @@ Deno.serve(async (req) => {
       case 'demo-followup-72h':
         subject = 'Última chamada — comece seu teste grátis na Ágata'
         html = demoFollowup72hTemplate(data.name, data.persona)
+        break
+      case 'trial_reactivation':
+        subject = '🎁 REATIVAMOS SUA PLATAFORMA — 5 transcrições de 60 min te esperam!'
+        html = trialReactivationTemplate(data.name, data.trialEndsAt)
         break
       case 'complete_signup':
         subject = '🎁 Finalize seu cadastro e ganhe 5 transcrições de 60 min'
