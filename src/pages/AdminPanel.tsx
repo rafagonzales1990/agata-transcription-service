@@ -1288,13 +1288,11 @@ export default function AdminPanel() {
                           <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Editar grupo" onClick={() => openEditGroup(g)}><Pencil className="h-3.5 w-3.5" /></Button>
                           <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Duplicar grupo" onClick={() => duplicateGroup(g)}><Copy className="h-3.5 w-3.5" /></Button>
                           <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" title="Excluir grupo" onClick={() => deleteGroup(g.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                          {!g.isInternal && (
-                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                              title="Dar Gift ao grupo"
-                              onClick={() => { setGiftGroupTarget(g); setGiftGroupOpen(true); }}>
-                              <Gift className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                            title="Dar Gift ao grupo"
+                            onClick={() => { setGiftGroupTarget(g); setGiftGroupOpen(true); }}>
+                            <Gift className="h-3.5 w-3.5" />
+                          </Button>
                         </div>
                       </div>
                     </CardContent>
