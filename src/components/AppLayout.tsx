@@ -130,7 +130,8 @@ export function AppLayout({ children }: AppLayoutProps) {
         .eq('userId', user.id)
         .eq('deviceId', deviceId)
         .maybeSingle();
-      if (data && !data.isActive) {
+      const session = data as { isActive: boolean } | null;
+      if (session && !session.isActive) {
         await supabase.auth.signOut();
         toast.error('Sua sessão foi encerrada porque outro dispositivo logou na sua conta.');
         navigate('/');
