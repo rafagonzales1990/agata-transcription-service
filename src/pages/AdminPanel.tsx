@@ -741,6 +741,31 @@ export default function AdminPanel() {
     fetchGroups();
   };
 
+  const duplicateGroup = async (g: AdminGroup) => {
+    try {
+      const { error } = await supabase.functions.invoke('admin-groups', {
+        method: 'POST', body: {
+          name: `${g.name} — Cópia`,
+          description: g.description || '',
+          color: g.color,
+          tier: g.tier,
+          usersBase: g.usersBase,
+          maxTranscriptions: g.maxTranscriptions,
+          maxDurationMinutes: g.maxDurationMinutes,
+          maxTotalMinutesMonth: g.maxTotalMinutesMonth,
+          audioDurationAddon: g.audioDurationAddon,
+          isGift: false,
+          isInternal: false,
+          companyName: null,
+          companyCNPJ: null,
+        },
+      });
+      if (error) throw error;
+      toast.success('Grupo duplicado com sucesso');
+      fetchGroups();
+    } catch (e: any) { toast.error(e.message); }
+  };
+
   const deleteGroup = async (groupId: string) => {
     if (!confirm('Excluir grupo?')) return;
     try {
@@ -1260,8 +1285,9 @@ export default function AdminPanel() {
                           )}
                         </div>
                         <div className="flex flex-col gap-1 shrink-0">
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => openEditGroup(g)}><Pencil className="h-3.5 w-3.5" /></Button>
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" onClick={() => deleteGroup(g.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Editar grupo" onClick={() => openEditGroup(g)}><Pencil className="h-3.5 w-3.5" /></Button>
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="Duplicar grupo" onClick={() => duplicateGroup(g)}><Copy className="h-3.5 w-3.5" /></Button>
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive" title="Excluir grupo" onClick={() => deleteGroup(g.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                           {!g.isInternal && (
                             <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
                               title="Dar Gift ao grupo"
