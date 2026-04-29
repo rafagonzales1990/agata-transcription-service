@@ -10,10 +10,35 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  )
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader) {
+    return new Response('Unauthorized', { status: 401 })
+  }
+
+  const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } },
+  })
+  const { data: { user }, error: authError } = await authClient.auth.getUser()
+  if (authError || !user) {
+    return new Response('Unauthorized', { status: 401 })
+  }
+
+  const serviceClient = createClient(supabaseUrl, supabaseServiceKey)
+  const { data: userData } = await serviceClient
+    .from('User')
+    .select('isAdmin, role')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  if (!userData?.isAdmin && userData?.role !== 'dev') {
+    return new Response('Forbidden', { status: 403 })
+  }
+
+  const supabase = serviceClient
 
   const timestamp = new Date().toISOString().slice(0, 10)
   const backupData: Record<string, any> = {}
