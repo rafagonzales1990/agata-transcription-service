@@ -1,18 +1,32 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-Deno.serve(async (_req) => {
+Deno.serve(async (req) => {
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   )
 
-  const { data: users } = await supabase
+  let userIds: string[] | null = null
+  try {
+    const body = await req.json()
+    if (Array.isArray(body?.userIds) && body.userIds.length > 0) userIds = body.userIds
+  } catch (_) { /* no body */ }
+
+  let query = supabase
     .from('User')
     .select('id, email, name, trialEndsAt')
-    .eq('planId', 'basic')
-    .not('trialEndsAt', 'is', null)
-    .gt('trialEndsAt', new Date().toISOString())
     .eq('isInternal', false)
+
+  if (userIds) {
+    query = query.in('id', userIds)
+  } else {
+    query = query
+      .eq('planId', 'basic')
+      .not('trialEndsAt', 'is', null)
+      .gt('trialEndsAt', new Date().toISOString())
+  }
+
+  const { data: users } = await query
 
   let sent = 0
   let skipped = 0

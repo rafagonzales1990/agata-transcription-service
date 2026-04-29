@@ -157,13 +157,22 @@ async function preview(supabase: any) {
 // ─────────────────────────────────────────────────────────────────────────────
 // DATA MANAGEMENT ACTIONS
 // ─────────────────────────────────────────────────────────────────────────────
-async function resetTrials(supabase: any) {
+async function resetTrials(supabase: any, userIds?: string[]) {
+  if (userIds && userIds.length > 0) {
+    const trialEndsAt = new Date(Date.now() + 14 * 86400000).toISOString()
+    const { error } = await supabase
+      .from('User')
+      .update({ trialEndsAt })
+      .in('id', userIds)
+    if (error) throw new Error(`reset_trials (filtered) failed: ${error.message}`)
+    return { affected: userIds.length }
+  }
   const { data, error } = await supabase.rpc('reset_basic_trials_bulk')
   if (error) throw new Error(`reset_basic_trials_bulk failed: ${error.message}`)
   return { affected: data ?? 0 }
 }
 
-async function assignGroups(supabase: any) {
+async function assignGroups(supabase: any, userIds?: string[]) {
   const { data: groups } = await supabase
     .from('AdminGroup')
     .select('id, name')
@@ -182,6 +191,7 @@ async function assignGroups(supabase: any) {
       .select('id, adminGroupId')
       .eq('planId', planId)
     if (testersId) query = query.or(`adminGroupId.is.null,adminGroupId.neq.${testersId}`)
+    if (userIds && userIds.length > 0) query = query.in('id', userIds)
 
     const { data: candidates } = await query
     const toUpdate = (candidates || []).filter(
@@ -217,8 +227,9 @@ async function cleanLogs(supabase: any) {
 // ─────────────────────────────────────────────────────────────────────────────
 // COMMUNICATION BLASTS — invoke existing blast functions
 // ─────────────────────────────────────────────────────────────────────────────
-async function invokeBlast(supabase: any, fnName: string) {
-  const { data, error } = await supabase.functions.invoke(fnName, { body: {} })
+async function invokeBlast(supabase: any, fnName: string, userIds?: string[]) {
+  const body = userIds && userIds.length > 0 ? { userIds } : {}
+  const { data, error } = await supabase.functions.invoke(fnName, { body })
   if (error) throw new Error(`${fnName} failed: ${error.message}`)
   return data
 }
@@ -450,11 +461,11 @@ Deno.serve(async (req) => {
       }
 
       case 'reset_trials':
-        result = await resetTrials(supabase)
+        result = await resetTrials(supabase, params?.userIds)
         affectedCount = result.affected
         break
       case 'assign_groups':
-        result = await assignGroups(supabase)
+        result = await assignGroups(supabase, params?.userIds)
         affectedCount = result.affected
         break
       case 'clean_logs':
@@ -463,15 +474,15 @@ Deno.serve(async (req) => {
         break
 
       case 'blast_trial_bonus':
-        result = await invokeBlast(supabase, 'send-trial-bonus-blast')
+        result = await invokeBlast(supabase, 'send-trial-bonus-blast', params?.userIds)
         affectedCount = result?.sent || 0
         break
       case 'blast_complete_signup':
-        result = await invokeBlast(supabase, 'send-complete-signup-blast')
+        result = await invokeBlast(supabase, 'send-complete-signup-blast', params?.userIds)
         affectedCount = result?.sent || 0
         break
       case 'blast_reactivation':
-        result = await invokeBlast(supabase, 'send-reactivation-blast')
+        result = await invokeBlast(supabase, 'send-reactivation-blast', params?.userIds)
         affectedCount = result?.sent || 0
         break
 
