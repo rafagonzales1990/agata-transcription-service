@@ -433,7 +433,7 @@ async function processTranscription(
             speaker_labels: true,
             punctuate: true,
             format_text: true,
-            speech_models: ['universal-2'],
+            speech_models: ['universal-3-pro'],
             webhook_url: webhookUrl,
             webhook_auth_header_name: 'x-webhook-secret',
             webhook_auth_header_value: Deno.env.get('ASSEMBLYAI_WEBHOOK_SECRET') || 'agata-webhook-secret',
