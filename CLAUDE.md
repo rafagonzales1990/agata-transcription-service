@@ -13,6 +13,68 @@ Vá direto ao ponto técnico. Nunca snippets parciais — sempre arquivos comple
 - Email: Resend
 - Monitoramento: Sentry
 
+## Localização dos repos (local)
+Todos os repos vivem em `C:\dev\` — fora do OneDrive (double-sync OneDrive↔GitHub causava conflitos).
+
+| Repo | Caminho local | Branch padrão |
+|------|---------------|---------------|
+| agata-transcription-service | `C:\dev\agata-transcription-service` | `main` |
+| agata-desktop | `C:\dev\agata-desktop` | `main` |
+| agata-extension | `C:\dev\agata-extension` | `main` |
+| traderbi | `C:\dev\traderbi` | `develop` |
+
+**Regra:** NUNCA clonar/mover repos para dentro de `OneDrive`, `Documents` ou qualquer pasta sincronizada na nuvem. Sempre `C:\dev\<repo>`.
+
+## Gestor de pacotes
+- **Apenas `npm`** — projeto versionado via `package-lock.json`. `bun.lockb` foi removido em 02/05/2026.
+- Setup: `npm ci` (não `npm install` — `ci` respeita o lockfile sem alterá-lo).
+- Dev server: `npm run dev` → `http://localhost:8080`.
+- Não há `.env` necessário no frontend — Supabase URL e publishable key estão hardcoded em `src/integrations/supabase/client.ts` (padrão Lovable). Segredos sensíveis vivem só em Supabase Secrets (edge functions).
+
+## Verificação pós-clone / pós-mudança de pasta
+Rodar este checklist sempre que clonar de novo, mover o repo, ou trocar de máquina:
+
+1. **Localização correta**
+   ```powershell
+   pwd  # deve ser C:\dev\<repo> — nunca dentro de OneDrive/Documents
+   ```
+2. **Toolchain mínimo**
+   ```powershell
+   node --version   # >= 24.x
+   npm --version    # >= 11.x
+   git --version    # >= 2.x
+   ```
+3. **Sync com GitHub**
+   ```powershell
+   git remote -v                    # confirma origin = github.com/rafagonzales1990/<repo>
+   git status                       # working tree clean esperado
+   git branch -vv                   # confirma tracking de origin/<branch>
+   git ls-remote --exit-code origin HEAD   # testa autenticação + rede
+   git fetch --dry-run              # confirma que fetch funciona sem prompt
+   ```
+4. **Lockfile sanidade**
+   ```powershell
+   ls package-lock.json   # deve existir
+   ls bun.lockb           # NÃO deve existir (remover se aparecer)
+   ```
+5. **Variáveis de ambiente esperadas**
+   ```powershell
+   # frontend deste repo: nenhuma .env necessária
+   # se grep retornar algo, revisar antes de rodar:
+   ```
+   Use a tool Grep do Claude com pattern `import\.meta\.env\.VITE_` em `src/`.
+6. **Install + smoke test**
+   ```powershell
+   npm ci
+   npm run dev    # confirma que sobe na porta 8080
+   npm run lint   # confirma toolchain TypeScript/ESLint OK
+   ```
+7. **Edge Functions (opcional, só se for mexer)**
+   ```powershell
+   supabase --version
+   supabase link --project-ref hblczvmpyaznbxvdcaze
+   ```
+
 ## Regras Críticas
 - Supabase: SEMPRE `.maybeSingle()` — NUNCA `.single()`
 - SQL: colunas camelCase com aspas duplas (`"planId"`, `"createdAt"`)
@@ -40,6 +102,19 @@ Vá direto ao ponto técnico. Nunca snippets parciais — sempre arquivos comple
 - Extensão Chrome: v1.0.4 🔄 em revisão
 
 ## Histórico de Releases
+
+### Migração para C:\dev — 02/05/2026
+
+| Item | Detalhe |
+|------|---------|
+| Motivo | OneDrive estava fazendo double-sync com GitHub e gerando conflitos / arquivos travados |
+| Origem | `C:\Users\Rafael\OneDrive\...\<repo>` |
+| Destino | `C:\dev\<repo>` para todos os 4 repos (agata-transcription-service, agata-desktop, agata-extension, traderbi) |
+| Sync GitHub | Verificado em todos: `origin` correto, working tree clean, tracking ativo |
+| Toolchain verificado | Node 24.15.0, npm 11.12.1, Git 2.54.0 |
+| `bun.lockb` removido | Repo agora é npm-only — duplicidade de lockfile era fonte de divergência |
+| README.md | Substituído (era só TODO) — agora cobre setup, scripts, deploy, npm-only |
+| CLAUDE.md | Adicionada seção "Localização dos repos" + "Verificação pós-clone" |
 
 ### Security Fixes — 24/04/2026
 
