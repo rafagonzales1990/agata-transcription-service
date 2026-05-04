@@ -23,7 +23,46 @@ Todos os repos vivem em `C:\dev\` — fora do OneDrive (double-sync OneDrive↔G
 | agata-extension | `C:\dev\agata-extension` | `main` |
 | traderbi | `C:\dev\traderbi` | `develop` |
 
+**Ferramentas adicionais:**
+- Supabase CLI: `C:\dev\tools\supabase.exe` (alias `supabase` configurado no PowerShell `$PROFILE`)
+
 **Regra:** NUNCA clonar/mover repos para dentro de `OneDrive`, `Documents` ou qualquer pasta sincronizada na nuvem. Sempre `C:\dev\<repo>`.
+
+## Editor primário
+- **VS Code** é o editor primário para TODOS os repos (`agata-transcription-service`, `agata-desktop`, `agata-extension`, `traderbi`).
+- **Cursor** NÃO é mais o editor padrão — usar somente para edição visual / Live Preview pontual quando necessário.
+- Aplicável tanto a `agata-transcription-service` quanto a `agata-desktop` (e demais repos).
+
+## Linear — Labels padrão obrigatórios
+Toda issue criada no Linear deve ter **NO MÍNIMO 2 labels**:
+
+1. **Label de RESPONSÁVEL** (exatamente 1):
+   - `DEV` — Claude/CTO
+   - `SUPPORT` — Claude/CTO
+   - `MKT` — Perplexity/CMO
+   - `SALES` — Perplexity/CMO
+
+2. **Label de CATEGORIA** (exatamente 1):
+   - `Bug`
+   - `Feature`
+   - `Improvement`
+   - `Hotfix`
+   - `Validação`
+   - `Tech Debt`
+
+Issues sem ambas as labels são consideradas mal formadas e devem ser corrigidas antes de entrar no fluxo.
+
+## Commit pattern
+Padronização obrigatória de mensagens de commit:
+
+```
+feat(AGA-XX): descrição da feature
+fix(AGA-XX): descrição do bug
+chore: manutenção sem impacto funcional
+```
+
+- `feat` / `fix` → SEMPRE com referência à issue Linear (`AGA-XX`).
+- `chore` → para manutenção sem impacto funcional (lockfile, configs, deps, docs internas) — não exige `AGA-XX`.
 
 ## Gestor de pacotes
 - **Apenas `npm`** — projeto versionado via `package-lock.json`. `bun.lockb` foi removido em 02/05/2026.
