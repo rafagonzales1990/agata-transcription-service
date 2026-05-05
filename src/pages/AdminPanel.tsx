@@ -1170,11 +1170,6 @@ export default function AdminPanel() {
                                 <Badge className={`${PLAN_COLORS[u.planId || 'basic']} text-[10px]`}>{PLAN_LABELS[u.planId || 'basic']}</Badge>
                               );
                             })()}
-                            {u.giftPlanId && u.giftEndsAt && new Date(u.giftEndsAt) > now && (
-                              <Badge className="bg-amber-100 text-amber-700 text-[9px] ml-1">
-                                🎁 gift até {new Date(u.giftEndsAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                              </Badge>
-                            )}
                           </TableCell>
                           <TableCell>
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap ${status.cls}`}>{status.label}</span>
