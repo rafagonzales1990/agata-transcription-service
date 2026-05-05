@@ -19,14 +19,17 @@ async function fetchTrialStatus(): Promise<Omit<TrialStatus, 'loading'>> {
 
   const { data } = await supabase
     .from('User')
-    .select('trialEndsAt, stripeSubscriptionId, planId')
+    .select('trialEndsAt, stripeSubscriptionId, planId, giftPlanId, giftEndsAt')
     .eq('id', user.id)
     .maybeSingle();
 
   const trialEndsAt = data?.trialEndsAt ?? null;
   const stripeSubscriptionId = data?.stripeSubscriptionId ?? null;
   const planId = data?.planId ?? null;
-  const isTrialExpired = !!trialEndsAt && new Date(trialEndsAt) < new Date() && !stripeSubscriptionId && planId === 'basic';
+  const now = new Date();
+  const hasActiveGift = !!data?.giftPlanId && !!data?.giftEndsAt && new Date(data.giftEndsAt) > now;
+  const hasActiveTrial = !!trialEndsAt && new Date(trialEndsAt) > now;
+  const isTrialExpired = !hasActiveGift && !stripeSubscriptionId && planId === 'basic' && !hasActiveTrial;
 
   return { trialEndsAt, stripeSubscriptionId, planId, isTrialExpired };
 }
