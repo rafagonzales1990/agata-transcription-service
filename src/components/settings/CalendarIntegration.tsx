@@ -106,18 +106,40 @@ export function CalendarIntegration() {
     try {
       await msalInstance.initialize();
       const result = await msalInstance.acquireTokenPopup({ scopes: calendarScopes });
-      await (supabase as any).from('CalendarIntegration').upsert({
-        userId: user!.id,
-        provider: 'microsoft',
-        accessToken: result.accessToken,
-        expiresAt: result.expiresOn?.toISOString() ?? null,
-      }, { onConflict: 'userId,provider' });
+
+      if (!result?.accessToken) {
+        console.error('[connectMicrosoft] MSAL retornou sem accessToken', result);
+        toast.error('Erro ao conectar Outlook Calendar');
+        return;
+      }
+
+      // Espelha o flow do Google: fallback de 1h quando MSAL nao fornece expiresOn
+      const expiresAt = (result.expiresOn ?? new Date(Date.now() + 3600 * 1000)).toISOString();
+
+      const { error: upsertErr } = await (supabase as any)
+        .from('CalendarIntegration')
+        .upsert(
+          {
+            userId: user!.id,
+            provider: 'microsoft',
+            accessToken: result.accessToken,
+            expiresAt,
+          },
+          { onConflict: 'userId,provider' }
+        );
+
+      if (upsertErr) {
+        console.error('[connectMicrosoft] upsert CalendarIntegration failed', upsertErr);
+        toast.error('Erro ao salvar token do Outlook');
+        return;
+      }
+
       toast.success('Outlook Calendar conectado!');
       await fetchStatus();
     } catch (err: any) {
-      if (err?.errorCode !== 'user_cancelled') {
-        toast.error('Erro ao conectar Outlook Calendar');
-      }
+      if (err?.errorCode === 'user_cancelled') return;
+      console.error('[connectMicrosoft] failed', err);
+      toast.error('Erro ao conectar Outlook Calendar');
     } finally {
       setConnecting(null);
     }
