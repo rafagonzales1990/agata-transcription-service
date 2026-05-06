@@ -31,6 +31,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { PWAInstallModal } from '@/components/PWAInstallModal';
 import { TrialExpiredOverlay } from '@/components/TrialExpiredOverlay';
 import { useTrialExpiredStatus } from '@/hooks/useTrialExpiredStatus';
+import { useEffectivePlan } from '@/hooks/useEffectivePlan';
 import { getDeviceId, getDeviceName } from '@/lib/deviceId';
 import { toast } from 'sonner';
 
@@ -67,6 +68,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [hasCompletedMeetings, setHasCompletedMeetings] = useState(false);
   const [trialOverlayDismissed, setTrialOverlayDismissed] = useState(false);
   const { isTrialExpired } = useTrialExpiredStatus();
+  const { effectivePlanId, isPaidOrGift } = useEffectivePlan();
 
   const fetchUserData = useCallback(async () => {
     if (!user) return;
@@ -158,9 +160,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   const authUser = profile;
 
   const initial = profile?.name?.charAt(0)?.toUpperCase() || profile?.email?.charAt(0)?.toUpperCase() || '?';
-  const planLabel = profile?.plan_id === 'enterprise' ? 'Enterprise' : profile?.plan_id === 'automacao' ? 'Pro' : profile?.plan_id === 'inteligente' ? 'Essencial' : 'Gratuito';
-  const isEnterprise = profile?.plan_id === 'enterprise';
-  const isPaid = ['inteligente', 'automacao', 'enterprise'].includes(profile?.plan_id || '');
+  const planLabel = effectivePlanId === 'enterprise' ? 'Enterprise' : effectivePlanId === 'automacao' ? 'Pro' : effectivePlanId === 'inteligente' ? 'Essencial' : 'Gratuito';
+  const isEnterprise = effectivePlanId === 'enterprise';
+  const isPaid = ['inteligente', 'automacao', 'enterprise'].includes(effectivePlanId);
 
   const activeClasses = 'bg-sidebar-accent text-primary border-l-2 border-primary font-medium';
   const inactiveClasses = 'text-foreground/70 hover:bg-sidebar-accent hover:text-foreground';
@@ -237,7 +239,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             Painel Dev
           </Link>
         )}
-        {!isPaid && (
+        {!isPaidOrGift && (
           <Link to="/plans" onClick={onNavigate}>
             <button type="button" className="w-full px-3 py-2.5 rounded-lg text-sm font-semibold bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-white shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200 flex items-center justify-center gap-2">
               <Sparkles className="h-4 w-4" />

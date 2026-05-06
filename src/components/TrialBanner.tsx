@@ -2,15 +2,17 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { X, AlertTriangle, Clock, Lock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEffectivePlan } from '@/hooks/useEffectivePlan';
 
 export function TrialBanner() {
   const { profile } = useAuth();
+  const { effectivePlanId, loading } = useEffectivePlan();
   const [dismissed, setDismissed] = useState(
     () => localStorage.getItem('trial_banner_dismissed_v2') === 'true'
   );
 
-  if (dismissed || !profile) return null;
-  if (profile.plan_id !== 'basic') return null;
+  if (dismissed || !profile || loading) return null;
+  if (effectivePlanId !== 'basic') return null;
   if (!profile.trial_ends_at && !profile.has_completed_onboarding) return null;
 
   const handleDismiss = () => {
