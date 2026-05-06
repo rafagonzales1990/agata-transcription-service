@@ -17,53 +17,27 @@ function isSSOUser(user: Session['user']): boolean {
 async function initializeOAuthUser(session: Session) {
   const { user } = session;
   if (!isSSOUser(user)) return;
-
-  const { data: existing, error: selectError } = await supabase
-    .from('User' as any)
-    .select('id, trialEndsAt, name, hasCompletedOnboarding')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  if (selectError) {
-    console.error('[initializeOAuthUser] select failed', selectError);
-    return;
-  }
-
-  const existingRow = existing as unknown as
-    | { trialEndsAt: string | null; name: string | null }
-    | null;
-
-  // Trial já inicializado — nada a fazer
-  if (existingRow?.trialEndsAt) return;
+  if (!user.email) return;
 
   const name =
     user.user_metadata?.full_name ||
     user.user_metadata?.name ||
-    user.email?.split('@')[0] ||
+    user.email.split('@')[0] ||
     'Usuário';
 
-  const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+  // RLS bloqueia INSERT em "User" pelo cliente. Edge function com service_role
+  // cria a row se nao existir (idempotente).
+  const { data, error } = await supabase.functions.invoke('initialize-user', {
+    body: { id: user.id, email: user.email, name },
+  });
 
-  // Row inexistente OU trialEndsAt=null — upsert único garante o estado correto
-  const { error: upsertError } = await supabase.from('User' as any).upsert(
-    {
-      id: user.id,
-      email: user.email,
-      name: existingRow?.name || name,
-      hasCompletedOnboarding: true,
-      trialEndsAt,
-      planId: 'basic',
-    },
-    { onConflict: 'id' }
-  );
-
-  if (upsertError) {
-    console.error('[initializeOAuthUser] upsert failed', user.id, upsertError);
+  if (error) {
+    console.error('[initializeOAuthUser] invoke initialize-user failed', error);
     return;
   }
 
-  // Welcome email apenas em criação net-new
-  if (!existingRow) {
+  // Welcome email apenas em criacao net-new
+  if ((data as { created?: boolean } | null)?.created) {
     try {
       await supabase.functions.invoke('send-email', {
         body: { type: 'welcome', to: user.email, data: { name } },

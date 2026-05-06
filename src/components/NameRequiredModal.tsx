@@ -32,61 +32,25 @@ export function NameRequiredModal({ userId, onSaved, onDismiss }: NameRequiredMo
 
     const trimmed = name.trim();
 
-    // SSO Google pode chegar aqui sem row em "User" (initializeOAuthUser falhou
-    // ou ainda nao rodou). UPDATE silencioso afeta 0 rows. Decide via SELECT
-    // se cria (INSERT com todos os campos obrigatorios) ou apenas atualiza nome.
-    const { data: existing, error: selectErr } = await supabase
-      .from('User')
-      .select('id')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (selectErr) {
-      console.error('[NameRequiredModal] User select failed', selectErr);
+    const { data: { session } } = await supabase.auth.getSession();
+    const email = session?.user?.email;
+    if (!email) {
       setSaving(false);
-      setError('Erro ao salvar. Tente novamente.');
+      setError('Sessão expirada. Faça login novamente.');
       return;
     }
 
-    if (existing) {
-      const { error: updateErr } = await supabase
-        .from('User')
-        .update({ name: trimmed } as any)
-        .eq('id', userId);
+    // RLS bloqueia INSERT em "User" pelo cliente. Edge function com service_role
+    // cria a row com todos os campos obrigatorios (idempotente).
+    const { error: initErr } = await supabase.functions.invoke('initialize-user', {
+      body: { id: userId, email, name: trimmed },
+    });
 
-      if (updateErr) {
-        console.error('[NameRequiredModal] User update failed', updateErr);
-        setSaving(false);
-        setError('Erro ao salvar. Tente novamente.');
-        return;
-      }
-    } else {
-      const { data: { session } } = await supabase.auth.getSession();
-      const email = session?.user?.email;
-      if (!email) {
-        setSaving(false);
-        setError('Sessão expirada. Faça login novamente.');
-        return;
-      }
-
-      const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
-      const { error: insertErr } = await supabase
-        .from('User')
-        .insert({
-          id: userId,
-          email,
-          name: trimmed,
-          planId: 'basic',
-          trialEndsAt,
-          role: 'user',
-        } as any);
-
-      if (insertErr) {
-        console.error('[NameRequiredModal] User insert failed', insertErr);
-        setSaving(false);
-        setError('Erro ao salvar. Tente novamente.');
-        return;
-      }
+    if (initErr) {
+      console.error('[NameRequiredModal] initialize-user failed', initErr);
+      setSaving(false);
+      setError('Erro ao salvar. Tente novamente.');
+      return;
     }
 
     const { error: profileErr } = await supabase
