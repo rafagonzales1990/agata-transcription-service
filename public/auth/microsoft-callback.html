@@ -1,15 +1,17 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="robots" content="noindex" />
-    <title>Conectando Microsoft...</title>
-    <style>
-      body { font-family: system-ui, -apple-system, sans-serif; padding: 24px; color: #334155; }
-    </style>
-  </head>
-  <body>
-    <p>Conectando com o Microsoft Calendar...</p>
-    <p>Esta janela fecha sozinha.</p>
-  </body>
+<head>
+<meta charset="UTF-8">
+<title>Microsoft Auth</title>
+</head>
+<body>
+<script>
+  // Notifica o opener (janela principal) que o auth completou
+  // O MSAL lê os parâmetros da URL automaticamente via BroadcastChannel/localStorage
+  if (window.opener) {
+    // MSAL.js processa o hash/search params automaticamente
+    // Só precisa garantir que a página carregou
+  }
+</script>
+</body>
 </html>
