@@ -50,6 +50,7 @@ const DesktopAuth = lazy(() => import("./pages/DesktopAuth"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const AskMeetings = lazy(() => import("./pages/AskMeetings"));
 const Projects = lazy(() => import("./pages/Projects"));
+const CalendarPage = lazy(() => import("./pages/CalendarPage"));
 
 export const queryClient = new QueryClient({
   defaultOptions: {
