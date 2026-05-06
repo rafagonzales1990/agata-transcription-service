@@ -31,18 +31,72 @@ export function NameRequiredModal({ userId, onSaved, onDismiss }: NameRequiredMo
     setError('');
 
     const trimmed = name.trim();
-    const { error: err } = await supabase
-      .from('User')
-      .update({ name: trimmed } as any)
-      .eq('id', userId);
 
-    if (err) {
+    // SSO Google pode chegar aqui sem row em "User" (initializeOAuthUser falhou
+    // ou ainda nao rodou). UPDATE silencioso afeta 0 rows. Decide via SELECT
+    // se cria (INSERT com todos os campos obrigatorios) ou apenas atualiza nome.
+    const { data: existing, error: selectErr } = await supabase
+      .from('User')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (selectErr) {
+      console.error('[NameRequiredModal] User select failed', selectErr);
       setSaving(false);
       setError('Erro ao salvar. Tente novamente.');
       return;
     }
 
-    await supabase.from('profiles').update({ name: trimmed } as any).eq('user_id', userId);
+    if (existing) {
+      const { error: updateErr } = await supabase
+        .from('User')
+        .update({ name: trimmed } as any)
+        .eq('id', userId);
+
+      if (updateErr) {
+        console.error('[NameRequiredModal] User update failed', updateErr);
+        setSaving(false);
+        setError('Erro ao salvar. Tente novamente.');
+        return;
+      }
+    } else {
+      const { data: { session } } = await supabase.auth.getSession();
+      const email = session?.user?.email;
+      if (!email) {
+        setSaving(false);
+        setError('Sessão expirada. Faça login novamente.');
+        return;
+      }
+
+      const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+      const { error: insertErr } = await supabase
+        .from('User')
+        .insert({
+          id: userId,
+          email,
+          name: trimmed,
+          planId: 'basic',
+          trialEndsAt,
+          role: 'user',
+        } as any);
+
+      if (insertErr) {
+        console.error('[NameRequiredModal] User insert failed', insertErr);
+        setSaving(false);
+        setError('Erro ao salvar. Tente novamente.');
+        return;
+      }
+    }
+
+    const { error: profileErr } = await supabase
+      .from('profiles')
+      .update({ name: trimmed } as any)
+      .eq('user_id', userId);
+    if (profileErr) {
+      console.error('[NameRequiredModal] profiles update failed', profileErr);
+    }
+
     setSaving(false);
     onSaved();
   }, [name, userId, onSaved]);
