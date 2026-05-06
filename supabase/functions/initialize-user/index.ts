@@ -96,11 +96,17 @@ Deno.serve(async (req) => {
 
     const existingRow = existing as { name: string | null; trialEndsAt: string | null }
 
-    // 2) Row existente com name=null — UPDATE apenas do name
-    if (!existingRow.name && name) {
+    // 2) Row existente — patch apenas dos campos null (equivalente a
+    //    SET name = COALESCE(name, $newName),
+    //        trialEndsAt = COALESCE(trialEndsAt, now() + interval '14 days'))
+    const patch: Record<string, string> = {}
+    if (!existingRow.name && name) patch.name = name
+    if (!existingRow.trialEndsAt) patch.trialEndsAt = trialEndsAt
+
+    if (Object.keys(patch).length > 0) {
       const { error: updateErr } = await admin
         .from('User')
-        .update({ name })
+        .update(patch)
         .eq('id', id)
 
       if (updateErr) {
@@ -111,12 +117,12 @@ Deno.serve(async (req) => {
         )
       }
 
-      return new Response(JSON.stringify({ success: true, updated: true }), {
+      return new Response(JSON.stringify({ success: true, updated: true, patched: Object.keys(patch) }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    // 3) Row existente com name preenchido — no-op
+    // 3) Row existente com name e trialEndsAt preenchidos — no-op
     return new Response(JSON.stringify({ success: true, created: false }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
