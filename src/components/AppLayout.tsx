@@ -7,7 +7,7 @@ import {
   Repeat, Sparkles, LogOut, Menu, X, User, CreditCard,
   ChevronDown, Shield, Users, HelpCircle, ExternalLink,
   Sun, Moon, Building2, Download, Monitor, Globe, Smartphone,
-  MessageCircle, AlertTriangle,
+  MessageCircle,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -361,19 +361,22 @@ export function AppLayout({ children }: AppLayoutProps) {
           <PWAInstallButton />
           {hasActiveTrial && effectivePlanId === 'basic' && trialEndsAt && (() => {
             const daysLeft = Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-            const isWarning = daysLeft <= 3;
+            const tier =
+              daysLeft > 7
+                ? { emoji: '🚀', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' }
+                : daysLeft > 3
+                ? { emoji: '⏳', cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' }
+                : { emoji: '⚠️', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' };
             const label = `Trial: ${daysLeft} ${daysLeft === 1 ? 'dia' : 'dias'}`;
             return (
               <span
                 className={cn(
-                  'hidden sm:inline-flex items-center gap-1 text-sm font-medium px-2.5 py-1 rounded-full',
-                  isWarning
-                    ? 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                    : 'bg-muted text-muted-foreground'
+                  'hidden sm:inline-flex items-center gap-1 text-xs font-medium px-3 py-1 rounded-full',
+                  tier.cls
                 )}
                 title={`Seu trial termina em ${new Date(trialEndsAt).toLocaleDateString('pt-BR')}`}
               >
-                {isWarning && <AlertTriangle className="h-3.5 w-3.5" />}
+                <span aria-hidden="true">{tier.emoji}</span>
                 {label}
               </span>
             );
