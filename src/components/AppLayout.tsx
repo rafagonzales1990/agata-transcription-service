@@ -7,7 +7,7 @@ import {
   Repeat, Sparkles, LogOut, Menu, X, User, CreditCard,
   ChevronDown, Shield, Users, HelpCircle, ExternalLink,
   Sun, Moon, Building2, Download, Monitor, Globe, Smartphone,
-  MessageCircle,
+  MessageCircle, AlertTriangle,
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -68,7 +68,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [hasCompletedMeetings, setHasCompletedMeetings] = useState(false);
   const [trialOverlayDismissed, setTrialOverlayDismissed] = useState(false);
   const { isTrialExpired } = useTrialExpiredStatus();
-  const { effectivePlanId, isPaidOrGift } = useEffectivePlan();
+  const { effectivePlanId, isPaidOrGift, hasActiveTrial, trialEndsAt } = useEffectivePlan();
 
   const fetchUserData = useCallback(async () => {
     if (!user) return;
@@ -359,6 +359,25 @@ export function AppLayout({ children }: AppLayoutProps) {
 
         <div className="flex items-center gap-3">
           <PWAInstallButton />
+          {hasActiveTrial && effectivePlanId === 'basic' && trialEndsAt && (() => {
+            const daysLeft = Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+            const isWarning = daysLeft <= 3;
+            const label = `Trial: ${daysLeft} ${daysLeft === 1 ? 'dia' : 'dias'}`;
+            return (
+              <span
+                className={cn(
+                  'hidden sm:inline-flex items-center gap-1 text-sm font-medium px-2.5 py-1 rounded-full',
+                  isWarning
+                    ? 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                    : 'bg-muted text-muted-foreground'
+                )}
+                title={`Seu trial termina em ${new Date(trialEndsAt).toLocaleDateString('pt-BR')}`}
+              >
+                {isWarning && <AlertTriangle className="h-3.5 w-3.5" />}
+                {label}
+              </span>
+            );
+          })()}
           <button
             type="button"
             onClick={toggleTheme}

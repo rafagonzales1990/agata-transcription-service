@@ -4,7 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 export interface EffectivePlan {
   effectivePlanId: string;
   hasActiveGift: boolean;
-  isTrialActive: boolean;
+  hasActiveTrial: boolean;
+  trialEndsAt: string | null;
   isPaidOrGift: boolean;
   loading: boolean;
 }
@@ -12,7 +13,8 @@ export interface EffectivePlan {
 const DEFAULT_DATA: Omit<EffectivePlan, 'loading'> = {
   effectivePlanId: 'basic',
   hasActiveGift: false,
-  isTrialActive: false,
+  hasActiveTrial: false,
+  trialEndsAt: null,
   isPaidOrGift: false,
 };
 
@@ -35,11 +37,11 @@ async function fetchEffectivePlan(): Promise<Omit<EffectivePlan, 'loading'>> {
   const stripeSubscriptionId = data?.stripeSubscriptionId ?? null;
 
   const hasActiveGift = !!giftPlanId && !!giftEndsAt && new Date(giftEndsAt) > now;
-  const isTrialActive = !!trialEndsAt && new Date(trialEndsAt) > now;
+  const hasActiveTrial = !!trialEndsAt && new Date(trialEndsAt) > now;
   const effectivePlanId = hasActiveGift ? giftPlanId! : planId;
-  const isPaidOrGift = hasActiveGift || !!stripeSubscriptionId || isTrialActive;
+  const isPaidOrGift = hasActiveGift || !!stripeSubscriptionId || hasActiveTrial;
 
-  return { effectivePlanId, hasActiveGift, isTrialActive, isPaidOrGift };
+  return { effectivePlanId, hasActiveGift, hasActiveTrial, trialEndsAt, isPaidOrGift };
 }
 
 export function useEffectivePlan(): EffectivePlan {
