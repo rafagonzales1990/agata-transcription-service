@@ -103,6 +103,12 @@ export function CalendarIntegration() {
 
   const connectMicrosoft = async () => {
     setConnecting('microsoft');
+
+    // Limpa estado travado de interações anteriores (interaction_in_progress)
+    Object.keys(sessionStorage)
+      .filter((k) => k.startsWith('msal.'))
+      .forEach((k) => sessionStorage.removeItem(k));
+
     try {
       await msalInstance.initialize();
       const result = await msalInstance.acquireTokenPopup({ scopes: calendarScopes });
