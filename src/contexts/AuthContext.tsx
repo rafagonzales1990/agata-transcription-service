@@ -8,16 +8,33 @@ import { getDeviceId } from '@/lib/deviceId';
 
 const SSO_PROVIDERS = ['google', 'azure'];
 
+function isSSOUser(user: Session['user']): boolean {
+  const provider = user.app_metadata?.provider;
+  if (provider && SSO_PROVIDERS.includes(provider)) return true;
+  return (user.identities ?? []).some((i) => SSO_PROVIDERS.includes(i.provider));
+}
+
 async function initializeOAuthUser(session: Session) {
   const { user } = session;
-  const provider = user.app_metadata?.provider;
-  if (!SSO_PROVIDERS.includes(provider)) return;
+  if (!isSSOUser(user)) return;
 
-  const { data: existing } = await supabase
+  const { data: existing, error: selectError } = await supabase
     .from('User' as any)
     .select('id, trialEndsAt, name, hasCompletedOnboarding')
     .eq('id', user.id)
     .maybeSingle();
+
+  if (selectError) {
+    console.error('[initializeOAuthUser] select failed', selectError);
+    return;
+  }
+
+  const existingRow = existing as unknown as
+    | { trialEndsAt: string | null; name: string | null }
+    | null;
+
+  // Trial já inicializado — nada a fazer
+  if (existingRow?.trialEndsAt) return;
 
   const name =
     user.user_metadata?.full_name ||
@@ -27,32 +44,32 @@ async function initializeOAuthUser(session: Session) {
 
   const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
 
-  if (existing) {
-    // Usuário já criado pelo trigger handle_new_user — garante que trialEndsAt esteja preenchido
-    const existingRow = existing as any;
-    if (!existingRow.trialEndsAt) {
-      await supabase
-        .from('User' as any)
-        .update({
-          trialEndsAt,
-          name: existingRow.name || name,
-          hasCompletedOnboarding: true,
-        } as any)
-        .eq('id', user.id);
-    }
-    return;
-  }
-
-  await supabase.from('User' as any).upsert(
-    { id: user.id, email: user.email, name, hasCompletedOnboarding: true, trialEndsAt, planId: 'basic' },
+  // Row inexistente OU trialEndsAt=null — upsert único garante o estado correto
+  const { error: upsertError } = await supabase.from('User' as any).upsert(
+    {
+      id: user.id,
+      email: user.email,
+      name: existingRow?.name || name,
+      hasCompletedOnboarding: true,
+      trialEndsAt,
+      planId: 'basic',
+    },
     { onConflict: 'id' }
   );
 
-  try {
-    await supabase.functions.invoke('send-email', {
-      body: { type: 'welcome', to: user.email, data: { name } },
-    });
-  } catch {}
+  if (upsertError) {
+    console.error('[initializeOAuthUser] upsert failed', user.id, upsertError);
+    return;
+  }
+
+  // Welcome email apenas em criação net-new
+  if (!existingRow) {
+    try {
+      await supabase.functions.invoke('send-email', {
+        body: { type: 'welcome', to: user.email, data: { name } },
+      });
+    } catch {}
+  }
 }
 
 export interface UserProfile {
@@ -123,8 +140,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           Sentry.setUser({ id: session.user.id, email: session.user.email });
           setTimeout(() => fetchProfile(session.user.id), 0);
 
-          if (event === 'SIGNED_IN') {
+          // Roda em SIGNED_IN (novo signin) e INITIAL_SESSION (auto-conserta
+          // usuários SSO legados com trialEndsAt=null na próxima visita)
+          if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
             initializeOAuthUser(session);
+          }
+
+          if (event === 'SIGNED_IN') {
             supabase.functions.invoke('enforce-single-session', {
               body: { userId: session.user.id, deviceId: getDeviceId() },
             });
