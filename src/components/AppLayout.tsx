@@ -40,6 +40,7 @@ const menuItems = [
   { label: 'Nova Transcrição', href: '/upload', icon: Upload },
   { label: 'Reuniões', href: '/meetings', icon: FileText },
   { label: 'Perguntar às Reuniões', href: '/ask', icon: MessageCircle, requiresMeetings: true, paidOnly: true },
+  { label: 'Calendário', href: '/calendario', icon: CalendarIcon },
   { label: 'Rotinas', href: '/routines', icon: Repeat },
   { label: 'Documentos', href: '/documents', icon: FolderOpen },
   { label: 'Projetos', href: '/projects', icon: FolderKanban },
