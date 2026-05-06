@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard, FileText, Upload, FolderOpen, FolderKanban, Settings,
-  Repeat, Sparkles, LogOut, Menu, X, User, CreditCard,
+  Repeat, Sparkles, LogOut, Menu, X, User, CreditCard, Calendar as CalendarIcon,
   ChevronDown, Shield, Users, HelpCircle, ExternalLink,
   Sun, Moon, Building2, Download, Monitor, Globe, Smartphone,
   MessageCircle,
@@ -40,6 +40,7 @@ const menuItems = [
   { label: 'Nova Transcrição', href: '/upload', icon: Upload },
   { label: 'Reuniões', href: '/meetings', icon: FileText },
   { label: 'Perguntar às Reuniões', href: '/ask', icon: MessageCircle, requiresMeetings: true, paidOnly: true },
+  { label: 'Calendário', href: '/calendario', icon: CalendarIcon },
   { label: 'Rotinas', href: '/routines', icon: Repeat },
   { label: 'Documentos', href: '/documents', icon: FolderOpen },
   { label: 'Projetos', href: '/projects', icon: FolderKanban },
