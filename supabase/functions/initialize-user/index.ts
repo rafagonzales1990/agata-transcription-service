@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
 
     const { data: existing, error: selectErr } = await admin
       .from('User')
-      .select('id')
+      .select('id, name, trialEndsAt')
       .eq('id', id)
       .maybeSingle()
 
@@ -68,32 +68,56 @@ Deno.serve(async (req) => {
       )
     }
 
-    if (existing) {
-      return new Response(JSON.stringify({ success: true, created: false }), {
+    const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+
+    // 1) Row inexistente — INSERT com todos os campos obrigatorios
+    if (!existing) {
+      const { error: insertErr } = await admin.from('User').insert({
+        id,
+        email,
+        name,
+        planId: 'basic',
+        role: 'user',
+        trialEndsAt,
+      })
+
+      if (insertErr) {
+        console.error('initialize-user insert failed:', insertErr)
+        return new Response(
+          JSON.stringify({ error: 'insert failed', detail: insertErr.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
+
+      return new Response(JSON.stringify({ success: true, created: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+    const existingRow = existing as { name: string | null; trialEndsAt: string | null }
 
-    const { error: insertErr } = await admin.from('User').insert({
-      id,
-      email,
-      name,
-      planId: 'basic',
-      role: 'user',
-      trialEndsAt,
-    })
+    // 2) Row existente com name=null — UPDATE apenas do name
+    if (!existingRow.name && name) {
+      const { error: updateErr } = await admin
+        .from('User')
+        .update({ name })
+        .eq('id', id)
 
-    if (insertErr) {
-      console.error('initialize-user insert failed:', insertErr)
-      return new Response(
-        JSON.stringify({ error: 'insert failed', detail: insertErr.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      )
+      if (updateErr) {
+        console.error('initialize-user update failed:', updateErr)
+        return new Response(
+          JSON.stringify({ error: 'update failed', detail: updateErr.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
+
+      return new Response(JSON.stringify({ success: true, updated: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
-    return new Response(JSON.stringify({ success: true, created: true }), {
+    // 3) Row existente com name preenchido — no-op
+    return new Response(JSON.stringify({ success: true, created: false }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {
