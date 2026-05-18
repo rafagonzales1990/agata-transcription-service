@@ -35,6 +35,7 @@ const PlansSection = lazy(() => lazyRetry(() => import('@/components/landing/Pla
 const UseCasesSection = lazy(() => lazyRetry(() => import('@/components/landing/UseCasesSection').then(m => ({ default: m.UseCasesSection }))));
 const FinalCTASection = lazy(() => lazyRetry(() => import('@/components/landing/FinalCTASection').then(m => ({ default: m.FinalCTASection }))));
 const LandingFooter = lazy(() => lazyRetry(() => import('@/components/landing/LandingFooter').then(m => ({ default: m.LandingFooter }))));
+const NewsletterCapture = lazy(() => lazyRetry(() => import('@/components/landing/NewsletterCapture').then(m => ({ default: m.NewsletterCapture }))));
 
 const metrics = [
   { number: '95%+', label: 'Precisão em PT-BR, EN e ES', icon: <BadgeCheck className="h-5 w-5" /> },
