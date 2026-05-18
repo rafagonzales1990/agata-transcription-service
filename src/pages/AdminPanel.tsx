@@ -27,6 +27,9 @@ import { appVersion } from '@/config/appVersion';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { AIStatusMonitor, AIStatusBanner } from '@/components/dev/AIStatusMonitor';
 import { AdminActionsTab } from '@/components/dev/AdminActionsTab';
+import { LeadsTab } from '@/components/dev/LeadsTab';
+import { NewsletterTab } from '@/components/dev/NewsletterTab';
+import { BlogTab } from '@/components/dev/BlogTab';
 
 // ── Constants ──────────────────────────────────────────────
 const PLAN_COLORS: Record<string, string> = {
@@ -903,6 +906,9 @@ export default function AdminPanel() {
             <TabsTrigger value="costs" onClick={fetchCosts}>Custos</TabsTrigger>
             <TabsTrigger value="ai-status">Status IAs</TabsTrigger>
             <TabsTrigger value="actions">Ações</TabsTrigger>
+            <TabsTrigger value="leads">Leads</TabsTrigger>
+            <TabsTrigger value="newsletter">Newsletter</TabsTrigger>
+            <TabsTrigger value="blog">Blog</TabsTrigger>
           </TabsList>
 
           {/* ── Dashboard Tab ──────────────────────────────── */}
@@ -1446,6 +1452,18 @@ export default function AdminPanel() {
           {/* ── Actions Tab ───────────────────────────────── */}
           <TabsContent value="actions" className="space-y-6">
             <AdminActionsTab />
+          </TabsContent>
+
+          <TabsContent value="leads" className="space-y-6">
+            <LeadsTab />
+          </TabsContent>
+
+          <TabsContent value="newsletter" className="space-y-6">
+            <NewsletterTab />
+          </TabsContent>
+
+          <TabsContent value="blog" className="space-y-6">
+            <BlogTab />
           </TabsContent>
         </Tabs>
       </div>

@@ -269,6 +269,63 @@ export type Database = {
           },
         ]
       }
+      blog_posts: {
+        Row: {
+          category: string | null
+          content: string | null
+          cover_image_url: string | null
+          created_at: string | null
+          created_by: string | null
+          excerpt: string | null
+          id: string
+          published: boolean | null
+          published_at: string | null
+          scheduled_publish_at: string | null
+          seo_description: string | null
+          seo_title: string | null
+          slug: string
+          title: string
+          updated_at: string | null
+          view_count: number | null
+        }
+        Insert: {
+          category?: string | null
+          content?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          excerpt?: string | null
+          id?: string
+          published?: boolean | null
+          published_at?: string | null
+          scheduled_publish_at?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug: string
+          title: string
+          updated_at?: string | null
+          view_count?: number | null
+        }
+        Update: {
+          category?: string | null
+          content?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          excerpt?: string | null
+          id?: string
+          published?: boolean | null
+          published_at?: string | null
+          scheduled_publish_at?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          slug?: string
+          title?: string
+          updated_at?: string | null
+          view_count?: number | null
+        }
+        Relationships: []
+      }
       BlogPost: {
         Row: {
           category: string
@@ -538,6 +595,45 @@ export type Database = {
         }
         Relationships: []
       }
+      leads: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          email: string
+          id: string
+          name: string | null
+          source: string | null
+          status: string | null
+          subscribed_at: string | null
+          tags: string[] | null
+          unsubscribed_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          email: string
+          id?: string
+          name?: string | null
+          source?: string | null
+          status?: string | null
+          subscribed_at?: string | null
+          tags?: string[] | null
+          unsubscribed_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          name?: string | null
+          source?: string | null
+          status?: string | null
+          subscribed_at?: string | null
+          tags?: string[] | null
+          unsubscribed_at?: string | null
+        }
+        Relationships: []
+      }
       Meeting: {
         Row: {
           actionItems: string[]
@@ -781,6 +877,90 @@ export type Database = {
           id?: string
           meetingId?: string
           token?: string
+        }
+        Relationships: []
+      }
+      newsletter_sends: {
+        Row: {
+          id: string
+          lead_id: string | null
+          newsletter_id: string | null
+          sent_at: string | null
+        }
+        Insert: {
+          id?: string
+          lead_id?: string | null
+          newsletter_id?: string | null
+          sent_at?: string | null
+        }
+        Update: {
+          id?: string
+          lead_id?: string | null
+          newsletter_id?: string | null
+          sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newsletter_sends_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "newsletter_sends_newsletter_id_fkey"
+            columns: ["newsletter_id"]
+            isOneToOne: false
+            referencedRelation: "newsletters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      newsletters: {
+        Row: {
+          audience: string | null
+          created_at: string | null
+          created_by: string | null
+          design: Json | null
+          html: string | null
+          id: string
+          recipient_count: number | null
+          scheduled_at: string | null
+          sent_at: string | null
+          status: string | null
+          subject: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          audience?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          design?: Json | null
+          html?: string | null
+          id?: string
+          recipient_count?: number | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          audience?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          design?: Json | null
+          html?: string | null
+          id?: string
+          recipient_count?: number | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string | null
+          subject?: string
+          title?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -1497,6 +1677,7 @@ export type Database = {
       get_my_role: { Args: never; Returns: string }
       get_my_team_id: { Args: never; Returns: string }
       get_old_user_id: { Args: { _auth_uid: string }; Returns: string }
+      increment_view_count: { Args: { post_id: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
       is_enterprise_admin: { Args: never; Returns: boolean }
       match_meeting_embeddings:
