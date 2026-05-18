@@ -27,6 +27,9 @@ import { appVersion } from '@/config/appVersion';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { AIStatusMonitor, AIStatusBanner } from '@/components/dev/AIStatusMonitor';
 import { AdminActionsTab } from '@/components/dev/AdminActionsTab';
+import { LeadsTab } from '@/components/dev/LeadsTab';
+import { NewsletterTab } from '@/components/dev/NewsletterTab';
+import { BlogTab } from '@/components/dev/BlogTab';
 
 // ── Constants ──────────────────────────────────────────────
 const PLAN_COLORS: Record<string, string> = {
