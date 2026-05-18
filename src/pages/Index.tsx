@@ -186,6 +186,7 @@ export default function LandingPage() {
 
       <Suspense fallback={null}>
         <FinalCTASection />
+        <NewsletterCapture source="lp" />
         <LandingFooter />
       </Suspense>
       {/* Sticky mobile CTA */}
