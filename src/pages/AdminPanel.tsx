@@ -1453,6 +1453,18 @@ export default function AdminPanel() {
           <TabsContent value="actions" className="space-y-6">
             <AdminActionsTab />
           </TabsContent>
+
+          <TabsContent value="leads" className="space-y-6">
+            <LeadsTab />
+          </TabsContent>
+
+          <TabsContent value="newsletter" className="space-y-6">
+            <NewsletterTab />
+          </TabsContent>
+
+          <TabsContent value="blog" className="space-y-6">
+            <BlogTab />
+          </TabsContent>
         </Tabs>
       </div>
 
