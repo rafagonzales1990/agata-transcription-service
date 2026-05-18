@@ -906,6 +906,9 @@ export default function AdminPanel() {
             <TabsTrigger value="costs" onClick={fetchCosts}>Custos</TabsTrigger>
             <TabsTrigger value="ai-status">Status IAs</TabsTrigger>
             <TabsTrigger value="actions">Ações</TabsTrigger>
+            <TabsTrigger value="leads">Leads</TabsTrigger>
+            <TabsTrigger value="newsletter">Newsletter</TabsTrigger>
+            <TabsTrigger value="blog">Blog</TabsTrigger>
           </TabsList>
 
           {/* ── Dashboard Tab ──────────────────────────────── */}
