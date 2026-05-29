@@ -89,6 +89,24 @@ Deno.serve(async (req) => {
         )
       }
 
+      // Sincronizar contato no Resend Audience (fire-and-forget)
+      const resendAudienceId = Deno.env.get('RESEND_AUDIENCE_ID')
+      const resendApiKey = Deno.env.get('RESEND_API_KEY')
+      if (resendAudienceId && resendApiKey) {
+        fetch(`https://api.resend.com/audiences/${resendAudienceId}/contacts`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            first_name: name.split(' ')[0],
+            unsubscribed: false,
+          }),
+        }).catch((e) => console.error('[Resend] audience sync failed:', e))
+      }
+
       return new Response(JSON.stringify({ success: true, created: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
