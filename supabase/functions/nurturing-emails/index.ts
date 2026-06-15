@@ -2,8 +2,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const brevoKey = Deno.env.get('BREVO_API_KEY')!;
-const fromEmail = 'contato@agatatranscription.com';
+const resendKey = Deno.env.get('RESEND_API_KEY')!;
+const fromEmail = 'noreply@agatatranscription.com';
 const fromName = 'Ágata Transcription';
 
 Deno.serve(async () => {
@@ -228,18 +228,17 @@ Deno.serve(async () => {
     if (!emailType) continue;
 
     try {
-      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
-          'api-key': brevoKey,
+          'Authorization': `Bearer ${resendKey}`,
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
         },
         body: JSON.stringify({
-          sender: { name: fromName, email: fromEmail },
-          to: [{ email: user.email }],
+          from: `${fromName} <${fromEmail}>`,
+          to: [user.email],
           subject,
-          htmlContent: html,
+          html,
         }),
       });
 
@@ -251,7 +250,8 @@ Deno.serve(async () => {
         });
         results.sent++;
       } else {
-        results.errors.push(`${user.email}: ${res.status}`);
+        const errBody = await res.text();
+        results.errors.push(`${user.email}: ${res.status} — ${errBody}`);
       }
     } catch (err: any) {
       results.errors.push(`${user.email}: ${err.message}`);
