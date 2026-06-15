@@ -115,11 +115,6 @@ Deno.serve(async (req) => {
             proration_behavior: 'create_prorations',
           })
 
-          await supabase.from('profiles').update({
-            plan_id: planId,
-            billing_cycle: billingCycle,
-          }).eq('user_id', user.id)
-
           await supabase.from('User').update({
             planId,
             billingCycle,
