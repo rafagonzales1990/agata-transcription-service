@@ -40,77 +40,76 @@ Deno.serve(async (req) => {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
-        const metadata = session.subscription
-          ? (await stripe.subscriptions.retrieve(session.subscription as string)).metadata
-          : session.metadata
 
-        const userId = metadata?.userId
-        const planId = metadata?.planId
-        const billingCycle = metadata?.billingCycle
+        const subscription = session.subscription
+          ? await stripe.subscriptions.retrieve(session.subscription as string)
+          : null
 
-        if (userId && planId) {
-          // Update profiles
-          await supabase.from('profiles').update({
-            plan_id: planId,
-            billing_cycle: billingCycle || 'monthly',
-            trial_ends_at: null,
-          }).eq('user_id', userId)
+        const metadata = subscription?.metadata ?? session.metadata
+        const userId  = metadata?.userId
+        const planId  = metadata?.planId
+        const billingCycle = metadata?.billingCycle || 'monthly'
+        const customerId   = session.customer as string
 
-          // Update User table
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('email')
-            .eq('user_id', userId)
-            .single()
+        console.log('checkout.session.completed — userId:', userId, 'planId:', planId)
 
-          if (profile?.email) {
-            await supabase.from('User').update({
-              planId,
-              billingCycle: billingCycle || 'monthly',
-              stripeSubscriptionId: session.subscription as string,
-              stripePriceId: null,
-              trialEndsAt: null,
-            }).eq('email', profile.email)
-
-            // Send payment confirmed email
-            const planNames: Record<string, string> = {
-              inteligente: 'Essencial',
-              automacao: 'Pro',
-              enterprise: 'Enterprise',
-            }
-            const { data: nameData } = await supabase
-              .from('User')
-              .select('name')
-              .eq('email', profile.email)
-              .maybeSingle()
-
-            try {
-              await supabase.functions.invoke('send-email', {
-                body: {
-                  type: 'payment_confirmed',
-                  to: profile.email,
-                  data: {
-                    name: nameData?.name || 'Usuário',
-                    planName: planNames[planId || ''] || planId,
-                  }
-                }
-              })
-            } catch (emailErr) {
-              console.error('Failed to send payment email:', emailErr)
-            }
-
-            // Lead attribution: mark lead as paid
-            try {
-              await supabase.from('Lead').update({
-                status: 'paid',
-                lastStep: 'paid',
-                convertedAt: new Date().toISOString(),
-              }).eq('userId', userId)
-            } catch (leadErr) {
-              console.error('Lead attribution error:', leadErr)
-            }
-          }
+        if (!userId || !planId) {
+          console.error('Metadata ausente — userId ou planId não encontrado')
+          break
         }
+
+        // Buscar usuário direto na tabela User (sem profiles)
+        const { data: user, error: userErr } = await supabase
+          .from('User')
+          .select('id, email, name')
+          .eq('id', userId)
+          .maybeSingle()
+
+        if (userErr || !user) {
+          console.error('Usuário não encontrado para userId:', userId, userErr)
+          break
+        }
+
+        // Atualizar User (service_role bypassa o trigger agora)
+        const { error: updateErr } = await supabase.from('User').update({
+          planId,
+          billingCycle,
+          stripeCustomerId:     customerId,
+          stripeSubscriptionId: session.subscription as string,
+          stripePriceId:        subscription?.items.data[0]?.price?.id ?? null,
+          trialEndsAt:          null,
+        }).eq('id', userId)
+
+        if (updateErr) {
+          console.error('Erro ao atualizar User:', updateErr)
+          break
+        }
+
+        console.log('User atualizado com sucesso:', user.email, '→', planId)
+
+        // E-mail de confirmação de pagamento
+        const planNames: Record<string, string> = {
+          inteligente: 'Essencial',
+          automacao:   'Pro',
+          enterprise:  'Enterprise',
+        }
+
+        try {
+          await supabase.functions.invoke('send-email', {
+            body: {
+              type: 'payment_confirmed',
+              to:   user.email,
+              data: {
+                name:     user.name || 'Usuário',
+                planName: planNames[planId] || planId,
+              },
+            },
+          })
+          console.log('E-mail payment_confirmed enviado para:', user.email)
+        } catch (emailErr) {
+          console.error('Erro ao enviar e-mail de confirmação:', emailErr)
+        }
+
         break
       }
 
