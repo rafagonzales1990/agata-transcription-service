@@ -80,7 +80,6 @@ Deno.serve(async () => {
     .select('id, email, name, createdAt, trialEndsAt, planId')
     .not('trialEndsAt', 'is', null)
     .is('stripeSubscriptionId', null)
-    .eq('hasCompletedOnboarding', true)
     .neq('isInternal', true);
 
   for (const user of users || []) {
