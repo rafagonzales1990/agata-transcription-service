@@ -168,7 +168,7 @@ export default function UploadPage() {
     }
 
     if (activeTab === 'upload' && !file) return;
-    if (file && file.size > 500 * 1024 * 1024) { toast.error('Arquivo muito grande. O limite é 500MB.'); setUploading(false); return; }
+    if (file && file.size > 4 * 1024 * 1024 * 1024) { toast.error('Arquivo muito grande. O limite é 4GB.'); setUploading(false); return; }
 
     // Pre-upload duration check against plan limits
     if (file && usage.limits.maxTotalMinutesMonth < 999999) {
@@ -310,7 +310,7 @@ export default function UploadPage() {
                   <div className="flex flex-col items-center gap-2">
                     <Upload className="h-10 w-10 text-muted-foreground" />
                     <p className="font-medium text-foreground">Arraste o arquivo aqui ou clique para selecionar</p>
-                    <p className="text-xs text-muted-foreground">MP3, WAV, M4A, AAC, OGG, WebM, MP4, MOV — até 500MB</p>
+                    <p className="text-xs text-muted-foreground">MP3, WAV, M4A, AAC, OGG, WebM, MP4, MOV — até 4GB</p>
                     <p className="text-xs text-muted-foreground/60 mt-1">Para reuniões longas, prefira MP3 ou M4A (menor tamanho que MP4).</p>
                   </div>
                 )}
