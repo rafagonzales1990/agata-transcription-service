@@ -237,6 +237,7 @@ export default function UploadPage() {
           : 'Enviando arquivo...'
       );
 
+      (window as any).__tusStartTime = Date.now();
       await tusUpload(
         file!,
         storagePath,
@@ -245,7 +246,22 @@ export default function UploadPage() {
         supabase.supabaseKey,
         (percent, uploadedMB, totalMB) => {
           setUploadProgress(percent);
-          setStatusMessage(`Enviando ${uploadedMB}MB de ${totalMB}MB...`);
+          const startTime = (window as any).__tusStartTime;
+          if (!startTime) {
+            (window as any).__tusStartTime = Date.now();
+          }
+          const elapsed = (Date.now() - ((window as any).__tusStartTime || Date.now())) / 1000;
+          const uploadedBytes = (parseFloat(uploadedMB) * 1024 * 1024);
+          const totalBytes = (parseFloat(totalMB) * 1024 * 1024);
+          const speedMBs = elapsed > 2 ? uploadedBytes / elapsed : 0;
+          const remainingBytes = totalBytes - uploadedBytes;
+          const remainingSecs = speedMBs > 0 ? remainingBytes / speedMBs : 0;
+          const etaText = remainingSecs > 0
+            ? remainingSecs < 60
+              ? `~${Math.ceil(remainingSecs)}s restantes`
+              : `~${Math.ceil(remainingSecs / 60)}min restantes`
+            : '';
+          setStatusMessage(`Enviando ${uploadedMB}MB de ${totalMB}MB... ${etaText}`);
         },
         tusUploadRef
       );
