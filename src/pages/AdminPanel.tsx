@@ -1470,22 +1470,21 @@ export default function AdminPanel() {
 
       {/* ── Dialogs ──────────────────────────────────────── */}
       <Dialog open={showNewUser} onOpenChange={setShowNewUser}>
-        <DialogContent>
+        <DialogContent className="bg-[#132536] border-[#1a3550] text-white">
           <DialogHeader>
-            <DialogTitle>Novo Usuário</DialogTitle>
-            <DialogDescription>Crie um novo usuário na plataforma.</DialogDescription>
+            <DialogTitle className="text-white">Novo Usuário</DialogTitle>
+            <DialogDescription className="text-slate-400">Crie um novo usuário na plataforma.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div><Label>Nome</Label><Input value={formName} onChange={e => setFormName(e.target.value)} /></div>
-            <div><Label>Email *</Label><Input type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} /></div>
-            <div><Label>Senha *</Label><Input type="password" value={formPassword} onChange={e => setFormPassword(e.target.value)} /></div>
-            <div><Label>Plano</Label>
+            <div><Label className="text-slate-300">Nome</Label><Input className="bg-[#0D1F2D] border-[#1a3550] text-white" value={formName} onChange={e => setFormName(e.target.value)} /></div>
+            <div><Label className="text-slate-300">Email *</Label><Input className="bg-[#0D1F2D] border-[#1a3550] text-white" type="email" value={formEmail} onChange={e => setFormEmail(e.target.value)} /></div>
+            <div><Label className="text-slate-300">Senha *</Label><Input className="bg-[#0D1F2D] border-[#1a3550] text-white" type="password" value={formPassword} onChange={e => setFormPassword(e.target.value)} /></div>
+            <div><Label className="text-slate-300">Plano</Label>
               <Select value={formPlan} onValueChange={setFormPlan}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{Object.entries(PLAN_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                <SelectTrigger className="bg-[#0D1F2D] border-[#1a3550] text-white"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-[#132536] border-[#1a3550] text-white">{Object.entries(PLAN_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            
           </div>
           <DialogFooter><Button onClick={createUser}>Criar Usuário</Button></DialogFooter>
         </DialogContent>
