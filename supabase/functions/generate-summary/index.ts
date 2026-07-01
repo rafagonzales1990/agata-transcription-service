@@ -177,110 +177,18 @@ Transcrição: ${transcription}`
   return result.choices?.[0]?.message?.content || ''
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
-
+async function processSummaryGeneration(
+  meetingId: string,
+  depth: string,
+  userId: string,
+  meeting: { title: string; transcription: string; summary: string | null; ataTemplate: string | null },
+  supabase: any,
+  geminiApiKey: string,
+  openaiApiKey: string | undefined
+): Promise<void> {
   try {
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const geminiApiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY')
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
-
-    if (!geminiApiKey) {
-      return new Response(JSON.stringify({ error: 'Gemini API key not configured' }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    // Validate user
-    const supabaseAuth = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
-      global: { headers: { Authorization: authHeader } },
-    })
-    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    const { meetingId, depth } = await req.json()
-    if (!meetingId || !depth || !prompts[depth]) {
-      return new Response(JSON.stringify({ error: 'meetingId and valid depth required' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
-
-    // Rate limiting: max 20 summary generations per user per hour
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
-    const { count: summaryCount } = await supabase
-      .from('Meeting')
-      .select('*', { count: 'exact', head: true })
-      .eq('userId', user.id)
-      .not('summary', 'is', null)
-      .gte('updatedAt', oneHourAgo)
-
-    if ((summaryCount || 0) >= 20) {
-      return new Response(
-        JSON.stringify({ error: 'Limite de resumos por hora atingido.' }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Check plan permissions
-    if (depth !== 'executivo') {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('plan_id')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      const planId = profile?.plan_id || 'basic'
-      if (!PAID_PLANS.includes(planId)) {
-        return new Response(JSON.stringify({ error: 'Recurso disponível apenas para planos pagos' }), {
-          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
-    }
-
-    // Fetch meeting
-    const { data: meeting, error: meetingError } = await supabase
-      .from('Meeting')
-      .select('title, transcription, userId, summary, ataTemplate')
-      .eq('id', meetingId)
-      .maybeSingle()
-
-    if (meetingError || !meeting) {
-      return new Response(JSON.stringify({ error: 'Meeting not found' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    if (meeting.userId !== user.id) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    if (!meeting.transcription) {
-      return new Response(JSON.stringify({ error: 'No transcription available' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
     const prompt = `${detectLanguageInstruction}\n\n${prompts[depth](meeting.title, meeting.transcription)}`
 
-    // Call Gemini cascade with OpenAI fallback
     let summaryText = ''
     try {
       const { data: geminiResult } = await callGeminiCascade(geminiApiKey, {
@@ -306,7 +214,7 @@ Deno.serve(async (req) => {
 
       await supabase.from('AtaVersion').insert({
         meetingId,
-        userId: user.id,
+        userId,
         ataTemplate: meeting.ataTemplate || depth,
         ataContent: meeting.summary,
         versionNumber: ((latestVersion?.versionNumber as number | undefined) || 0) + 1,
@@ -318,23 +226,135 @@ Deno.serve(async (req) => {
         .eq('meetingId', meetingId)
         .order('versionNumber', { ascending: false })
 
-      const staleIds = (versionsToKeep || []).slice(5).map((version) => version.id)
+      const staleIds = (versionsToKeep || []).slice(5).map((version: any) => version.id)
       if (staleIds.length > 0) {
         await supabase.from('AtaVersion').delete().in('id', staleIds)
       }
     }
 
-    // Save to meeting
     const fullSummary = `<!-- depth:${depth} -->\n${summaryText}`
     await supabase.from('Meeting').update({
       summary: fullSummary,
       updatedAt: new Date().toISOString(),
     }).eq('id', meetingId)
 
-    return new Response(JSON.stringify({ status: 'completed', summary: summaryText, depth }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    console.log(`[generate-summary] Concluído para meeting ${meetingId}, depth ${depth}`)
+  } catch (error) {
+    console.error('[generate-summary] Falhou:', error)
+    await supabase.channel('meeting-status').send({
+      type: 'broadcast',
+      event: 'summary_failed',
+      payload: { meetingId, depth, error: (error as Error).message },
     })
+  }
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  try {
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const geminiApiKey = Deno.env.get('GOOGLE_GEMINI_API_KEY')
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
+
+    if (!geminiApiKey) {
+      return new Response(JSON.stringify({ error: 'Gemini API key not configured' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const supabaseAuth = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+      global: { headers: { Authorization: authHeader } },
+    })
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const { meetingId, depth } = await req.json()
+    if (!meetingId || !depth || !prompts[depth]) {
+      return new Response(JSON.stringify({ error: 'meetingId and valid depth required' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+    const { count: summaryCount } = await supabase
+      .from('Meeting')
+      .select('*', { count: 'exact', head: true })
+      .eq('userId', user.id)
+      .not('summary', 'is', null)
+      .gte('updatedAt', oneHourAgo)
+
+    if ((summaryCount || 0) >= 20) {
+      return new Response(
+        JSON.stringify({ error: 'Limite de resumos por hora atingido.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (depth !== 'executivo') {
+      const { data: userData } = await supabase
+        .from('User')
+        .select('planId')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      const planId = userData?.planId || 'basic'
+      if (!PAID_PLANS.includes(planId)) {
+        return new Response(JSON.stringify({ error: 'Recurso disponível apenas para planos pagos' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
+
+    const { data: meeting, error: meetingError } = await supabase
+      .from('Meeting')
+      .select('title, transcription, userId, summary, ataTemplate')
+      .eq('id', meetingId)
+      .maybeSingle()
+
+    if (meetingError || !meeting) {
+      return new Response(JSON.stringify({ error: 'Meeting not found' }), {
+        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (meeting.userId !== user.id) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (!meeting.transcription) {
+      return new Response(JSON.stringify({ error: 'No transcription available' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // @ts-ignore: EdgeRuntime is available in Supabase Edge Functions runtime
+    EdgeRuntime.waitUntil(
+      processSummaryGeneration(meetingId, depth, user.id, meeting, supabase, geminiApiKey, openaiApiKey)
+    )
+
+    return new Response(
+      JSON.stringify({ status: 'processing', meetingId, depth }),
+      { status: 202, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
   } catch (error) {
     console.error('Generate summary error:', error)
     return new Response(JSON.stringify({ error: (error as Error).message }), {

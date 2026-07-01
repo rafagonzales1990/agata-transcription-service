@@ -226,7 +226,7 @@ export default function MeetingDetail() {
     }
   }, [id, meeting?.summary, profile?.user_id, selectedTemplate]);
 
-  // Realtime subscription for transcription updates
+  // Realtime subscription for transcription and summary updates
   useEffect(() => {
     if (!id) return;
     const channel = supabase
@@ -234,14 +234,26 @@ export default function MeetingDetail() {
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'Meeting', filter: `id=eq.${id}` },
-        () => {
-          fetchMeeting();
+        async () => {
+          await fetchMeeting();
+          await fetchAtaVersions();
+          setSummaryLoading((prev) => {
+            if (prev) toast.success("Resumo gerado com sucesso!");
+            return false;
+          });
         }
       )
+      .on('broadcast', { event: 'summary_failed' }, (payload: any) => {
+        if (payload.payload?.meetingId !== id) return;
+        setSummaryLoading(false);
+        setSummaryContent("");
+        setSummaryDepth("");
+        toast.error(payload.payload?.error || "Erro ao gerar resumo");
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [id, fetchMeeting]);
+  }, [id, fetchMeeting, fetchAtaVersions]);
 
   // Polling fallback every 10s while processing
   useEffect(() => {
@@ -304,19 +316,17 @@ export default function MeetingDetail() {
 
         if (error) throw error;
         if (data?.error) throw new Error(data.error);
-        setSummaryContent(data.summary);
-        await fetchMeeting();
-        await fetchAtaVersions();
-        toast.success("Resumo gerado com sucesso!");
+        // Processamento assíncrono — o listener de realtime acima
+        // atualiza o conteúdo automaticamente quando o resumo terminar.
+        toast.info("Gerando resumo... pode levar alguns minutos em reuniões longas.");
       } catch (err: any) {
         toast.error(err.message || "Erro ao gerar resumo");
         setSummaryContent("");
         setSummaryDepth("");
-      } finally {
         setSummaryLoading(false);
       }
     },
-    [id, fetchMeeting, fetchAtaVersions],
+    [id],
   );
 
   const restoreAtaVersion = useCallback(async () => {
