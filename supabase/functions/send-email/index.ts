@@ -188,6 +188,44 @@ function trialReactivationTemplate(name: string, trialEndsAt: string): string {
 </p>`)
 }
 
+function bugfixReactivationTemplate(name: string, trialEndsAt: string): string {
+  const expiryDate = new Date(trialEndsAt).toLocaleDateString('pt-BR', {
+    day: '2-digit', month: 'long', year: 'numeric'
+  })
+  const displayName = name ? name.split(' ')[0] : 'você'
+  return baseLayout(`
+<div style="text-align:center;margin-bottom:20px"><span style="font-size:48px">🔧</span></div>
+<h1 style="margin:0 0 8px;font-size:24px;color:#111827;text-align:center;font-weight:700">
+  Corrigimos vários bugs, ${displayName} — e liberamos mais 14 dias pra você testar
+</h1>
+<p style="color:#4b5563;line-height:1.6;margin:0 0 20px;text-align:center">
+  Identificamos e corrigimos problemas técnicos que podem ter atrapalhado
+  sua experiência durante seu período de teste anterior. Queremos que você
+  tenha a chance de testar o Ágata de verdade — por isso, <strong>reativamos
+  seu acesso por mais 14 dias</strong>, totalmente grátis.
+</p>
+<div style="background:#F0FDF4;border-radius:12px;padding:24px;margin:0 0 24px">
+  <p style="margin:0 0 16px;color:#166534;font-weight:700;font-size:16px;text-align:center">
+    O que você pode fazer agora:
+  </p>
+  <ul style="color:#166534;line-height:2.2;padding-left:20px;margin:0;font-size:15px">
+    <li>🎙️ Transcrever reuniões automaticamente em português</li>
+    <li>👥 Identificar quem falou o quê (diarização)</li>
+    <li>📄 Gerar resumos e ATAs completas com IA</li>
+    <li>📧 Receber follow-up automático por e-mail</li>
+  </ul>
+</div>
+<div style="background:#FEF3C7;border-radius:8px;padding:16px;margin:0 0 24px">
+  <p style="margin:0;color:#92400E;font-size:14px;text-align:center">
+    ⏰ Seu novo acesso expira em <strong>${expiryDate}</strong>.
+  </p>
+</div>
+<div style="text-align:center">${btn('Testar agora →', BASE_URL + '/upload')}</div>
+<p style="text-align:center;color:#9ca3af;font-size:12px;margin-top:16px">
+  Sem cartão de crédito · Acesso imediato
+</p>`)
+}
+
 function completeSignupTemplate(name: string, trialEndsAt: string): string {
   const expiryDate = new Date(trialEndsAt).toLocaleDateString('pt-BR', {
     day: '2-digit', month: 'long', year: 'numeric'
@@ -361,6 +399,10 @@ Deno.serve(async (req) => {
       case 'trial_reactivation':
         subject = '🎁 REATIVAMOS SUA PLATAFORMA — 5 transcrições de 60 min te esperam!'
         html = trialReactivationTemplate(data.name, data.trialEndsAt)
+        break
+      case 'bugfix_reactivation':
+        subject = '🔧 Corrigimos os bugs — mais 14 dias grátis pra você testar de verdade'
+        html = bugfixReactivationTemplate(data.name, data.trialEndsAt)
         break
       case 'complete_signup':
         subject = '🎁 Finalize seu cadastro e ganhe 5 transcrições de 60 min'
