@@ -16,13 +16,17 @@ async function callGeminiCascade(
   payload: object
 ): Promise<{ data: any; modelUsed: string }> {
   for (const model of GEMINI_MODELS) {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 180000)
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       })
+      clearTimeout(timeout)
       if (!response.ok) {
         const err = await response.text()
         console.warn(`[Gemini] ${model} falhou (${response.status}): ${err.substring(0, 200)}`)
@@ -32,10 +36,11 @@ async function callGeminiCascade(
       console.log(`[Gemini] Sucesso com modelo: ${model}`)
       return { data, modelUsed: model }
     } catch (err) {
-      console.warn(`[Gemini] ${model} erro de rede:`, err)
+      clearTimeout(timeout)
+      console.warn(`[Gemini] ${model} erro de rede ou timeout (180s):`, err)
     }
   }
-  throw new Error('Todos os modelos Gemini falharam')
+  throw new Error('Todos os modelos Gemini falharam ou excederam o timeout')
 }
 
 const prompts: Record<string, (title: string, transcription: string) => string> = {
@@ -177,6 +182,69 @@ Transcrição: ${transcription}`
   return result.choices?.[0]?.message?.content || ''
 }
 
+async function runSummaryGeneration(
+  meetingId: string,
+  depth: string,
+  userId: string,
+  meeting: { title: string; transcription: string; summary: string | null; ataTemplate: string | null },
+  supabase: any,
+  geminiApiKey: string,
+  openaiApiKey: string | undefined
+): Promise<void> {
+  const prompt = `${detectLanguageInstruction}\n\n${prompts[depth](meeting.title, meeting.transcription)}`
+
+  let summaryText = ''
+  try {
+    const { data: geminiResult } = await callGeminiCascade(geminiApiKey, {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.2, maxOutputTokens: maxTokens[depth] },
+    })
+    summaryText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || ''
+  } catch (geminiErr) {
+    console.warn('Gemini cascade falhou no generate-summary, usando OpenAI:', (geminiErr as Error).message)
+    if (!openaiApiKey) throw geminiErr
+    summaryText = await generateSummaryWithOpenAI(meeting.transcription, depth, openaiApiKey)
+    console.log('OpenAI fallback para summary concluído')
+  }
+
+  if (meeting.summary) {
+    const { data: latestVersion } = await supabase
+      .from('AtaVersion')
+      .select('versionNumber')
+      .eq('meetingId', meetingId)
+      .order('versionNumber', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    await supabase.from('AtaVersion').insert({
+      meetingId,
+      userId,
+      ataTemplate: meeting.ataTemplate || depth,
+      ataContent: meeting.summary,
+      versionNumber: ((latestVersion?.versionNumber as number | undefined) || 0) + 1,
+    })
+
+    const { data: versionsToKeep } = await supabase
+      .from('AtaVersion')
+      .select('id')
+      .eq('meetingId', meetingId)
+      .order('versionNumber', { ascending: false })
+
+    const staleIds = (versionsToKeep || []).slice(5).map((version: any) => version.id)
+    if (staleIds.length > 0) {
+      await supabase.from('AtaVersion').delete().in('id', staleIds)
+    }
+  }
+
+  const fullSummary = `<!-- depth:${depth} -->\n${summaryText}`
+  await supabase.from('Meeting').update({
+    summary: fullSummary,
+    updatedAt: new Date().toISOString(),
+  }).eq('id', meetingId)
+
+  console.log(`[generate-summary] Concluído para meeting ${meetingId}, depth ${depth}`)
+}
+
 async function processSummaryGeneration(
   meetingId: string,
   depth: string,
@@ -186,61 +254,16 @@ async function processSummaryGeneration(
   geminiApiKey: string,
   openaiApiKey: string | undefined
 ): Promise<void> {
+  const TOTAL_TIMEOUT_MS = 5 * 60 * 1000
   try {
-    const prompt = `${detectLanguageInstruction}\n\n${prompts[depth](meeting.title, meeting.transcription)}`
-
-    let summaryText = ''
-    try {
-      const { data: geminiResult } = await callGeminiCascade(geminiApiKey, {
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.2, maxOutputTokens: maxTokens[depth] },
-      })
-      summaryText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || ''
-    } catch (geminiErr) {
-      console.warn('Gemini cascade falhou no generate-summary, usando OpenAI:', (geminiErr as Error).message)
-      if (!openaiApiKey) throw geminiErr
-      summaryText = await generateSummaryWithOpenAI(meeting.transcription, depth, openaiApiKey)
-      console.log('OpenAI fallback para summary concluído')
-    }
-
-    if (meeting.summary) {
-      const { data: latestVersion } = await supabase
-        .from('AtaVersion')
-        .select('versionNumber')
-        .eq('meetingId', meetingId)
-        .order('versionNumber', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      await supabase.from('AtaVersion').insert({
-        meetingId,
-        userId,
-        ataTemplate: meeting.ataTemplate || depth,
-        ataContent: meeting.summary,
-        versionNumber: ((latestVersion?.versionNumber as number | undefined) || 0) + 1,
-      })
-
-      const { data: versionsToKeep } = await supabase
-        .from('AtaVersion')
-        .select('id')
-        .eq('meetingId', meetingId)
-        .order('versionNumber', { ascending: false })
-
-      const staleIds = (versionsToKeep || []).slice(5).map((version: any) => version.id)
-      if (staleIds.length > 0) {
-        await supabase.from('AtaVersion').delete().in('id', staleIds)
-      }
-    }
-
-    const fullSummary = `<!-- depth:${depth} -->\n${summaryText}`
-    await supabase.from('Meeting').update({
-      summary: fullSummary,
-      updatedAt: new Date().toISOString(),
-    }).eq('id', meetingId)
-
-    console.log(`[generate-summary] Concluído para meeting ${meetingId}, depth ${depth}`)
+    await Promise.race([
+      runSummaryGeneration(meetingId, depth, userId, meeting, supabase, geminiApiKey, openaiApiKey),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout: geração de resumo excedeu 5 minutos')), TOTAL_TIMEOUT_MS)
+      ),
+    ])
   } catch (error) {
-    console.error('[generate-summary] Falhou:', error)
+    console.error('[generate-summary] Falhou ou excedeu timeout:', error)
     await supabase.channel('meeting-status').send({
       type: 'broadcast',
       event: 'summary_failed',
