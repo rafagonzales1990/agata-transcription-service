@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -64,7 +64,8 @@ async function tusUpload(
   accessToken: string,
   supabaseUrl: string,
   supabaseAnonKey: string,
-  onProgress: (percent: number, uploadedMB: string, totalMB: string) => void
+  onProgress: (percent: number, uploadedMB: string, totalMB: string) => void,
+  abortRef?: React.MutableRefObject<tus.Upload | null>
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const upload = new tus.Upload(file, {
@@ -92,6 +93,7 @@ async function tusUpload(
       },
       onSuccess: () => resolve(),
     });
+    if (abortRef) abortRef.current = upload;
     upload.start();
   });
 }
@@ -117,6 +119,7 @@ export default function UploadPage() {
   const [participants, setParticipants] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const tusUploadRef = useRef<tus.Upload | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
   const [selectedAtaTemplateId, setSelectedAtaTemplateId] = useState('__default__');
@@ -243,7 +246,8 @@ export default function UploadPage() {
         (percent, uploadedMB, totalMB) => {
           setUploadProgress(percent);
           setStatusMessage(`Enviando ${uploadedMB}MB de ${totalMB}MB...`);
-        }
+        },
+        tusUploadRef
       );
 
       setUploadProgress(50); setStatusMessage('Criando registro...');
@@ -456,6 +460,20 @@ export default function UploadPage() {
                 </div>
                 <Progress value={uploadProgress} className="h-2" />
                 <p className="text-xs text-muted-foreground text-right">{uploadProgress}%</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    tusUploadRef.current?.abort();
+                    tusUploadRef.current = null;
+                    setUploading(false);
+                    setUploadProgress(0);
+                    setStatusMessage('');
+                    toast.info('Upload cancelado.');
+                  }}
+                  className="mt-2 text-xs text-red-400 hover:text-red-300 underline w-full text-center"
+                >
+                  Cancelar upload
+                </button>
               </div>
             )}
 
