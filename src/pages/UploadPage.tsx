@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Upload, Mic, ClipboardPaste, CheckCircle, Loader2, AlertTriangle, Headphones, Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import * as tus from 'tus-js-client';
 import { supabase } from '@/integrations/supabase/client';
 import { LimitReachedDialog } from '@/components/LimitReachedDialog';
 import { UsageBanner } from '@/components/UsageBanner';
@@ -57,73 +58,41 @@ const tabs = [
   { id: 'paste' as const, label: 'Colar Texto', icon: ClipboardPaste },
 ];
 
-async function extractAndCompressAudio(
+async function tusUpload(
   file: File,
-  onProgress: (p: number) => void
-): Promise<File> {
-  const VIDEO_TYPES = ['video/mp4', 'video/quicktime', 'video/x-msvideo',
-    'video/x-matroska', 'video/webm'];
-  const isVideo = VIDEO_TYPES.includes(file.type) ||
-    /\.(mp4|mov|avi|mkv|m4v)$/i.test(file.name);
-  const isLargeWav = file.size > 100 * 1024 * 1024 &&
-    /\.wav$/i.test(file.name);
-
-  if (!isVideo && !isLargeWav) return file;
-
-  const label = isVideo ? 'Extraindo áudio do vídeo...' : 'Comprimindo áudio...';
-  onProgress(0);
-
-  const arrayBuffer = await file.arrayBuffer();
-  const audioContext = new AudioContext();
-  const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
+  storagePath: string,
+  accessToken: string,
+  supabaseUrl: string,
+  supabaseAnonKey: string,
+  onProgress: (percent: number, uploadedMB: string, totalMB: string) => void
+): Promise<void> {
   return new Promise((resolve, reject) => {
-    const dest = audioContext.createMediaStreamDestination();
-    const source = audioContext.createBufferSource();
-    source.buffer = audioBuffer;
-    source.connect(dest);
-
-    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-      ? 'audio/webm;codecs=opus'
-      : 'audio/webm';
-
-    const chunks: Blob[] = [];
-    const recorder = new MediaRecorder(dest.stream, {
-      mimeType,
-      audioBitsPerSecond: 128000,
+    const upload = new tus.Upload(file, {
+      endpoint: `${supabaseUrl}/storage/v1/upload/resumable`,
+      retryDelays: [0, 3000, 5000, 10000, 20000],
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        apikey: supabaseAnonKey,
+      },
+      uploadDataDuringCreation: true,
+      removeFingerprintOnSuccess: true,
+      metadata: {
+        bucketName: 'meetings',
+        objectName: storagePath,
+        contentType: file.type || 'application/octet-stream',
+        cacheControl: '3600',
+      },
+      chunkSize: 6 * 1024 * 1024,
+      onError: (error) => reject(error),
+      onProgress: (bytesUploaded, bytesTotal) => {
+        const percent = Math.round((bytesUploaded / bytesTotal) * 100);
+        const uploadedMB = (bytesUploaded / 1024 / 1024).toFixed(0);
+        const totalMB = (bytesTotal / 1024 / 1024).toFixed(0);
+        onProgress(percent, uploadedMB, totalMB);
+      },
+      onSuccess: () => resolve(),
     });
-
-    recorder.ondataavailable = (e) => {
-      if (e.data.size > 0) chunks.push(e.data);
-    };
-
-    recorder.onstop = () => {
-      const blob = new Blob(chunks, { type: 'audio/webm' });
-      const baseName = file.name.replace(/\.(mp4|mov|avi|mkv|m4v|wav)$/i, '');
-      const compressed = new File(
-        [blob],
-        `${baseName}-audio.webm`,
-        { type: 'audio/webm' }
-      );
-      resolve(compressed);
-    };
-
-    const duration = audioBuffer.duration;
-    const startTime = audioContext.currentTime;
-    const interval = setInterval(() => {
-      const elapsed = audioContext.currentTime - startTime;
-      onProgress(Math.min(Math.round((elapsed / duration) * 100), 95));
-    }, 500);
-
-    source.onended = () => {
-      clearInterval(interval);
-      onProgress(99);
-      recorder.stop();
-      audioContext.close();
-    };
-
-    recorder.start(1000);
-    source.start(0);
+    upload.start();
   });
 }
 
@@ -252,66 +221,41 @@ export default function UploadPage() {
 
     if (file && file.size > 100 * 1024 * 1024) toast.info('Arquivo grande (acima de 100MB). A transcrição pode levar alguns minutos.');
 
-    // Comprimir WAV grande antes de subir
-    let fileToUpload = file;
-    const isVideoFile = /\.(mp4|mov|avi|mkv|m4v)$/i.test(file.name);
-    const isLargeWav = file.size > 100 * 1024 * 1024 && /\.wav$/i.test(file.name);
-    if (isVideoFile || isLargeWav) {
-      toast.info(isVideoFile ? 'Vídeo detectado. Extraindo áudio...' : 'Arquivo WAV grande. Comprimindo...');
-      setUploading(true);
-      try {
-        fileToUpload = await extractAndCompressAudio(file, (progress) => {
-          // progresso de compressão (pode usar um estado existente ou toast)
-          console.log(`Compressão: ${progress}%`);
-        });
-        toast.success(`Comprimido: ${(fileToUpload.size / 1024 / 1024).toFixed(1)}MB`);
-      } catch (compErr) {
-        toast.error('Falha na compressão. Tente converter o arquivo manualmente.');
-        setUploading(false);
-        return;
-      }
-    }
-
     setUploading(true); setUploadProgress(0); setStatusMessage('Enviando arquivo...');
 
     try {
-      const storagePath = `${user.id}/${Date.now()}-${fileToUpload!.name}`;
+      const storagePath = `${user.id}/${Date.now()}-${file!.name}`;
       setUploadProgress(5);
 
-      // For large files, simulate progress (SDK doesn't expose real progress)
-      let progressInterval: ReturnType<typeof setInterval> | null = null;
-      if (fileToUpload!.size > 50 * 1024 * 1024) {
-        const estimatedSeconds = Math.max(10, fileToUpload!.size / (500 * 1024));
-        const startTime = Date.now();
-        progressInterval = setInterval(() => {
-          const elapsed = (Date.now() - startTime) / 1000;
-          const percent = Math.min(45, Math.round((elapsed / estimatedSeconds) * 45) + 5);
-          setUploadProgress(percent);
-          const uploaded = (fileToUpload!.size * percent / 100 / 1024 / 1024).toFixed(0);
-          const total = (fileToUpload!.size / 1024 / 1024).toFixed(0);
-          setStatusMessage(`Enviando ${uploaded}MB de ${total}MB...`);
-        }, 500);
-      }
+      const isLargeFile = file!.size > 50 * 1024 * 1024;
+      setStatusMessage(
+        isLargeFile
+          ? `Enviando 0MB de ${(file!.size / 1024 / 1024).toFixed(0)}MB...`
+          : 'Enviando arquivo...'
+      );
 
-      try {
-        const { error: uploadError } = await supabase.storage.from('meetings').upload(storagePath, fileToUpload!, { cacheControl: '3600', upsert: false });
-        if (progressInterval) clearInterval(progressInterval);
-        if (uploadError) throw new Error(`Erro no upload: ${uploadError.message}`);
-      } catch (err) {
-        if (progressInterval) clearInterval(progressInterval);
-        throw err;
-      }
+      await tusUpload(
+        file!,
+        storagePath,
+        session.access_token,
+        supabase.supabaseUrl,
+        supabase.supabaseKey,
+        (percent, uploadedMB, totalMB) => {
+          setUploadProgress(percent);
+          setStatusMessage(`Enviando ${uploadedMB}MB de ${totalMB}MB...`);
+        }
+      );
 
       setUploadProgress(50); setStatusMessage('Criando registro...');
 
       const meetingId = crypto.randomUUID();
       const now = new Date().toISOString();
-      const defaultTitle = title || fileToUpload!.name.replace(/\.[^/.]+$/, '');
+      const defaultTitle = title || file!.name.replace(/\.[^/.]+$/, '');
       const participantsList = participants ? participants.split(',').map(p => p.trim()).filter(Boolean) : [];
 
       const { error: insertError } = await supabase.from('Meeting').insert({
-        id: meetingId, userId: user.id, title: defaultTitle, fileName: fileToUpload!.name,
-        fileSize: fileToUpload!.size, fileDuration: 0, cloudStoragePath: storagePath,
+        id: meetingId, userId: user.id, title: defaultTitle, fileName: file!.name,
+        fileSize: file!.size, fileDuration: 0, cloudStoragePath: storagePath,
         status: 'processing', visibility: 'private', description: description || null,
         meetingDate: meetingDate ? new Date(meetingDate).toISOString() : null,
         meetingTime: meetingTime || null, location: location || null,
