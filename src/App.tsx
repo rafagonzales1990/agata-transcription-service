@@ -76,6 +76,22 @@ const SentryErrorFallback = () => (
   </div>
 );
 
+const handleSentryError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  const isChunkError =
+    message.includes('Failed to fetch dynamically imported module') ||
+    message.includes('error loading dynamically imported module') ||
+    message.includes('Importing a module script failed');
+
+  if (isChunkError) {
+    const alreadyReloaded = sessionStorage.getItem('agata-chunk-reload');
+    if (!alreadyReloaded) {
+      sessionStorage.setItem('agata-chunk-reload', '1');
+      window.location.reload();
+    }
+  }
+};
+
 const RouteTracker = () => {
   const location = useLocation();
   useEffect(() => {
@@ -100,7 +116,7 @@ const LoadingFallback = () => {
 };
 
 const App = () => (
-  <Sentry.ErrorBoundary fallback={<SentryErrorFallback />}>
+  <Sentry.ErrorBoundary fallback={<SentryErrorFallback />} onError={handleSentryError}>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
