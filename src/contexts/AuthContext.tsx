@@ -90,13 +90,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
+      .from('User')
+      .select('id, email, name, phone, cpf, image, planId, billingCycle, trialEndsAt, hasCompletedOnboarding, giftPlanId, giftEndsAt')
+      .eq('id', userId)
+      .maybeSingle();
 
     if (!error && data) {
-      setProfile(data as UserProfile);
+      setProfile({
+        id: data.id,
+        user_id: data.id,
+        email: data.email,
+        name: data.name,
+        phone: data.phone,
+        cpf: data.cpf,
+        image: data.image,
+        plan_id: data.planId,
+        billing_cycle: data.billingCycle,
+        trial_ends_at: data.trialEndsAt,
+        has_completed_onboarding: data.hasCompletedOnboarding,
+        old_user_id: null,
+        gift_plan_id: data.giftPlanId,
+        gift_ends_at: data.giftEndsAt,
+      } as UserProfile);
+    } else if (error) {
+      console.error('[fetchProfile] Erro ao buscar User:', error);
     }
   }, []);
 
