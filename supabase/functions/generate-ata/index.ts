@@ -575,10 +575,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    const { data: profile } = await supabase
-      .from('profiles').select('plan_id').eq('user_id', user.id).maybeSingle()
-    const planId = profile?.plan_id || 'basic'
-    const isPaid = PAID_PLANS.includes(planId)
+    const { data: userPlanData } = await supabase
+      .from('User').select('planId, giftPlanId, giftEndsAt, stripeSubscriptionId').eq('id', user.id).maybeSingle()
+    const now = new Date()
+    const hasActiveGift = !!userPlanData?.giftPlanId && !!userPlanData?.giftEndsAt && new Date(userPlanData.giftEndsAt) > now
+    const planId = hasActiveGift ? userPlanData!.giftPlanId! : (userPlanData?.planId || 'basic')
+    const isPaid = PAID_PLANS.includes(planId) || hasActiveGift || !!userPlanData?.stripeSubscriptionId
 
     let brandFooter = 'Documento gerado automaticamente por Ágata Transcription | agatatranscription.com'
     let isEnterprise = false
