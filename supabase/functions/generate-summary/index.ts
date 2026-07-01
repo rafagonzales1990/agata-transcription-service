@@ -237,8 +237,10 @@ async function runSummaryGeneration(
   }
 
   const fullSummary = `<!-- depth:${depth} -->\n${summaryText}`
+  const updatedCache = { ...(meeting.summaryCache || {}), [depth]: summaryText }
   await supabase.from('Meeting').update({
     summary: fullSummary,
+    summaryCache: updatedCache,
     updatedAt: new Date().toISOString(),
   }).eq('id', meetingId)
 
@@ -347,7 +349,7 @@ Deno.serve(async (req) => {
 
     const { data: meeting, error: meetingError } = await supabase
       .from('Meeting')
-      .select('title, transcription, userId, summary, ataTemplate')
+      .select('title, transcription, userId, summary, ataTemplate, summaryCache')
       .eq('id', meetingId)
       .maybeSingle()
 
@@ -367,6 +369,49 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'No transcription available' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
+    }
+
+    // Cache hit: já foi gerado antes para essa profundidade — retorna instantâneo
+    const cachedSummary = meeting.summaryCache?.[depth]
+    if (cachedSummary) {
+      console.log(`[generate-summary] Cache hit para depth=${depth}, meeting=${meetingId}`)
+      EdgeRuntime.waitUntil((async () => {
+        try {
+          if (meeting.summary) {
+            const { data: latestVersion } = await supabase
+              .from('AtaVersion')
+              .select('versionNumber')
+              .eq('meetingId', meetingId)
+              .order('versionNumber', { ascending: false })
+              .limit(1)
+              .maybeSingle()
+
+            await supabase.from('AtaVersion').insert({
+              meetingId,
+              userId: user.id,
+              ataTemplate: meeting.ataTemplate || depth,
+              ataContent: meeting.summary,
+              versionNumber: ((latestVersion?.versionNumber as number | undefined) || 0) + 1,
+            })
+          }
+          await supabase.from('Meeting').update({
+            summary: `<!-- depth:${depth} -->\n${cachedSummary}`,
+            updatedAt: new Date().toISOString(),
+          }).eq('id', meetingId)
+        } catch (cacheErr) {
+          console.error('[generate-summary] Erro ao aplicar cache:', cacheErr)
+          await supabase.channel('meeting-status').send({
+            type: 'broadcast',
+            event: 'summary_failed',
+            payload: { meetingId, depth, error: (cacheErr as Error).message },
+          })
+        }
+      })())
+
+      return new Response(
+        JSON.stringify({ status: 'processing', meetingId, depth, cached: true }),
+        { status: 202, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     // @ts-ignore: EdgeRuntime is available in Supabase Edge Functions runtime
