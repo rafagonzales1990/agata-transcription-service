@@ -70,7 +70,7 @@ interface MeetingRow {
   meetingDate: string | null;
   meetingTime: string | null;
   actionItems: string[];
-  actionItemsData: { id: string; text: string; completed: boolean }[] | null;
+  actionItemsData: { id: string; text: string; completed: boolean; responsible: string; dueDate: string | null }[] | null;
   responsible: string | null;
   location: string | null;
   description: string | null;
@@ -1186,13 +1186,25 @@ export default function MeetingDetail() {
                       onChange={(e) => toggleActionItem(item.id, e.target.checked)}
                       className="mt-1 h-4 w-4 shrink-0 rounded border-[#1a3550] bg-[#0D1F2D] accent-primary cursor-pointer"
                     />
-                    <div
-                      className={cn(
-                        "markdown-rendered flex-1 [&_p]:m-0",
-                        item.completed && "line-through text-muted-foreground"
-                      )}
-                    >
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.text}</ReactMarkdown>
+                    <div className="flex-1">
+                      <div
+                        className={cn(
+                          "markdown-rendered [&_p]:m-0",
+                          item.completed && "line-through text-muted-foreground"
+                        )}
+                      >
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.text}</ReactMarkdown>
+                      </div>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          👤 {item.responsible || "Não definido"}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          📅 {item.dueDate
+                            ? new Date(item.dueDate + "T00:00:00").toLocaleDateString("pt-BR")
+                            : "Não definido"}
+                        </span>
+                      </div>
                     </div>
                   </li>
                 ))}
