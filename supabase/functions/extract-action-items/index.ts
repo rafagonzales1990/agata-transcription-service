@@ -32,18 +32,28 @@ Deno.serve(async (req) => {
     const prompt = `Extraia os itens de ação (tarefas, compromissos, próximos passos)
 mencionados nesta transcrição de reunião em português brasileiro.
 
-Responda APENAS com um JSON array de strings, sem markdown, sem explicação, sem texto antes ou depois.
+Para cada item, identifique:
+- text: a descrição da tarefa
+- responsible: o nome da pessoa responsável, EXATAMENTE como mencionado na transcrição.
+  Se não for mencionado quem é responsável, use exatamente a string "Não definido"
+- dueDate: prazo/data de entrega no formato YYYY-MM-DD, se mencionado.
+  Se não houver prazo mencionado, use null (não uma string, o valor JSON null)
+
+Responda APENAS com um JSON array de objetos, sem markdown, sem explicação, sem texto antes ou depois.
 Se não houver nenhum item de ação claro, responda com: []
 
 Exemplo de resposta válida:
-["Enviar proposta comercial até sexta", "Validar contrato com jurídico"]
+[
+  {"text": "Enviar proposta comercial", "responsible": "Bruno", "dueDate": "2026-08-05"},
+  {"text": "Validar contrato com jurídico", "responsible": "Não definido", "dueDate": null}
+]
 
 Transcrição:
 ${transcription.slice(0, 30000)}`
 
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 60000)
-    let items: string[] = []
+    let items: { text: string; responsible: string; dueDate: string | null }[] = []
 
     try {
       const response = await fetch(
@@ -65,7 +75,15 @@ ${transcription.slice(0, 30000)}`
         const text = result.candidates?.[0]?.content?.parts?.[0]?.text || '[]'
         const cleaned = text.replace(/```json|```/g, '').trim()
         const parsed = JSON.parse(cleaned)
-        if (Array.isArray(parsed)) items = parsed.filter((i) => typeof i === 'string' && i.trim())
+        if (Array.isArray(parsed)) {
+          items = parsed
+            .filter((i) => i && typeof i.text === 'string' && i.text.trim())
+            .map((i) => ({
+              text: i.text,
+              responsible: typeof i.responsible === 'string' && i.responsible.trim() ? i.responsible : 'Não definido',
+              dueDate: typeof i.dueDate === 'string' && i.dueDate.trim() ? i.dueDate : null,
+            }))
+        }
       } else {
         console.warn('[extract-action-items] Gemini falhou:', response.status)
       }
@@ -74,10 +92,12 @@ ${transcription.slice(0, 30000)}`
       console.warn('[extract-action-items] Erro ou timeout:', (err as Error).message)
     }
 
-    const actionItemsData = items.map((text) => ({
+    const actionItemsData = items.map((item) => ({
       id: crypto.randomUUID(),
-      text,
+      text: item.text,
       completed: false,
+      responsible: item.responsible,
+      dueDate: item.dueDate,
     }))
 
     await supabase.from('Meeting').update({
