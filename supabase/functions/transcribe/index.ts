@@ -783,6 +783,12 @@ async function processTranscription(
           body: { meetingId, userId: meetingData.userId },
         })
         .catch((e: unknown) => console.error('[detect-conflicts] Error:', e))
+
+      supabase.functions
+        .invoke('extract-action-items', {
+          body: { meetingId, transcription },
+        })
+        .catch((e: unknown) => console.error('[extract-action-items] Error:', e))
     }
 
     await supabase.channel('meeting-status').send({
