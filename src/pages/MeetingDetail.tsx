@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { cn } from "@/lib/utils";
 import { useParams, Link } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,6 +70,7 @@ interface MeetingRow {
   meetingDate: string | null;
   meetingTime: string | null;
   actionItems: string[];
+  actionItemsData: { id: string; text: string; completed: boolean }[] | null;
   responsible: string | null;
   location: string | null;
   description: string | null;
@@ -136,7 +138,7 @@ export default function MeetingDetail() {
     const { data, error } = await supabase
       .from("Meeting")
       .select(
-        "id, title, fileName, cloudStoragePath, status, createdAt, summary, transcription, participants, meetingDate, meetingTime, actionItems, responsible, location, description, ataTemplate, fileDuration, followupDraft, fileDeleted, fileExpiresAt",
+        "id, title, fileName, cloudStoragePath, status, createdAt, summary, transcription, participants, meetingDate, meetingTime, actionItems, actionItemsData, responsible, location, description, ataTemplate, fileDuration, followupDraft, fileDeleted, fileExpiresAt",
       )
       .eq("id", id)
       .maybeSingle();
@@ -327,6 +329,28 @@ export default function MeetingDetail() {
       }
     },
     [id],
+  );
+
+  const toggleActionItem = useCallback(
+    async (itemId: string, completed: boolean) => {
+      if (!id || !meeting) return;
+
+      const optimistic = (meeting.actionItemsData || []).map((item) =>
+        item.id === itemId ? { ...item, completed } : item
+      );
+      setMeeting({ ...meeting, actionItemsData: optimistic });
+
+      try {
+        const { error } = await supabase.functions.invoke("toggle-action-item", {
+          body: { meetingId: id, itemId, completed },
+        });
+        if (error) throw error;
+      } catch (err: any) {
+        toast.error("Erro ao atualizar item — desfazendo");
+        await fetchMeeting();
+      }
+    },
+    [id, meeting, fetchMeeting],
   );
 
   const restoreAtaVersion = useCallback(async () => {
@@ -1142,20 +1166,33 @@ export default function MeetingDetail() {
         )}
 
 
-        {meeting.actionItems.length > 0 && (
+        {meeting.actionItemsData && meeting.actionItemsData.length > 0 && (
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <ListChecks className="h-4 w-4 text-primary" /> Itens de Ação
+                <span className="text-xs font-normal text-muted-foreground ml-1">
+                  ({meeting.actionItemsData.filter((i) => i.completed).length}/{meeting.actionItemsData.length})
+                </span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">
-                {meeting.actionItems.map((item, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm">
-                    <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                    <div className="markdown-rendered flex-1 [&_p]:m-0">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{item}</ReactMarkdown>
+                {meeting.actionItemsData.map((item) => (
+                  <li key={item.id} className="flex items-start gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={item.completed}
+                      onChange={(e) => toggleActionItem(item.id, e.target.checked)}
+                      className="mt-1 h-4 w-4 shrink-0 rounded border-[#1a3550] bg-[#0D1F2D] accent-primary cursor-pointer"
+                    />
+                    <div
+                      className={cn(
+                        "markdown-rendered flex-1 [&_p]:m-0",
+                        item.completed && "line-through text-muted-foreground"
+                      )}
+                    >
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.text}</ReactMarkdown>
                     </div>
                   </li>
                 ))}
