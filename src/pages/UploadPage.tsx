@@ -192,7 +192,7 @@ export default function UploadPage() {
       try {
         const defaultTitle = title || 'Transcrição colada';
         const participantsList = participants ? participants.split(',').map(p => p.trim()).filter(Boolean) : [];
-      const { error } = await supabase.from('Meeting').insert({
+      const { data: insertedMeeting, error } = await supabase.from('Meeting').insert({
           userId: user.id, title: defaultTitle, fileName: 'texto-colado.txt',
           fileSize: new Blob([pastedText]).size, cloudStoragePath: '', status: 'completed',
           transcription: pastedText, visibility: 'private', description: description || null,
@@ -201,8 +201,17 @@ export default function UploadPage() {
            responsible: responsible || null, participants: participantsList, routineId: routineId || null,
            ataTemplate: meetingType,
            projectId: selectedProjectId !== '__none__' ? selectedProjectId : null,
-         });
+         }).select('id').single();
         if (error) throw error;
+
+        if (insertedMeeting?.id) {
+          supabase.functions
+            .invoke('extract-action-items', {
+              body: { meetingId: insertedMeeting.id, transcription: pastedText },
+            })
+            .catch((e: unknown) => console.error('[extract-action-items] Error:', e));
+        }
+
         await queryClient.invalidateQueries({ queryKey: ['meetings'] });
         toast.success('Transcrição salva!');
         navigate('/meetings');
