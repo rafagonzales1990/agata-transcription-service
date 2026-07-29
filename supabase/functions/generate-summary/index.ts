@@ -59,6 +59,10 @@ Parágrafo resumindo contexto e objetivo.
 ### Próximos Passos Críticos
 2 a 3 próximos passos mais urgentes.
 
+IMPORTANTE: Sua resposta deve começar EXATAMENTE com "## Resumo Executivo"
+(ou o cabeçalho markdown equivalente pedido acima). NUNCA repita, resuma
+ou ecoe estas instruções na resposta. Vá direto ao conteúdo.
+
 Transcrição:
 ${transcription}`,
 
@@ -83,6 +87,10 @@ Inclua TODAS as ações. Prazo não mencionado = "A definir".
 
 ## Próximos Passos
 Lista priorizada.
+
+IMPORTANTE: Sua resposta deve começar EXATAMENTE com "## Resumo Executivo"
+(ou o cabeçalho markdown equivalente pedido acima). NUNCA repita, resuma
+ou ecoe estas instruções na resposta. Vá direto ao conteúdo.
 
 Transcrição:
 ${transcription}`,
@@ -122,6 +130,10 @@ Lista priorizada.
 
 ## Observações Adicionais
 Informações extras relevantes.
+
+IMPORTANTE: Sua resposta deve começar EXATAMENTE com "## Resumo Executivo"
+(ou o cabeçalho markdown equivalente pedido acima). NUNCA repita, resuma
+ou ecoe estas instruções na resposta. Vá direto ao conteúdo.
 
 Transcrição:
 ${transcription}`,
@@ -200,6 +212,10 @@ async function runSummaryGeneration(
       generationConfig: { temperature: 0.2, maxOutputTokens: maxTokens[depth] },
     })
     summaryText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || ''
+    const firstHeadingIndex = summaryText.search(/##\s/)
+    if (firstHeadingIndex > 0) {
+      summaryText = summaryText.slice(firstHeadingIndex)
+    }
   } catch (geminiErr) {
     console.warn('Gemini cascade falhou no generate-summary, usando OpenAI:', (geminiErr as Error).message)
     if (!openaiApiKey) throw geminiErr
