@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -99,6 +100,7 @@ async function tusUpload(
 }
 
 export default function UploadPage() {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const routineId = searchParams.get('routineId');
@@ -201,6 +203,7 @@ export default function UploadPage() {
            projectId: selectedProjectId !== '__none__' ? selectedProjectId : null,
          });
         if (error) throw error;
+        await queryClient.invalidateQueries({ queryKey: ['meetings'] });
         toast.success('Transcrição salva!');
         navigate('/meetings');
       } catch (err: any) {
@@ -306,6 +309,7 @@ export default function UploadPage() {
       setUploadProgress(100); setStatusMessage('Transcrição enviada!');
       eventFirstTranscription();
       trackFirstTranscription();
+      await queryClient.invalidateQueries({ queryKey: ['meetings'] });
       toast.success('Transcrição iniciada! Acompanhe o progresso na lista de reuniões.');
       setTimeout(() => navigate('/meetings'), 1000);
     } catch (error: any) {
