@@ -216,6 +216,12 @@ Deno.serve(async (req) => {
     })
     .catch((e: unknown) => console.error('[detect-conflicts] Error:', e))
 
+  supabase.functions
+    .invoke('extract-action-items', {
+      body: { meetingId, transcription },
+    })
+    .catch((e: unknown) => console.error('[Webhook] extract-action-items error:', e))
+
   console.log(`[AssemblyAI Webhook] ✅ Meeting ${meetingId} completed`)
   return new Response(JSON.stringify({ success: true }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
