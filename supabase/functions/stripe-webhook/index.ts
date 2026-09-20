@@ -137,12 +137,6 @@ Deno.serve(async (req) => {
               stripeSubscriptionId: subscription.id,
               stripePriceId: priceId,
             }).eq('id', oldUser.id)
-
-            // Also update profiles
-            await supabase.from('profiles').update({
-              plan_id: planId,
-              billing_cycle: billingCycle,
-            }).eq('email', oldUser.email)
           }
         }
         break
@@ -165,11 +159,6 @@ Deno.serve(async (req) => {
             stripeSubscriptionId: null,
             stripePriceId: null,
           }).eq('id', oldUser.id)
-
-          await supabase.from('profiles').update({
-            plan_id: 'basic',
-            billing_cycle: 'monthly',
-          }).eq('email', oldUser.email)
         }
         break
       }

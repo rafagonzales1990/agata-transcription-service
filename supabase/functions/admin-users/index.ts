@@ -18,7 +18,7 @@ async function verifyAdmin(supabase: any, authHeader: string) {
     .from('User')
     .select('id, isAdmin')
     .eq('id', user.id)
-    .single()
+    .maybeSingle()
 
   if (!userData?.isAdmin) return null
   return user

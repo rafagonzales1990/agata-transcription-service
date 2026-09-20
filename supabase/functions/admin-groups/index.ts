@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
           companyCNPJ: companyCNPJ || null,
         })
         .select()
-        .single()
+        .maybeSingle()
 
       if (error) throw error
 

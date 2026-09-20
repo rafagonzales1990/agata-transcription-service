@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard, FileText, Upload, FolderOpen, FolderKanban, Settings,
   Repeat, Sparkles, LogOut, Menu, X, User, CreditCard, Calendar as CalendarIcon,
-  ChevronDown, Shield, Users, HelpCircle, ExternalLink,
-  Sun, Moon, Building2, Download, Monitor, Globe, Smartphone,
+  ChevronDown, Shield, Users, HelpCircle,
+  Sun, Moon, Building2, Download, Smartphone,
   MessageCircle,
 } from 'lucide-react';
 import {
@@ -257,49 +257,15 @@ export function AppLayout({ children }: AppLayoutProps) {
           <Smartphone className="h-4 w-4" />
           Instalar no Celular
         </button>
-        {/* Desktop: show Downloads dropdown */}
-        <div className="hidden lg:block">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button type="button" className={cn('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors w-full text-left', inactiveClasses)}>
-                <Download className="h-4 w-4" />
-                Downloads
-                <ChevronDown className="h-3 w-3 ml-auto opacity-50" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent side="right" align="start" className="w-56">
-              <DropdownMenuItem asChild>
-                <a href="https://storage.googleapis.com/agata-desktop-releases/releases/latest/Agata-Transcription-Windows-latest.exe" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                  <Monitor className="h-4 w-4" />
-                  <div>
-                    <p className="text-sm font-medium">Windows</p>
-                    <p className="text-xs text-muted-foreground">v1.0.19 · Desktop App</p>
-                  </div>
-                </a>
-              </DropdownMenuItem>
-              <DropdownMenuItem disabled className="opacity-50">
-                <span className="flex items-center gap-2">
-                  <span className="text-base">🍎</span>
-                  <div>
-                    <p className="text-sm font-medium">Mac</p>
-                    <p className="text-xs text-muted-foreground">Em breve</p>
-                  </div>
-                </span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <a href="https://chromewebstore.google.com/detail/hhefgnokghkmeekjjpaipjmfhnhbnpjb" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                  <Globe className="h-4 w-4" />
-                  <div>
-                    <p className="text-sm font-medium">Extensão Chrome</p>
-                    <p className="text-xs text-muted-foreground">Meet, Zoom & Teams</p>
-                  </div>
-                  <ExternalLink className="h-3 w-3 ml-auto opacity-50" />
-                </a>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        {/* Desktop: show Install App button (PWA) */}
+        <button
+          type="button"
+          onClick={() => setPwaModalOpen(true)}
+          className={cn('hidden lg:flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors w-full text-left', inactiveClasses)}
+        >
+          <Download className="h-4 w-4" />
+          Instalar App
+        </button>
         <Link
           to="/settings"
           onClick={onNavigate}

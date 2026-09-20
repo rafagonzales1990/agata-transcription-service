@@ -31,9 +31,9 @@ export default function ProfilePage() {
     if (!profile) return;
     setSaving(true);
     const { error } = await supabase
-      .from('profiles')
+      .from('User')
       .update({ name, phone })
-      .eq('user_id', profile.user_id);
+      .eq('id', profile.user_id);
 
     setSaving(false);
     if (error) {

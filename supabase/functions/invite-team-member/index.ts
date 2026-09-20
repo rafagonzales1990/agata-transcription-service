@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
         acceptedAt: inviteStatus === 'accepted' ? new Date().toISOString() : null,
       })
       .select()
-      .single()
+      .maybeSingle()
 
     if (inviteError) {
       // Unique constraint violation = duplicate pending invite
