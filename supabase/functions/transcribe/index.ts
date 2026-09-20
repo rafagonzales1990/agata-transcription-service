@@ -116,34 +116,6 @@ async function transcribeChunk(
   return result.candidates?.[0]?.content?.parts?.[0]?.text || ''
 }
 
-async function transcribeWithGroq(
-  arrayBuffer: ArrayBuffer,
-  mimeType: string,
-  fileName: string,
-  groqApiKey: string
-): Promise<string> {
-  const formData = new FormData()
-  const blob = new Blob([arrayBuffer], { type: mimeType })
-  formData.append('file', blob, fileName)
-  formData.append('model', 'whisper-large-v3')
-  formData.append('language', 'pt')
-  formData.append('response_format', 'text')
-
-  const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${groqApiKey}` },
-    body: formData,
-  })
-
-  if (!response.ok) {
-    const err = await response.text()
-    throw new Error(`Groq error ${response.status}: ${err.substring(0, 300)}`)
-  }
-
-  const text = await response.text()
-  return `## Transcrição\n${text}`
-}
-
 async function transcribeWithOpenAI(
   arrayBuffer: ArrayBuffer,
   mimeType: string,
@@ -410,7 +382,7 @@ async function processTranscription(
     let totalBytes = 0
     let arrayBuffer: ArrayBuffer | null = null
 
-    // ── PRIMARY: AssemblyAI Universal-2 ───────────────────────────────
+    // ── PRIMARY: AssemblyAI Universal-3.5 Pro ───────────────────────────
     // Uses a signed URL — no buffer download required, supports up to 2GB
     if (assemblyApiKey) {
       try {
