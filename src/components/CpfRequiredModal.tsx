@@ -72,7 +72,6 @@ export function CpfRequiredModal({ userId, onSaved, onDismiss }: CpfRequiredModa
       return;
     }
 
-    await supabase.from('profiles').update({ cpf: clean }).eq('user_id', userId);
     setSaving(false);
     onSaved();
   }, [cpf, userId, onSaved]);
