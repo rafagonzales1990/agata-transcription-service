@@ -3,11 +3,19 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 export type RecordingSource = 'mic' | 'mic+tab';
 export type RecorderState = 'idle' | 'recording' | 'stopped';
 
+export interface DeviceMismatchInfo {
+  mismatch: boolean;
+  defaultLabel?: string;
+  commsLabel?: string;
+}
+
 export function useRecorder() {
   const [state, setState] = useState<RecorderState>('idle');
   const [elapsed, setElapsed] = useState(0);
   const [resultFile, setResultFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [deviceMismatch, setDeviceMismatch] = useState<DeviceMismatchInfo | null>(null);
+  const [silenceWarning, setSilenceWarning] = useState(false);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -43,9 +51,39 @@ export function useRecorder() {
     }
   }, []);
 
+  const checkDeviceMismatch = useCallback(async (): Promise<DeviceMismatchInfo> => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const outputs = devices.filter(d => d.kind === 'audiooutput');
+      const defaultDevice = outputs.find(d => d.deviceId === 'default');
+      const commsDevice = outputs.find(d => d.deviceId === 'communications');
+
+      if (!defaultDevice || !commsDevice || !defaultDevice.label || !commsDevice.label) {
+        setDeviceMismatch(null);
+        return { mismatch: false };
+      }
+
+      const normalize = (label: string) =>
+        label.replace(/^(Default|Communications)\s*-\s*/i, '').trim().toLowerCase();
+
+      const mismatch = normalize(defaultDevice.label) !== normalize(commsDevice.label);
+      const result: DeviceMismatchInfo = {
+        mismatch,
+        defaultLabel: defaultDevice.label.replace(/^(Default|Communications)\s*-\s*/i, '').trim(),
+        commsLabel: commsDevice.label.replace(/^(Default|Communications)\s*-\s*/i, '').trim(),
+      };
+      setDeviceMismatch(result);
+      return result;
+    } catch {
+      setDeviceMismatch(null);
+      return { mismatch: false };
+    }
+  }, []);
+
   const start = useCallback(async (source: RecordingSource, deviceId?: string) => {
     setError(null);
     setResultFile(null);
+    setSilenceWarning(false);
     chunksRef.current = [];
     setElapsed(0);
 
@@ -98,9 +136,31 @@ export function useRecorder() {
             await ctx.resume();
             const dest = ctx.createMediaStreamDestination();
             ctx.createMediaStreamSource(micStream).connect(dest);
-            ctx.createMediaStreamSource(displayStream).connect(dest);
+            const displaySource = ctx.createMediaStreamSource(displayStream);
+            displaySource.connect(dest);
             finalStream = dest.stream;
             streamsRef.current.push(finalStream);
+
+            // Monitor apenas o áudio da tela/sistema (não o mic) nos
+            // primeiros segundos, para detectar silêncio (indício de
+            // divergência entre dispositivo padrão e de comunicações)
+            const analyser = ctx.createAnalyser();
+            analyser.fftSize = 512;
+            displaySource.connect(analyser);
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            let maxLevel = 0;
+            const silenceCheckStart = Date.now();
+            const checkInterval = setInterval(() => {
+              analyser.getByteTimeDomainData(dataArray);
+              const peak = Math.max(...Array.from(dataArray).map(v => Math.abs(v - 128)));
+              maxLevel = Math.max(maxLevel, peak);
+              if (Date.now() - silenceCheckStart > 4000) {
+                clearInterval(checkInterval);
+                if (maxLevel < 2) {
+                  setSilenceWarning(true);
+                }
+              }
+            }, 250);
 
             // If user stops screen share, stop recording
             displayStream.getAudioTracks()[0]?.addEventListener('ended', () => {
@@ -210,10 +270,13 @@ export function useRecorder() {
     resultFile,
     error,
     isMobile,
+    deviceMismatch,
+    silenceWarning,
     start,
     stop,
     cancel,
     reset,
     getAudioDevices,
+    checkDeviceMismatch,
   };
 }
