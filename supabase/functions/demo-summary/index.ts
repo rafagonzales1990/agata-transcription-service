@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
         fileName: fileName || 'demo-text.txt',
         fileSize: fileSize || transcriptionText.length,
         visibility: 'private',
-      }).select('id').single()
+      }).select('id').maybeSingle()
       meetingId = meeting?.id
     } catch (e) {
       console.error('Failed to create demo meeting record:', e)
@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
     // Send demo-ready email if lead has email
     if (leadId) {
       try {
-        const { data: lead } = await supabase.from('Lead').select('email, name').eq('id', leadId).single()
+        const { data: lead } = await supabase.from('Lead').select('email, name').eq('id', leadId).maybeSingle()
         if (lead?.email) {
           await supabase.functions.invoke('send-email', {
             body: {
