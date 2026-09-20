@@ -27,14 +27,14 @@ Deno.serve(async (req) => {
     const in5days = new Date(now)
     in5days.setDate(in5days.getDate() + 5)
 
-    // Read from profiles.trial_ends_at (source of truth from handle_new_user)
-    const { data: expiringProfiles } = await supabase
-      .from('profiles')
-      .select('user_id, email, name, trial_ends_at')
-      .gte('trial_ends_at', in3days.toISOString())
-      .lt('trial_ends_at', in5days.toISOString())
+    // Read from User.trialEndsAt (source of truth)
+    const { data: expiringUsers } = await supabase
+      .from('User')
+      .select('id, email, name, trialEndsAt')
+      .gte('trialEndsAt', in3days.toISOString())
+      .lt('trialEndsAt', in5days.toISOString())
 
-    for (const profile of expiringProfiles || []) {
+    for (const profile of (expiringUsers || []).map(u => ({ user_id: u.id, email: u.email, name: u.name, trial_ends_at: u.trialEndsAt }))) {
       try {
         // Check if warning already sent (still tracked in User table)
         const { data: user } = await supabase
@@ -92,7 +92,6 @@ Deno.serve(async (req) => {
         // Only downgrade if user is not on a paid plan already
         if (!user.planId || user.planId === 'basic' || user.planId === 'inteligente') {
           await supabase.from('User').update({ planId: 'basic' }).eq('id', user.id)
-          await supabase.from('profiles').update({ plan_id: 'basic' }).eq('user_id', user.id)
         }
 
         emailsSent++
