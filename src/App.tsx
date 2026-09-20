@@ -43,7 +43,6 @@ const Demo = lazy(() => import("./pages/Demo"));
 const AdminLeads = lazy(() => import("./pages/AdminLeads"));
 const SharedMeeting = lazy(() => import("./pages/SharedMeeting"));
 const EnterpriseAdmin = lazy(() => import("./pages/EnterpriseAdmin"));
-const DesktopAuth = lazy(() => import("./pages/DesktopAuth"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const AskMeetings = lazy(() => import("./pages/AskMeetings"));
 const Projects = lazy(() => import("./pages/Projects"));
@@ -155,7 +154,6 @@ const App = () => (
               <Route path="/eula" element={<Eula />} />
               <Route path="/demo" element={<Demo />} />
               <Route path="/shared/:token" element={<SharedMeeting />} />
-              <Route path="/desktop-auth" element={<DesktopAuth />} />
               <Route path="/ajuda" element={<HelpCenter />} />
               <Route path="/admin/leads" element={<ProtectedRoute><AdminLeads /></ProtectedRoute>} />
               <Route path="/enterprise/admin" element={<ProtectedRoute><EnterpriseAdmin /></ProtectedRoute>} />
