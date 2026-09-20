@@ -40,7 +40,25 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
-    const { text, audioPath, title, leadId, fileName, fileSize } = await req.json()
+    const { text, audioPath, title, leadId, fileName, fileSize, email } = await req.json()
+
+    // Limite: 1 demo completa por e-mail cadastrado
+    if (email) {
+      const { data: existingCompleted } = await supabase
+        .from('Lead')
+        .select('id')
+        .eq('email', email)
+        .not('demoCompletedAt', 'is', null)
+        .limit(1)
+        .maybeSingle()
+
+      if (existingCompleted) {
+        return new Response(
+          JSON.stringify({ error: 'Você já utilizou sua demo gratuita com este e-mail. Crie uma conta para continuar testando a Ágata com suas próprias reuniões.', code: 'DEMO_ALREADY_USED' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
 
     let transcriptionText = text
 
