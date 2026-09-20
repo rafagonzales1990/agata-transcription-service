@@ -155,6 +155,16 @@ export default function UploadPage() {
     if (recorder.error) toast.error(recorder.error);
   }, [recorder.error]);
 
+  // Warn if no system audio detected in the first seconds of recording
+  useEffect(() => {
+    if (recorder.silenceWarning) {
+      toast.warning(
+        'Não detectamos áudio da reunião nos primeiros segundos. Verifique se o dispositivo de saída está correto — a gravação continua, mas pode estar sem o áudio dos outros participantes.',
+        { duration: 10000 }
+      );
+    }
+  }, [recorder.silenceWarning]);
+
   // Load audio devices when record tab is active
   useEffect(() => {
     if (activeTab === 'record') {
