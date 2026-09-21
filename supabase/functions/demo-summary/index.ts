@@ -60,6 +60,29 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Limite: 3 tentativas por IP a cada 24h (protecao contra abuso/bots
+    // mesmo com e-mails diferentes)
+    const forwardedFor = req.headers.get('x-forwarded-for') || ''
+    const clientIp = forwardedFor.split(',')[0].trim() || 'unknown'
+
+    if (clientIp !== 'unknown') {
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      const { count: ipAttempts } = await supabase
+        .from('DemoRateLimit')
+        .select('*', { count: 'exact', head: true })
+        .eq('ip', clientIp)
+        .gte('createdAt', oneDayAgo)
+
+      if ((ipAttempts || 0) >= 3) {
+        return new Response(
+          JSON.stringify({ error: 'Limite de testes atingido para este acesso. Tente novamente amanhã ou crie uma conta gratuita.', code: 'DEMO_RATE_LIMITED' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      await supabase.from('DemoRateLimit').insert({ ip: clientIp })
+    }
+
     let transcriptionText = text
 
     // If audio was uploaded, transcribe it first
