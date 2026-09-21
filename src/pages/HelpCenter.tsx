@@ -35,7 +35,7 @@ const faqSections: FaqSection[] = [
       },
       {
         question: 'Quais formatos de arquivo são aceitos?',
-        answer: 'Aceitamos MP3, MP4, WAV, M4A, WEBM e OGG. O tamanho máximo é de 500MB por arquivo. Para melhores resultados, recomendamos áudios com boa qualidade e pouco ruído de fundo.',
+        answer: 'Aceitamos MP3, MP4, WAV, M4A, WEBM e OGG. O tamanho máximo é de 5GB por arquivo, com upload resumível (retoma automaticamente se a conexão cair). Para melhores resultados, recomendamos áudios com boa qualidade e pouco ruído de fundo.',
       },
       {
         question: 'Quanto tempo demora a transcrição?',
@@ -67,7 +67,7 @@ const faqSections: FaqSection[] = [
     items: [
       {
         question: 'O Ágata funciona com reuniões do Teams, Zoom e Google Meet?',
-        answer: 'Sim! Use a Extensão Chrome para gravar diretamente do navegador durante reuniões no Google Meet, Zoom ou Teams. Você também pode usar o App Desktop para gravar o áudio do sistema. Depois, faça upload do arquivo para transcrição.',
+        answer: 'Sim! Direto pelo navegador, na página "Nova Transcrição", clique em "Gravar reunião online" e selecione a tela/aba da reunião com áudio do sistema ativado. Sem instalar nada. Depois, a transcrição é gerada automaticamente.',
       },
       {
         question: 'Em quais idiomas o Ágata transcreve?',
@@ -80,16 +80,20 @@ const faqSections: FaqSection[] = [
     ],
   },
   {
-    title: 'App Desktop e Extensão Chrome',
+    title: 'Gravação de Reuniões e Instalação',
     icon: <Monitor className="h-5 w-5" />,
     items: [
       {
-        question: 'Como instalo o App Desktop?',
-        answer: 'Baixe o instalador na seção Downloads do menu lateral (Windows 10/11). É um arquivo portátil — sem instalação necessária, basta executar. O app permite gravar áudio do sistema e enviar diretamente para transcrição.',
+        question: 'Como gravo uma reunião online (Teams, Zoom, Meet)?',
+        answer: 'Na página "Nova Transcrição", clique em "Gravar reunião online". Selecione "Tela inteira" (não uma janela específica) e marque a opção "Compartilhar áudio do sistema" quando o navegador pedir. Isso garante que o áudio da reunião seja capturado corretamente.',
       },
       {
-        question: 'Como funciona a Extensão Chrome?',
-        answer: 'Instale pela Chrome Web Store (link na seção Downloads), entre com sua conta Ágata, e grave qualquer reunião diretamente do navegador com um clique. A extensão captura o áudio da aba e envia automaticamente para processamento.',
+        question: 'Como gravo uma reunião presencial?',
+        answer: 'Na página "Nova Transcrição", clique em "Gravar reunião presencial". O Ágata usa apenas o microfone do seu dispositivo, sem precisar selecionar tela nenhuma — ideal para reuniões na sala física.',
+      },
+      {
+        question: 'Posso instalar o Ágata como um aplicativo?',
+        answer: 'Sim! Clique em "Instalar App" no menu lateral (computador) ou "Instalar no Celular" (Android/iOS). O Ágata funciona como um app nativo, com ícone próprio, sem precisar abrir o navegador toda vez — e sem nenhum instalador para baixar.',
       },
     ],
   },

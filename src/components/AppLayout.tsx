@@ -28,6 +28,7 @@ import { CpfRequiredModal } from '@/components/CpfRequiredModal';
 import { NameRequiredModal } from '@/components/NameRequiredModal';
 import { TermsRequiredModal } from '@/components/TermsRequiredModal';
 import { useTheme } from '@/hooks/useTheme';
+import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { PWAInstallModal } from '@/components/PWAInstallModal';
 import { TrialExpiredOverlay } from '@/components/TrialExpiredOverlay';
 import { useTrialExpiredStatus } from '@/hooks/useTrialExpiredStatus';
@@ -70,6 +71,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [trialOverlayDismissed, setTrialOverlayDismissed] = useState(false);
   const { isTrialExpired } = useTrialExpiredStatus();
   const { effectivePlanId, isPaidOrGift, hasActiveTrial, trialEndsAt } = useEffectivePlan();
+  const { canInstall, handleInstall } = usePWAInstall();
 
   const fetchUserData = useCallback(async () => {
     if (!user) return;
@@ -257,15 +259,17 @@ export function AppLayout({ children }: AppLayoutProps) {
           <Smartphone className="h-4 w-4" />
           Instalar no Celular
         </button>
-        {/* Desktop: show Install App button (PWA) */}
-        <button
-          type="button"
-          onClick={() => setPwaModalOpen(true)}
-          className={cn('hidden lg:flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors w-full text-left', inactiveClasses)}
-        >
-          <Download className="h-4 w-4" />
-          Instalar App
-        </button>
+        {/* Desktop: show Install App button (PWA) - usa prompt nativo do navegador */}
+        {canInstall && (
+          <button
+            type="button"
+            onClick={handleInstall}
+            className={cn('hidden lg:flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors w-full text-left', inactiveClasses)}
+          >
+            <Download className="h-4 w-4" />
+            Instalar App
+          </button>
+        )}
         <Link
           to="/settings"
           onClick={onNavigate}

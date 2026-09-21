@@ -163,10 +163,16 @@ export default function DemoPage() {
           text: textInput.slice(0, 5000),
           title: `Demo - ${name || 'Lead'}`,
           leadId,
+          email,
         },
       });
 
       if (error) throw error;
+      if (data?.code === 'DEMO_ALREADY_USED') {
+        toast.error(data.error);
+        setDemoLoading(false);
+        return;
+      }
       setSummaryResult(data.summary);
 
       if (leadId) {
@@ -217,10 +223,16 @@ export default function DemoPage() {
           leadId,
           fileName: audioFile.name,
           fileSize: audioFile.size,
+          email,
         },
       });
 
       if (error) throw error;
+      if (data?.code === 'DEMO_ALREADY_USED') {
+        toast.error(data.error);
+        setDemoLoading(false);
+        return;
+      }
       setSummaryResult(data.summary);
 
       if (leadId) {
