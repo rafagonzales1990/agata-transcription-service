@@ -36,9 +36,6 @@ const AdminPanel = lazy(() => import("./pages/AdminPanel"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPostPage = lazy(() => import("./pages/BlogPost"));
 const Teams = lazy(() => import("./pages/Teams"));
-const LegalTerms = lazy(() => import("./pages/LegalTerms"));
-const LegalLgpd = lazy(() => import("./pages/LegalLgpd"));
-const Privacy = lazy(() => import("./pages/Privacy"));
 const TermosDeUso = lazy(() => import("./pages/TermosDeUso"));
 const PoliticaPrivacidade = lazy(() => import("./pages/PoliticaPrivacidade"));
 const Eula = lazy(() => import("./pages/Eula"));
@@ -46,7 +43,6 @@ const Demo = lazy(() => import("./pages/Demo"));
 const AdminLeads = lazy(() => import("./pages/AdminLeads"));
 const SharedMeeting = lazy(() => import("./pages/SharedMeeting"));
 const EnterpriseAdmin = lazy(() => import("./pages/EnterpriseAdmin"));
-const DesktopAuth = lazy(() => import("./pages/DesktopAuth"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 const AskMeetings = lazy(() => import("./pages/AskMeetings"));
 const Projects = lazy(() => import("./pages/Projects"));
@@ -153,15 +149,11 @@ const App = () => (
               <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPostPage />} />
-              <Route path="/legal/terms" element={<LegalTerms />} />
-              <Route path="/legal/lgpd" element={<LegalLgpd />} />
-              <Route path="/privacy" element={<Privacy />} />
               <Route path="/termos" element={<TermosDeUso />} />
               <Route path="/privacidade" element={<PoliticaPrivacidade />} />
               <Route path="/eula" element={<Eula />} />
               <Route path="/demo" element={<Demo />} />
               <Route path="/shared/:token" element={<SharedMeeting />} />
-              <Route path="/desktop-auth" element={<DesktopAuth />} />
               <Route path="/ajuda" element={<HelpCenter />} />
               <Route path="/admin/leads" element={<ProtectedRoute><AdminLeads /></ProtectedRoute>} />
               <Route path="/enterprise/admin" element={<ProtectedRoute><EnterpriseAdmin /></ProtectedRoute>} />

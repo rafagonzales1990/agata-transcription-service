@@ -518,11 +518,10 @@ export default function AdminPanel() {
         .order('createdAt', { ascending: false });
       if (error) throw error;
 
-      const [meetingsRes, groupsRes, usageRes, profilesRes] = await Promise.all([
+      const [meetingsRes, groupsRes, usageRes] = await Promise.all([
         supabase.from('Meeting').select('userId'),
         supabase.from('AdminGroup').select('*'),
         supabase.from('Usage').select('userId, transcriptionsUsed, totalMinutesTranscribed').eq('currentMonth', currentMonth),
-        supabase.from('profiles').select('user_id, trial_ends_at'),
       ]);
 
       const countMap: Record<string, number> = {};
@@ -535,7 +534,6 @@ export default function AdminPanel() {
 
       // Map profiles.trial_ends_at by user_id (source of truth for trial)
       const trialMap: Record<string, string | null> = {};
-      profilesRes.data?.forEach(p => { trialMap[p.user_id] = p.trial_ends_at; });
 
       setUsers((usersData || []).map(u => ({
         ...u, meetingCount: countMap[u.id] || 0,
@@ -625,15 +623,10 @@ export default function AdminPanel() {
   const handleGiftPlan = async (userId: string, planId: string, expiryDate: Date) => {
     const user = users.find(u => u.id === userId);
     const iso = expiryDate.toISOString();
-    const [userRes, profileRes] = await Promise.all([
-      supabase.from('User').update({
-        planId, giftPlanId: planId, giftEndsAt: iso, updatedAt: new Date().toISOString(),
-      }).eq('id', userId),
-      supabase.from('profiles').update({
-        plan_id: planId, gift_plan_id: planId, gift_ends_at: iso, updated_at: new Date().toISOString(),
-      }).eq('user_id', userId),
-    ]);
-    if (userRes.error || profileRes.error) { toast.error('Erro ao aplicar gift'); return; }
+    const { error: userError } = await supabase.from('User').update({
+      planId, giftPlanId: planId, giftEndsAt: iso, updatedAt: new Date().toISOString(),
+    }).eq('id', userId);
+    if (userError) { toast.error('Erro ao aplicar gift'); return; }
     const dateStr = expiryDate.toLocaleDateString('pt-BR');
     toast.success(`Gift aplicado! ${user?.email} terá ${PLAN_LABELS[planId]} até ${dateStr}`);
     refreshUsers();

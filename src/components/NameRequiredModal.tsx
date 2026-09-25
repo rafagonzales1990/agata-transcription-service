@@ -53,14 +53,6 @@ export function NameRequiredModal({ userId, onSaved, onDismiss }: NameRequiredMo
       return;
     }
 
-    const { error: profileErr } = await supabase
-      .from('profiles')
-      .update({ name: trimmed } as any)
-      .eq('user_id', userId);
-    if (profileErr) {
-      console.error('[NameRequiredModal] profiles update failed', profileErr);
-    }
-
     setSaving(false);
     onSaved();
   }, [name, userId, onSaved]);

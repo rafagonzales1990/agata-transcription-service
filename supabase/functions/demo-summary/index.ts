@@ -40,7 +40,48 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
-    const { text, audioPath, title, leadId, fileName, fileSize } = await req.json()
+    const { text, audioPath, title, leadId, fileName, fileSize, email } = await req.json()
+
+    // Limite: 1 demo completa por e-mail cadastrado
+    if (email) {
+      const { data: existingCompleted } = await supabase
+        .from('Lead')
+        .select('id')
+        .eq('email', email)
+        .not('demoCompletedAt', 'is', null)
+        .limit(1)
+        .maybeSingle()
+
+      if (existingCompleted) {
+        return new Response(
+          JSON.stringify({ error: 'Você já utilizou sua demo gratuita com este e-mail. Crie uma conta para continuar testando a Ágata com suas próprias reuniões.', code: 'DEMO_ALREADY_USED' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    }
+
+    // Limite: 3 tentativas por IP a cada 24h (protecao contra abuso/bots
+    // mesmo com e-mails diferentes)
+    const forwardedFor = req.headers.get('x-forwarded-for') || ''
+    const clientIp = forwardedFor.split(',')[0].trim() || 'unknown'
+
+    if (clientIp !== 'unknown') {
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      const { count: ipAttempts } = await supabase
+        .from('DemoRateLimit')
+        .select('*', { count: 'exact', head: true })
+        .eq('ip', clientIp)
+        .gte('createdAt', oneDayAgo)
+
+      if ((ipAttempts || 0) >= 3) {
+        return new Response(
+          JSON.stringify({ error: 'Limite de testes atingido para este acesso. Tente novamente amanhã ou crie uma conta gratuita.', code: 'DEMO_RATE_LIMITED' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      await supabase.from('DemoRateLimit').insert({ ip: clientIp })
+    }
 
     let transcriptionText = text
 
@@ -138,7 +179,7 @@ Deno.serve(async (req) => {
         fileName: fileName || 'demo-text.txt',
         fileSize: fileSize || transcriptionText.length,
         visibility: 'private',
-      }).select('id').single()
+      }).select('id').maybeSingle()
       meetingId = meeting?.id
     } catch (e) {
       console.error('Failed to create demo meeting record:', e)
@@ -148,7 +189,7 @@ Deno.serve(async (req) => {
     // Send demo-ready email if lead has email
     if (leadId) {
       try {
-        const { data: lead } = await supabase.from('Lead').select('email, name').eq('id', leadId).single()
+        const { data: lead } = await supabase.from('Lead').select('email, name').eq('id', leadId).maybeSingle()
         if (lead?.email) {
           await supabase.functions.invoke('send-email', {
             body: {

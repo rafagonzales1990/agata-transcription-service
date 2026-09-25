@@ -131,6 +131,7 @@ export default function UploadPage() {
   const [detectedDuration, setDetectedDuration] = useState(0);
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
+  const [showDeviceMismatchDialog, setShowDeviceMismatchDialog] = useState(false);
 
   const limitReached = usage.isAtLimit;
   const remainingMinutes = Math.max(0, usage.limits.maxTotalMinutesMonth - usage.totalMinutesTranscribed);
@@ -154,6 +155,16 @@ export default function UploadPage() {
     if (recorder.error) toast.error(recorder.error);
   }, [recorder.error]);
 
+  // Warn if no system audio detected in the first seconds of recording
+  useEffect(() => {
+    if (recorder.silenceWarning) {
+      toast.warning(
+        'Não detectamos áudio da reunião nos primeiros segundos. Verifique se o dispositivo de saída está correto — a gravação continua, mas pode estar sem o áudio dos outros participantes.',
+        { duration: 10000 }
+      );
+    }
+  }, [recorder.silenceWarning]);
+
   // Load audio devices when record tab is active
   useEffect(() => {
     if (activeTab === 'record') {
@@ -175,6 +186,15 @@ export default function UploadPage() {
   }, []);
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) setFile(e.target.files[0]);
+  };
+
+  const handleStartMicTab = async () => {
+    const check = await recorder.checkDeviceMismatch();
+    if (check.mismatch) {
+      setShowDeviceMismatchDialog(true);
+      return;
+    }
+    recorder.start('mic+tab', selectedDeviceId);
   };
 
   const handleSubmit = async () => {
@@ -426,7 +446,7 @@ export default function UploadPage() {
                       {/* Option B: Mic + Tab audio (desktop only) */}
                       {!recorder.isMobile && (
                         <button
-                          onClick={() => recorder.start('mic+tab', selectedDeviceId || undefined)}
+                          onClick={handleStartMicTab}
                           disabled={uploading}
                           className="flex flex-col items-center gap-3 p-6 rounded-xl border-2 border-border hover:border-primary hover:bg-accent transition-colors"
                         >
@@ -626,6 +646,38 @@ export default function UploadPage() {
             </Button>
             <Button onClick={() => navigate('/plans')}>
               Ver planos
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDeviceMismatchDialog} onOpenChange={setShowDeviceMismatchDialog}>
+        <DialogContent className="bg-[#132536] border-[#1a3550] text-white">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              ⚠️ Possível problema de áudio detectado
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Seu dispositivo de reprodução padrão do Windows (
+              <strong className="text-white">{recorder.deviceMismatch?.defaultLabel}</strong>
+              ) é diferente do dispositivo usado por chamadas (
+              <strong className="text-white">{recorder.deviceMismatch?.commsLabel}</strong>
+              ). Isso pode fazer com que o áudio da reunião não seja gravado.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="bg-[#0D1F2D] border border-[#1a3550] rounded-md p-3 text-sm text-slate-300">
+            <strong className="text-white">Como corrigir:</strong> Painel de Controle → Som →
+            clique com botão direito no dispositivo que você usa na call → "Definir como dispositivo padrão"
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowDeviceMismatchDialog(false)}>
+              Corrigir e tentar novamente
+            </Button>
+            <Button onClick={() => {
+              setShowDeviceMismatchDialog(false);
+              recorder.start('mic+tab', selectedDeviceId);
+            }}>
+              Gravar mesmo assim
             </Button>
           </DialogFooter>
         </DialogContent>
